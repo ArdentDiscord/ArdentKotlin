@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.rethinkdb:rethinkdb-driver:2.3.3">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.rethinkdb/rethinkdb-driver/2.3.3/5b8bd297306f32c7246cfd2b022e1aff7a12c6c7/rethinkdb-driver-2.3.3.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.rethinkdb/rethinkdb-driver/2.3.3/f8ea389d54708b83e73c215543d85cdc58c788be/rethinkdb-driver-2.3.3-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
