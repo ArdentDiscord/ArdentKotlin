@@ -53,6 +53,7 @@ abstract class Game(val type : GameType, val channel: TextChannel, val creator :
         gameId = type.findNextId()
         gamesInLobby.remove(this)
         scheduledExecutor.shutdownNow()
+        activeGames.add(this)
         start()
     }
 
@@ -66,6 +67,7 @@ abstract class Game(val type : GameType, val channel: TextChannel, val creator :
 
     fun end(gameData : Any) {
         gameData.insert("${type.readable}Data")
+        activeGames.remove(this)
     }
 }
 
@@ -80,9 +82,13 @@ enum class GameType(val readable : String, val id : Int) {
     COINFLIP("Coinflip", 1),
     BLACKJACK("Blackjack", 2),
     TRIVIA("Trivia", 3),
-    CONNECT_FOUR("Connect Four", 4);
+    CONNECT_FOUR("Connect-Four", 4);
 
     override fun toString(): String {
         return readable
     }
 }
+
+class TriviaPlayerData(var wins : Int = 0, var losses : Int = 0, var questionsCorrect : Int = 0, var questionsWrong : Int = 0)
+
+class GameDataTrivia(val id : Long, val winner : String, val scores : HashMap<String, Int>)

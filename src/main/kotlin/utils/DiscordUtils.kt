@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import net.dv8tion.jda.core.exceptions.PermissionException
 import com.rethinkdb.net.Cursor
 import com.vdurmont.emoji.EmojiParser
+import games.TriviaPlayerData
 import main.conn
 import main.jda
 import main.r
@@ -146,10 +147,41 @@ fun Guild.getPrefix(): String {
     return "/"
 }
 
-enum class DonationLevels {
-    SUBSCRIBER, SUBSCRIBER_PLUS, DIAMOND
+enum class DonationLevel(val readable: String) {
+    NONE("None"), PATRON("Patron"), PATRON_PLUS("Patron+"), OG("OG");
+
+    override fun toString(): String {
+        return readable
+    }
 }
 
-fun Guild.getDonationLevel(): DonationLevels {
-    return DonationLevels.DIAMOND
+fun Guild.isPatronGuild() : Boolean {
+    return donationLevel() != DonationLevel.NONE
 }
+
+fun Guild.donationLevel(): DonationLevel {
+    return owner.user.donationLevel()
+}
+
+fun User.getData() : PlayerData {
+    var data : Any? = r.table("playerData").get(id).run(conn)
+    if (data != null) return asPojo(data as HashMap<*, *>?, PlayerData::class.java)!!
+    data = PlayerData(id, DonationLevel.NONE, TriviaPlayerData())
+    data.insert("playerData")
+    return data
+}
+
+fun Member.isPatron() : Boolean {
+    return user.donationLevel() != DonationLevel.NONE
+}
+
+fun User.donationLevel() : DonationLevel {
+    // return DonationLevel.OG
+    return getData().donationLevel
+}
+
+fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
+    send(member, "${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
+}
+
+class PlayerData(val id : String, var donationLevel: DonationLevel, var triviaData : TriviaPlayerData)

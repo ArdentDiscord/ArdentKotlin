@@ -14,23 +14,31 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
 
-class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a list of provided options", "pr") {
+class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a list of provided options. this is a **patron-only** feature", "pr") {
+    val stations = hashMapOf(Pair("977hits", "http://19353.live.streamtheworld.com/977_HITS_SC"))
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
-            withHelp("start", "start the selection for radio playback")
+            withHelp("start", "view and select from the list of current radio stations")
                     .withHelp("request [name of radio station]", "send a request to the developers to add a specific radio station")
                     .displayHelp(channel, member)
+            return
+        }
+        if (arguments[0].equals("start", true)) {
+            val keys = stations.keys.toMutableList()
+            channel.selectFromList(member, "Select the radio station that you want to listen to", keys, {
+                selection ->
+                if (member.isPatron() || guild.isPatronGuild()) {
+                    stations.values.toList()[selection].load(member, channel, event.message, radioName = keys[selection])
+                } else channel.requires(member, DonationLevel.PATRON)
+            })
+            return
         }
     }
 }
 
 class Play : Command(Category.MUSIC, "play", "play a song by its url or search a song to look it up on youtube", "p") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (member.voiceState.channel == null) {
-            event.channel.send(member, "${Emoji.CROSS_MARK} lol, you gotta be connected to a voice channel")
-            return
-        }
-        arguments.concat().load(member, member.voiceState.channel, channel, event.message)
+        arguments.concat().load(member, channel, event.message)
     }
 }
 
@@ -57,7 +65,12 @@ fun play(member: Member, guild: Guild, channel: VoiceChannel, musicManager: Guil
     musicManager.scheduler.manager.addToQueue(ArdentTrack(member.user.id, textChannel.id, track))
 }
 
-fun String.load(member: Member, channel: VoiceChannel, textChannel: TextChannel, message: Message, search: Boolean = false) {
+fun String.load(member: Member, textChannel: TextChannel, message: Message, search: Boolean = false, radioName: String? = null) {
+    if (member.voiceState.channel == null) {
+        textChannel.send(member, "${Emoji.CROSS_MARK} You need to be connected to a voice channel")
+        return
+    }
+    val channel = member.voiceState.channel
     val musicManager = getGuildAudioPlayer(member.guild, textChannel)
     val data = member.guild.getData()
     if (data.musicSettings.singleSongInQueueForMembers && !member.hasOverride()) {
@@ -74,13 +87,14 @@ fun String.load(member: Member, channel: VoiceChannel, textChannel: TextChannel,
         }
 
         override fun trackLoaded(track: AudioTrack) {
-            textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
+            if (radioName == null) textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
+            else textChannel.send(member, "${Emoji.MULTIPLE_MUSICAL_NOTES} Starting to play the radio station **$radioName**...")
             play(member, member.guild, channel, musicManager, track, textChannel)
         }
 
         override fun noMatches() {
             if (search) textChannel.send(member, "I was unable to find a track with that name. Please try again with a different query")
-            else ("ytsearch: ${this@load}").load(member, channel, textChannel, message, true)
+            else ("ytsearch: ${this@load}").load(member, textChannel, message, true)
         }
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
