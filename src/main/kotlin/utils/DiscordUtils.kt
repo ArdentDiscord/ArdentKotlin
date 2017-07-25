@@ -19,18 +19,10 @@ import java.util.*
 import java.util.ArrayList
 import java.util.HashMap
 
-private val random = Random()
-private val gsons = listOf(Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson())
-
 fun String.toChannel() : TextChannel? {
     return jda?.getTextChannelById(this)
 }
 
-fun List<String>.concat() : String {
-    val builder = StringBuilder()
-    forEach { builder.append("$it ") }
-    return builder.removeSuffix(" ").toString()
-}
 
 fun Member.hasOverride() : Boolean {
     return hasPermission(Permission.MANAGE_CHANNEL)
@@ -48,7 +40,8 @@ fun User.withDiscrim(): String {
     return "$name#$discriminator"
 }
 
-fun embed(title: String, member: Member, color: Color = Color.GREEN): EmbedBuilder {
+
+fun embed(title: String, member: Member, color: Color = Color.CYAN): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", member.guild.selfMember.user.avatarUrl)
             .setColor(color)
             .setFooter("Served ${member.withDiscrim()} with Ardent version $version", member.user.avatarUrl)
@@ -62,24 +55,6 @@ fun Guild.getData(): GuildData {
     return data
 }
 
-fun Any.insert(table: String) {
-    r.table(table).insert(r.json(getGson().toJson(this))).runNoReply(conn)
-}
-
-fun <T> asPojo(map: HashMap<*, *>?, tClass: Class<T>): T? {
-    return getGson().fromJson(JSONObject.toJSONString(map), tClass)
-}
-
-fun <T> queryAsArrayList(t: Class<T>, o: Any): ArrayList<T?> {
-    val cursor = o as Cursor<HashMap<*, *>>
-    val tS = ArrayList<T?>()
-    cursor.forEach { hashMap -> tS.add(asPojo(hashMap, t)) }
-    return tS
-}
-
-fun getGson(): Gson {
-    return gsons[random.nextInt(gsons.size)]
-}
 
 fun MessageChannel.sendReceive(member: Member, message: String): Message? {
     try {

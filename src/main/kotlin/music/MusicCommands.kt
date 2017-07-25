@@ -14,6 +14,16 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
 
+class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a list of provided options", "pr") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size == 0) {
+            withHelp("start", "start the selection for radio playback")
+                    .withHelp("request [name of radio station]", "send a request to the developers to add a specific radio station")
+                    .displayHelp(channel, member)
+        }
+    }
+}
+
 class Play : Command(Category.MUSIC, "play", "play a song by its url or search a song to look it up on youtube", "p") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.voiceState.channel == null) {

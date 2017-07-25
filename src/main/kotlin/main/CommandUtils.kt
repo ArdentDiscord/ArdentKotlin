@@ -1,20 +1,20 @@
 package main
 
-import utils.GuildMusicManager
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
-import utils.getPrefix
-import utils.send
+import utils.*
+import java.awt.Color
 
 class CommandFactory {
     val commands = mutableListOf<Command>()
 
-    fun addCommand(command: Command) {
+    fun addCommand(command: Command) : CommandFactory {
         commands.add(command)
+        return this
     }
 
     @SubscribeEvent
@@ -59,12 +59,20 @@ abstract class Command(val category : Category, val name: String, val descriptio
 
     abstract fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent)
 
-    fun withHelp(syntax: String, description: String) {
+    fun withHelp(syntax: String, description: String) : Command {
         help.add(Pair(syntax, description))
+        return this
     }
 
-    fun displayHelp() {
-        TODO("later")
+    fun displayHelp(channel: TextChannel, member: Member) {
+        val embed = embed("How can I use ${channel.guild.getPrefix()}$name ?", member, Color.BLACK)
+                .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
+                .setFooter("Aliases: ${aliases.toList().stringify()}", member.user.avatarUrl)
+        embed.appendDescription("description: *$description*\n")
+        help.forEach { embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND}**${it.first}**: *${it.second}*") }
+        embed.appendDescription("\n\nType ${channel.guild.getPrefix()}help to view a full list of commands")
+        channel.send(member, embed)
+        help.clear()
     }
 
     fun containsAlias(arg: String): Boolean {

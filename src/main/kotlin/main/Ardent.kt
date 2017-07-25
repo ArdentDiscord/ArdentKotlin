@@ -15,6 +15,7 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import music.Play
+import music.Radio
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import utils.*
@@ -55,10 +56,10 @@ fun main(args: Array<String>) {
             val currentTime = System.currentTimeMillis()
             event.channel.sendReceive(member, "I'll calculate my ping to Discord using this message")
                     ?.editMessage("**Socket Ping**: *${System.currentTimeMillis() - currentTime} milliseconds*")?.queue()
-            waiter.waitForMessage(Settings(event.author.id), { message : Message -> println(message.content)} )
+            waiter.waitForMessage(Settings(event.author.id), { message: Message -> println(message.content) })
         }
     })
 
     factory.addCommand(Play())
-
+            .addCommand(Radio())
 }
