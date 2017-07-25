@@ -50,7 +50,7 @@ fun embed(title: String, member: Member, color: Color = Color.CYAN): EmbedBuilde
 fun Guild.getData(): GuildData {
     val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
     if (guildData != null) return guildData
-    val data = GuildData("/", MusicSettings(true, true), mutableListOf<String>())
+    val data = GuildData(id, "/", MusicSettings(true, true), mutableListOf<String>())
     data.insert("guilds")
     return data
 }

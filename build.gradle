@@ -30,6 +30,7 @@ dependencies {
     compile 'com.vdurmont:emoji-java:3.2.0'
     compile group: 'com.google.code.gson', name: 'gson', version: '2.3.1'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
