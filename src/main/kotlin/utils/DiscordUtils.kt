@@ -42,9 +42,13 @@ fun User.withDiscrim(): String {
 
 
 fun embed(title: String, member: Member, color: Color = Color.CYAN): EmbedBuilder {
-    return EmbedBuilder().setAuthor(title, "https://ardentbot.com", member.guild.selfMember.user.avatarUrl)
+    return EmbedBuilder().setAuthor(title, "https://ardentbot.com", member.guild.iconUrl)
             .setColor(color)
             .setFooter("Served ${member.withDiscrim()} with Ardent version $version", member.user.avatarUrl)
+}
+
+fun String.toUser() : User? {
+    return jda?.getUserById(this)
 }
 
 fun Guild.getData(): GuildData {
@@ -55,6 +59,15 @@ fun Guild.getData(): GuildData {
     return data
 }
 
+
+fun MessageChannel.sendReceive(member: Member, embed: EmbedBuilder): Message? {
+    try {
+        return this.sendMessage(embed.build()).complete()
+    } catch (ex: PermissionException) {
+        sendFailed(member.user, false)
+    }
+    return null
+}
 
 fun MessageChannel.sendReceive(member: Member, message: String): Message? {
     try {
