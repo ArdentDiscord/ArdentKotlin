@@ -48,13 +48,15 @@ class EventWaiter : EventListener {
 
 class Settings(val id: String? = null, val channel: String? = null, val guild: String? = null)
 
-fun TextChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int) -> Unit) {
+fun TextChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int) -> Unit, footerText : String? = null) {
     val embed = embed(title, member)
     val builder = StringBuilder()
-            .append("Please type the number of the choice you want in a message\n")
+            .append("**Please type the number corresponding with the choice you want to select**\n\n")
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: _${value}_\n")
     }
+    if (footerText != null) builder.append("\n$footerText")
+
     send(member, embed.setDescription(builder))
     waiter.waitForMessage(Settings(member.user.id, id, guild.id), { message ->
         val option: Int? = message.rawContent.toIntOrNull()?.minus(1)

@@ -68,7 +68,7 @@ abstract class Command(val category: Category, val name: String, val description
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
                 .setFooter("Aliases: ${aliases.toList().stringify()}", member.user.avatarUrl)
         embed.appendDescription("description: *$description*\n")
-        help.forEach { embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND}**${it.first}**: *${it.second}*") }
+        help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first}**: *${it.second}*") }
         embed.appendDescription("\n\nType ${channel.guild.getPrefix()}help to view a full list of commands")
         channel.send(member, embed)
         help.clear()
@@ -79,6 +79,11 @@ abstract class Command(val category: Category, val name: String, val description
     }
 }
 
-enum class Category {
-    MUSIC, INFO
+enum class Category(val fancyName : String, val description: String) {
+    MUSIC("Music & Radio", "Play your favorite tracks or listen to the radio, all inside Discord"),
+    INFO("Bot Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!");
+
+    override fun toString(): String {
+        return fancyName
+    }
 }

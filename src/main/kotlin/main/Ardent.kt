@@ -14,6 +14,8 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
+import commands.info.Help
+import commands.info.Ping
 import commands.music.*
 import events.Category
 import events.Command
@@ -55,19 +57,12 @@ fun main(args: Array<String>) {
     AudioSourceManagers.registerRemoteSources(playerManager)
     AudioSourceManagers.registerLocalSource(playerManager)
 
-    factory.addCommand(object : Command(Category.INFO, "ping", "what did you think this command was gonna do?") {
-        override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-            val currentTime = System.currentTimeMillis()
-            event.channel.sendReceive(member, "I'll calculate my ping to Discord using this message")
-                    ?.editMessage("**Socket Ping**: *${System.currentTimeMillis() - currentTime} milliseconds*")?.queue()
-            waiter.waitForMessage(Settings(event.author.id), { message: Message -> println(message.content) })
-        }
-    })
-
     factory.addCommand(Play())
             .addCommand(Radio())
             .addCommand(Stop())
             .addCommand(Pause())
             .addCommand(Resume())
             .addCommand(SongUrl())
+            .addCommand(Ping())
+            .addCommand(Help())
 }
