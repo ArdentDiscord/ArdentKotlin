@@ -59,7 +59,7 @@ class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel
     }
 }
 
-class Pause : Command(Category.MUSIC, "pause", "pause the player. what did you think this was gonna do?") {
+class Pause : Command(Category.MUSIC, "pause", "pause the player... what did you think this was gonna do?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         assert(member.checkSameChannel(channel))
         assert(member.hasOverride(channel, true))
