@@ -72,13 +72,6 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     }
 }
 
-fun GameType.findNextId(): Long {
-    val random = Random()
-    val number = random.nextInt(1000000) + 1
-    if (r.table("${readable}Data").get(number).run<Any?>(conn) != null) return number.toLong()
-    else return findNextId()
-}
-
 enum class GameType(val readable: String, val id: Int) {
     COINFLIP("Coinflip", 1),
     BLACKJACK("Blackjack", 2),
@@ -87,6 +80,13 @@ enum class GameType(val readable: String, val id: Int) {
 
     override fun toString(): String {
         return readable
+    }
+
+    fun findNextId(): Long {
+        val random = Random()
+        val number = random.nextInt(1000000) + 1
+        if (r.table("${readable}Data").get(number).run<Any?>(conn) != null) return number.toLong()
+        else return findNextId()
     }
 }
 

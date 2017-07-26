@@ -43,6 +43,14 @@ fun <T> Any.queryAsArrayList(t: Class<T>): ArrayList<T?> {
     return tS
 }
 
+fun PlayerData.update() {
+    r.table("playerData").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
+}
+
+fun GuildData.update() {
+    r.table("guilds").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
+}
+
 fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }

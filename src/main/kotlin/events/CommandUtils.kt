@@ -79,11 +79,21 @@ abstract class Command(val category: Category, val name: String, val description
     }
 }
 
+fun String.toCategory() : Category {
+    when (this) {
+        "Music & Radio" -> return Category.MUSIC
+        "Bot & Server Information" -> return Category.INFO
+        "Manage" -> return Category.MANAGE
+        "Server Administration" -> return Category.ADMINISTRATE
+        else -> return Category.INFO
+    }
+}
+
 enum class Category(val fancyName: String, val description: String) {
     MUSIC("Music & Radio", "Play your favorite tracks or listen to the radio, all inside Discord"),
-    INFO("Bot Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
+    INFO("Bot & Server Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
     MANAGE("Manage", "Manage settings, both for Ardent and your server"),
-    ADMINISTRATE("Administrate", "Administrate your server: this category includes commands like warnings and mutes")
+    ADMINISTRATE("Server Administration", "Administrate your server: this category includes commands like warnings and mutes")
     ;
 
     override fun toString(): String {
