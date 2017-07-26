@@ -3,6 +3,8 @@ package utils
 import com.google.gson.Gson
 import net.dv8tion.jda.core.exceptions.PermissionException
 import com.rethinkdb.net.Cursor
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
+import com.sun.org.apache.xpath.internal.operations.Bool
 import com.vdurmont.emoji.EmojiParser
 import games.TriviaPlayerData
 import main.conn
@@ -24,9 +26,20 @@ fun String.toChannel() : TextChannel? {
     return jda?.getTextChannelById(this)
 }
 
+fun AudioPlayer.currentlyPlaying(channel: TextChannel) : Boolean {
+    if (playingTrack != null) return true
+    channel.send(channel.guild.selfMember, "${Emoji.HEAVY_MULTIPLICATION_X} There isn't a currently playing track!")
+    return false
+}
+
+fun Member.hasOverride(channel: TextChannel) : Boolean {
+    if (hasOverride()) return true
+    channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
+    return false
+}
 
 fun Member.hasOverride() : Boolean {
-    return hasPermission(Permission.MANAGE_CHANNEL)
+    return hasPermission(Permission.MANAGE_CHANNEL) || guild.getData().advancedPermissions.contains(user.id)
 }
 
 fun String.getChannel(): TextChannel? {
@@ -42,7 +55,7 @@ fun User.withDiscrim(): String {
 }
 
 
-fun embed(title: String, member: Member, color: Color = Color.CYAN): EmbedBuilder {
+fun embed(title: String, member: Member, color: Color = Color.MAGENTA): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", member.guild.iconUrl)
             .setColor(color)
             .setFooter("Served ${member.withDiscrim()} with Ardent version $version", member.user.avatarUrl)

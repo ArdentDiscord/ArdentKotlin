@@ -1,4 +1,4 @@
-package main
+package events
 
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Guild
@@ -12,7 +12,7 @@ import java.awt.Color
 class CommandFactory {
     val commands = mutableListOf<Command>()
 
-    fun addCommand(command: Command) : CommandFactory {
+    fun addCommand(command: Command): CommandFactory {
         commands.add(command)
         return this
     }
@@ -24,14 +24,13 @@ class CommandFactory {
         val prefix = event.guild.getPrefix()
 
         when (args[0]) {
-            "route" -> {
-                args[0] = args[0].replace("route", "")
+            "ardent" -> {
+                args.removeAt(0)
             }
             else -> {
                 if (args[0].startsWith(prefix)) {
                     args[0] = args[0].replace(prefix, "")
-                }
-                else return
+                } else return
             }
         }
 
@@ -46,7 +45,7 @@ class CommandFactory {
     }
 }
 
-abstract class Command(val category : Category, val name: String, val description: String, vararg val aliases: String) {
+abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String) {
     val help = mutableListOf<Pair<String, String>>()
     fun execute(args: MutableList<String>, event: MessageReceivedEvent) {
         if (event.channelType == ChannelType.PRIVATE)
@@ -59,7 +58,7 @@ abstract class Command(val category : Category, val name: String, val descriptio
 
     abstract fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent)
 
-    fun withHelp(syntax: String, description: String) : Command {
+    fun withHelp(syntax: String, description: String): Command {
         help.add(Pair(syntax, description))
         return this
     }

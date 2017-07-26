@@ -1,4 +1,4 @@
-package utils
+package commands.music
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
@@ -17,6 +17,9 @@ import jdk.nashorn.internal.objects.NativeDate
 import main.managers
 import main.playerManager
 import net.dv8tion.jda.core.entities.Guild
+import utils.embed
+import utils.getChannel
+import utils.getData
 import java.util.*
 
 
@@ -48,7 +51,7 @@ class ArdentTrack(val author: String, val channel: String, val track: AudioTrack
 }
 
 
-class GuildMusicManager(manager: AudioPlayerManager, channel: TextChannel) {
+class GuildMusicManager(manager: AudioPlayerManager, channel: TextChannel?) {
     val scheduler: TrackScheduler
     internal val player: AudioPlayer = manager.createPlayer()
 
@@ -69,8 +72,8 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
         return textChannel!!.getChannel()
     }
 
-    fun setChannel(channel: MessageChannel) {
-        textChannel = channel.id
+    fun setChannel(channel: TextChannel?) {
+        textChannel = channel?.id
     }
 
     val isTrackCurrentlyPlaying: Boolean get() = current != null
@@ -114,12 +117,12 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
     val queueAsList: MutableList<ArdentTrack> get() = queue.toMutableList()
 }
 
-class TrackScheduler(player: AudioPlayer, var channel: TextChannel) : AudioEventAdapter() {
-    var manager: ArdentMusicManager = ArdentMusicManager(player, channel.id)
+class TrackScheduler(player: AudioPlayer, var channel: TextChannel?) : AudioEventAdapter() {
+    var manager: ArdentMusicManager = ArdentMusicManager(player, channel?.id)
 
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
-        if (channel.guild.getData().musicSettings.announceNewMusic) {
-            val builder = embed("Now Playing: ${track.info.title}", channel.guild.selfMember)
+        if (channel!!.guild.getData().musicSettings.announceNewMusic) {
+            val builder = embed("Now Playing: ${track.info.title}", channel!!.guild.selfMember)
             builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
             builder.addField("Title", track.info.title, true)
                     .addField("Author", track.info.author, true)
@@ -189,12 +192,12 @@ fun AudioTrack.getCurrentTime(): String {
             .format("%02d", lengthMinutes % 60)}:${String.format("%02d", lengthSeconds % 60)}]"
 }
 
-@Synchronized fun getGuildAudioPlayer(guild: Guild, channel: TextChannel): GuildMusicManager {
-    val guildId = guild.id.toLong()
+@Synchronized fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
+    val guildId = id.toLong()
     var musicManager = managers[guildId]
     if (musicManager == null) {
         musicManager = GuildMusicManager(playerManager, channel)
-        guild.audioManager.sendingHandler = musicManager.sendHandler
+        audioManager.sendingHandler = musicManager.sendHandler
         managers.put(guildId, musicManager)
     } else {
         val ardentMusicManager = musicManager.scheduler.manager

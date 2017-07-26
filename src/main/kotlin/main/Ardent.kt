@@ -14,8 +14,11 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
-import music.Play
-import music.Radio
+import commands.music.*
+import events.Category
+import events.Command
+import events.CommandFactory
+import events.VoiceUtils
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import utils.*
@@ -40,6 +43,7 @@ fun main(args: Array<String>) {
             .setCorePoolSize(10)
             .addEventListener(waiter)
             .addEventListener(factory)
+            .addEventListener(VoiceUtils())
             .setEventManager(AnnotatedEventManager())
             .setToken(config.getValue("token"))
             .buildBlocking()
@@ -62,4 +66,8 @@ fun main(args: Array<String>) {
 
     factory.addCommand(Play())
             .addCommand(Radio())
+            .addCommand(Stop())
+            .addCommand(Pause())
+            .addCommand(Resume())
+            .addCommand(SongUrl())
 }

@@ -53,7 +53,7 @@ fun TextChannel.selectFromList(member: Member, title: String, options: MutableLi
     val builder = StringBuilder()
             .append("Please type the number of the choice you want in a message\n")
     for ((index, value) in options.iterator().withIndex()) {
-        builder.append("\n - ${index + 1}: $value")
+        builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: _${value}_\n")
     }
     send(member, embed.setDescription(builder))
     waiter.waitForMessage(Settings(member.user.id, id, guild.id), { message ->

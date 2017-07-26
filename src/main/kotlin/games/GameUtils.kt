@@ -18,12 +18,13 @@ val activeGames = CopyOnWriteArrayList<Game>()
 
 abstract class Coinflip
 
-abstract class Game(val type : GameType, val channel: TextChannel, val creator : String, val playerCount : Int) {
+abstract class Game(val type: GameType, val channel: TextChannel, val creator: String, val playerCount: Int) {
     val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
-    var gameId : Long = 0
+    var gameId: Long = 0
     val players = mutableListOf<String>()
     val creation = System.currentTimeMillis()
-    var startTime : Long? = null
+    var startTime: Long? = null
+
     init {
         val message = displayLobby()
         gamesInLobby.put(this, message?.id)
@@ -31,13 +32,13 @@ abstract class Game(val type : GameType, val channel: TextChannel, val creator :
             if (playerCount == players.size) {
                 scheduledExecutor.shutdownNow()
                 channel.sendMessage("Starting a game of type **${type.readable}** with **${players.size}** players (${players.concat()})")
-                        .queueAfter(5, TimeUnit.SECONDS, { _ -> startEvent()})
+                        .queueAfter(5, TimeUnit.SECONDS, { _ -> startEvent() })
             }
         }, 1, 1, TimeUnit.SECONDS)
         scheduledExecutor.scheduleAtFixedRate({ displayLobby() }, 20, 20, TimeUnit.SECONDS)
     }
 
-    fun displayLobby() : Message? {
+    fun displayLobby(): Message? {
         val member = channel.guild.selfMember
         val embed = embed("${type.readable} Game Lobby", member, Color.ORANGE)
                 .setFooter("Ardent GameAPI by Adam#9261 & Suit ✈#6566", member.user.avatarUrl)
@@ -65,20 +66,20 @@ abstract class Game(val type : GameType, val channel: TextChannel, val creator :
         channel.send(member, "${member.withDiscrim()} decided to cancel this game setup ;(")
     }
 
-    fun end(gameData : Any) {
+    fun end(gameData: Any) {
         gameData.insert("${type.readable}Data")
         activeGames.remove(this)
     }
 }
 
-fun GameType.findNextId() : Long {
+fun GameType.findNextId(): Long {
     val random = Random()
     val number = random.nextInt(1000000) + 1
     if (r.table("${readable}Data").get(number).run<Any?>(conn) != null) return number.toLong()
     else return findNextId()
 }
 
-enum class GameType(val readable : String, val id : Int) {
+enum class GameType(val readable: String, val id: Int) {
     COINFLIP("Coinflip", 1),
     BLACKJACK("Blackjack", 2),
     TRIVIA("Trivia", 3),
@@ -89,6 +90,6 @@ enum class GameType(val readable : String, val id : Int) {
     }
 }
 
-class TriviaPlayerData(var wins : Int = 0, var losses : Int = 0, var questionsCorrect : Int = 0, var questionsWrong : Int = 0)
+class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0)
 
-class GameDataTrivia(val id : Long, val winner : String, val scores : HashMap<String, Int>)
+class GameDataTrivia(val id: Long, val winner: String, val scores: HashMap<String, Int>)

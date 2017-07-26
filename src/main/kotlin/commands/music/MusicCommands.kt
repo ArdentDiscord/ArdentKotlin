@@ -1,21 +1,21 @@
-package music
+package commands.music
 
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import main.Category
-import main.Command
+import events.Category
+import events.Command
 import main.playerManager
-import main.waiter
-import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
 
 class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a list of provided options. this is a **patron-only** feature", "pr") {
-    val stations = hashMapOf(Pair("977hits", "http://19353.live.streamtheworld.com/977_HITS_SC"))
+    val stations = hashMapOf(Pair("977hits", "http://19353.live.streamtheworld.com/977_HITS_SC"),
+            Pair("Jamendo Lounge", "http://streaming.radionomy.com/JamendoLounge?lang=en-US%2cen%3bq%3d0.8"))
+
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             withHelp("start", "view and select from the list of current radio stations")
@@ -38,10 +38,56 @@ class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a
 
 class Play : Command(Category.MUSIC, "play", "play a song by its url or search a song to look it up on youtube", "p") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size == 0) {
+            channel.send(member, "You need to specify a URL or search query!")
+            return
+        }
         arguments.concat().load(member, channel, event.message)
     }
 }
 
+class Pause : Command(Category.MUSIC, "pause", "pause the player. what did you think this was gonna do?") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        assert(member.checkSameChannel(channel))
+        assert(member.hasOverride(channel))
+        val player = guild.getGuildAudioPlayer(channel).player
+        assert(player.currentlyPlaying(channel))
+        player.isPaused = true
+        channel.send(member, "Paused the player ${Emoji.WHITE_HEAVY_CHECKMARK}")
+    }
+}
+
+class Resume : Command(Category.MUSIC, "resume", "resumes the player. what did you think this was gonna do?") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        assert(member.checkSameChannel(channel))
+        assert(member.hasOverride(channel))
+        val player = guild.getGuildAudioPlayer(channel).player
+        assert(player.currentlyPlaying(channel))
+        player.isPaused = false
+        channel.send(member, "Resumed playback ${Emoji.WHITE_HEAVY_CHECKMARK}")
+    }
+}
+
+class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tracks in the queue") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        assert(member.checkSameChannel(channel))
+        assert(member.hasOverride(channel))
+        val manager = guild.getGuildAudioPlayer(channel)
+        manager.player.stopTrack()
+        manager.scheduler.manager.resetQueue()
+        channel.send(member, "Stopped and reset the player ${Emoji.WHITE_HEAVY_CHECKMARK}")
+    }
+}
+
+class SongUrl : Command(Category.MUSIC, "songlink", "get the link for the currently playing track!", "su") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        assert(member.checkSameChannel(channel))
+        assert(member.hasOverride(channel))
+        val player = guild.getGuildAudioPlayer(channel).player
+        assert(player.currentlyPlaying(channel))
+        channel.send(member, "**${player.playingTrack.info.title}** by **${player.playingTrack.info.author}**: ${player.playingTrack.info.uri}")
+    }
+}
 
 fun VoiceChannel.connect(member: Member, textChannel: TextChannel) {
     val guild = member.guild
@@ -65,13 +111,29 @@ fun play(member: Member, guild: Guild, channel: VoiceChannel, musicManager: Guil
     musicManager.scheduler.manager.addToQueue(ArdentTrack(member.user.id, textChannel.id, track))
 }
 
+fun Member.checkSameChannel(textChannel: TextChannel): Boolean {
+    if (voiceState.channel == null) {
+        textChannel.send(this, "${Emoji.CROSS_MARK} You need to be connected to a voice channel")
+        return false
+    }
+    if (guild.selfMember.voiceState.channel == null) {
+        textChannel.send(this, "${Emoji.CROSS_MARK} I need to be connected to a voice channel")
+        return false
+    }
+    if (guild.selfMember.voiceState.channel != voiceState.channel) {
+        textChannel.send(this, "${Emoji.CROSS_MARK} We need to be connected to the **same** voice channel")
+        return false
+    }
+    return true
+}
+
 fun String.load(member: Member, textChannel: TextChannel, message: Message, search: Boolean = false, radioName: String? = null) {
     if (member.voiceState.channel == null) {
         textChannel.send(member, "${Emoji.CROSS_MARK} You need to be connected to a voice channel")
         return
     }
     val channel = member.voiceState.channel
-    val musicManager = getGuildAudioPlayer(member.guild, textChannel)
+    val musicManager = member.guild.getGuildAudioPlayer(textChannel)
     val data = member.guild.getData()
     if (data.musicSettings.singleSongInQueueForMembers && !member.hasOverride()) {
         musicManager.scheduler.manager.queueAsList.forEach { track ->
