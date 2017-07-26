@@ -16,6 +16,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import commands.info.Help
 import commands.info.Ping
+import commands.manage.Prefix
 import commands.music.*
 import events.Category
 import events.Command
@@ -65,4 +66,12 @@ fun main(args: Array<String>) {
             .addCommand(SongUrl())
             .addCommand(Ping())
             .addCommand(Help())
+            .addCommand(Volume())
+            .addCommand(Playing())
+            .addCommand(Repeat())
+            .addCommand(Shuffle())
+            .addCommand(Queue())
+            .addCommand(RemoveFrom())
+            .addCommand(Skip())
+            .addCommand(Prefix())
 }

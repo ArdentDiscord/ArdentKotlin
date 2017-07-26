@@ -10,6 +10,7 @@ import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import java.util.*
 
 class Ping : Command(Category.INFO, "ping", "what did you think this command was gonna do?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -22,11 +23,11 @@ class Ping : Command(Category.INFO, "ping", "what did you think this command was
 
 class Help : Command(Category.INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val categories = Category.values().map { it.toString() }.toMutableList()
+        val categories = Category.values().map { it.toString() }.toMutableList().shuffle()
         channel.selectFromList(member, "Which category of commands do you need help in?", categories, {
             number ->
             val category = Category.values()[number]
-            val categoryCommands = factory.commands.filter { it.category == category }
+            val categoryCommands = factory.commands.filter { it.category == category }.toMutableList().shuffle()
             val embed = embed("${category.fancyName} Commands", member)
                     .appendDescription("*${category.description}*")
             categoryCommands.forEach { command ->

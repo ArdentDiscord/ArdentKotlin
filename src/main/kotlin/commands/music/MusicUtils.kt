@@ -21,6 +21,7 @@ import utils.embed
 import utils.getChannel
 import utils.getData
 import java.util.*
+import java.util.concurrent.LinkedBlockingDeque
 
 
 class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHandler {
@@ -64,7 +65,7 @@ class GuildMusicManager(manager: AudioPlayerManager, channel: TextChannel?) {
 }
 
 class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = null, var lastPlayedAt: Instant? = null) {
-    var queue = LinkedBlockingQueue<ArdentTrack>()
+    var queue = LinkedBlockingDeque<ArdentTrack>()
     var current: ArdentTrack? = null
 
     fun getChannel(): TextChannel? {
@@ -100,14 +101,14 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
     }
 
     fun resetQueue() {
-        this.queue = LinkedBlockingQueue<ArdentTrack>()
+        this.queue = LinkedBlockingDeque<ArdentTrack>()
     }
 
     fun shuffle() {
         val tracks = ArrayList<ArdentTrack>()
         tracks.addAll(queue)
         Collections.shuffle(tracks)
-        queue = LinkedBlockingQueue(tracks)
+        queue = LinkedBlockingDeque(tracks)
     }
 
     fun removeFrom(user: User) {
@@ -115,6 +116,11 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
     }
 
     val queueAsList: MutableList<ArdentTrack> get() = queue.toMutableList()
+
+    fun  addToBeginningOfQueue(track: ArdentTrack?) {
+        assert(track != null)
+        queue.addFirst(track)
+    }
 }
 
 class TrackScheduler(player: AudioPlayer, var channel: TextChannel?) : AudioEventAdapter() {

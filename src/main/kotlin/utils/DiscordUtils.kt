@@ -6,6 +6,7 @@ import com.rethinkdb.net.Cursor
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sun.org.apache.xpath.internal.operations.Bool
 import com.vdurmont.emoji.EmojiParser
+import commands.music.getGuildAudioPlayer
 import games.TriviaPlayerData
 import main.conn
 import main.jda
@@ -22,23 +23,27 @@ import java.util.*
 import java.util.ArrayList
 import java.util.HashMap
 
-fun String.toChannel() : TextChannel? {
+fun String.toChannel(): TextChannel? {
     return jda?.getTextChannelById(this)
 }
 
-fun AudioPlayer.currentlyPlaying(channel: TextChannel) : Boolean {
-    if (playingTrack != null) return true
+fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
+    if (playingTrack != null && channel.guild.getGuildAudioPlayer(channel).scheduler.manager.current != null) return true
     channel.send(channel.guild.selfMember, "${Emoji.HEAVY_MULTIPLICATION_X} There isn't a currently playing track!")
     return false
 }
 
-fun Member.hasOverride(channel: TextChannel) : Boolean {
-    if (hasOverride()) return true
+fun Member.voiceChannel() : VoiceChannel? {
+    return voiceState.channel
+}
+
+fun Member.hasOverride(channel: TextChannel, ifAloneInVoice : Boolean): Boolean {
+    if (hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 1 && voiceChannel()!!.members[0] == this)) return true
     channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
 }
 
-fun Member.hasOverride() : Boolean {
+fun Member.hasOverride(): Boolean {
     return hasPermission(Permission.MANAGE_CHANNEL) || guild.getData().advancedPermissions.contains(user.id)
 }
 
@@ -61,7 +66,7 @@ fun embed(title: String, member: Member, color: Color = Color.MAGENTA): EmbedBui
             .setFooter("Served ${member.withDiscrim()} with Ardent version $version", member.user.avatarUrl)
 }
 
-fun String.toUser() : User? {
+fun String.toUser(): User? {
     return jda?.getUserById(this)
 }
 
@@ -99,8 +104,7 @@ fun TextChannel.send(member: Member, embedBuilder: EmbedBuilder) {
 fun TextChannel.send(user: User, embedBuilder: EmbedBuilder) {
     try {
         sendMessage(embedBuilder.build()).queue()
-    }
-    catch (e : Exception) {
+    } catch (e: Exception) {
         sendFailed(user, true)
     }
 }
@@ -160,15 +164,15 @@ fun Guild.getPrefix(): String {
     return "/"
 }
 
-enum class DonationLevel(val readable: String) {
-    NONE("None"), PATRON("Patron"), PATRON_PLUS("Patron+"), OG("OG");
+enum class DonationLevel(val readable: String, val level: Int) {
+    NONE("None", 1), PATRON("Patron", 2), PATRON_PLUS("Patron+", 3), OG("OG", 4);
 
     override fun toString(): String {
         return readable
     }
 }
 
-fun Guild.isPatronGuild() : Boolean {
+fun Guild.isPatronGuild(): Boolean {
     return donationLevel() != DonationLevel.NONE
 }
 
@@ -176,25 +180,31 @@ fun Guild.donationLevel(): DonationLevel {
     return owner.user.donationLevel()
 }
 
-fun User.getData() : PlayerData {
-    var data : Any? = r.table("playerData").get(id).run(conn)
+fun User.getData(): PlayerData {
+    var data: Any? = r.table("playerData").get(id).run(conn)
     if (data != null) return asPojo(data as HashMap<*, *>?, PlayerData::class.java)!!
     data = PlayerData(id, DonationLevel.NONE, TriviaPlayerData())
     data.insert("playerData")
     return data
 }
 
-fun Member.isPatron() : Boolean {
+fun Member.isPatron(): Boolean {
     return user.donationLevel() != DonationLevel.NONE
 }
 
-fun User.donationLevel() : DonationLevel {
+fun User.donationLevel(): DonationLevel {
     // return DonationLevel.OG
     return getData().donationLevel
+}
+
+fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel): Boolean {
+    if (user.donationLevel().level >= donationLevel.level || guild.donationLevel().level >= donationLevel.level) return true
+    channel.requires(this, donationLevel)
+    return false
 }
 
 fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
     send(member, "${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
 }
 
-class PlayerData(val id : String, var donationLevel: DonationLevel, var triviaData : TriviaPlayerData)
+class PlayerData(val id: String, var donationLevel: DonationLevel, var triviaData: TriviaPlayerData, var gold: Double = 0.0)

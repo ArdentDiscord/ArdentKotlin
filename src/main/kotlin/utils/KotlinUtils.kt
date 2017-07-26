@@ -10,6 +10,11 @@ import java.util.*
 private val random = Random()
 private val gsons = listOf(Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson())
 
+fun <E> MutableList<E>.shuffle() : MutableList<E> {
+    Collections.shuffle(this)
+    return this
+}
+
 fun List<String>.stringify() : String {
     if (size == 0) return "none"
     val builder = StringBuilder()
@@ -40,4 +45,20 @@ fun <T> Any.queryAsArrayList(t: Class<T>): ArrayList<T?> {
 
 fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
+}
+
+/**
+ * Credit mfulton26 @ https://stackoverflow.com/questions/34498368/kotlin-convert-large-list-to-sublist-of-set-partition-size
+ */
+fun <T> List<T>.collate(size: Int): List<List<T>> {
+    require(size > 0)
+    return if (isEmpty()) {
+        emptyList()
+    } else {
+        (0..lastIndex / size).map {
+            val fromIndex = it * size
+            val toIndex = Math.min(fromIndex + size, this.size)
+            subList(fromIndex, toIndex)
+        }
+    }
 }
