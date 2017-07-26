@@ -111,13 +111,21 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
         queue = LinkedBlockingDeque(tracks)
     }
 
-    fun removeFrom(user: User) {
-        queue.removeIf { currentTrack -> currentTrack.author == user.id }
+    fun removeFrom(user: User): Int {
+        var count = 0
+        val iterator = queue.iterator()
+        while (iterator.hasNext()) {
+            if (iterator.next().author == user.id) {
+                count++
+                iterator.remove()
+            }
+        }
+        return count
     }
 
     val queueAsList: MutableList<ArdentTrack> get() = queue.toMutableList()
 
-    fun  addToBeginningOfQueue(track: ArdentTrack?) {
+    fun addToBeginningOfQueue(track: ArdentTrack?) {
         assert(track != null)
         queue.addFirst(track)
     }
