@@ -74,4 +74,5 @@ fun main(args: Array<String>) {
             .addCommand(RemoveFrom())
             .addCommand(Skip())
             .addCommand(Prefix())
+            .addCommand(Leave())
 }

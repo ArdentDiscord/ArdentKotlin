@@ -46,6 +46,19 @@ class Play : Command(Category.MUSIC, "play", "play a song by its url or search a
     }
 }
 
+class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel I'm in") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        assert(member.checkSameChannel(channel))
+        assert(member.hasOverride(channel, true))
+        val manager = guild.getGuildAudioPlayer(channel).scheduler.manager
+        manager.resetQueue()
+        manager.nextTrack()
+        val vc = guild.audioManager.connectedChannel
+        guild.audioManager.closeAudioConnection()
+        if (vc != null) channel.send(member, "Successfully disconnected from **${vc.name}** ${Emoji.MULTIPLE_MUSICAL_NOTES}")
+    }
+}
+
 class Pause : Command(Category.MUSIC, "pause", "pause the player. what did you think this was gonna do?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         assert(member.checkSameChannel(channel))
