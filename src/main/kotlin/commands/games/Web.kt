@@ -1,4 +1,4 @@
-package games
+package commands.games
 
 import spark.Spark.port
 

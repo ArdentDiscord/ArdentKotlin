@@ -18,7 +18,7 @@ class Ping : Command(Category.INFO, "ping", "what did you think this command was
         val currentTime = System.currentTimeMillis()
         event.channel.sendReceive(member, "I'll calculate my ping to Discord using this message")
                 ?.editMessage("**Socket Ping**: *${System.currentTimeMillis() - currentTime} milliseconds*")?.queue()
-        waiter.waitForMessage(Settings(event.author.id), { message: Message -> println(message.content) })
+        waiter.waitForMessage(Settings(9, event.author.id), { message: Message -> println(message.content) })
     }
 }
 

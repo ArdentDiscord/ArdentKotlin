@@ -51,6 +51,13 @@ fun GuildData.update() {
     r.table("guilds").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
 }
 
+fun Long.formatMinSec() : String {
+    val seconds = this % 60
+    val minutes = (this % 3600) / 60
+    if (minutes.compareTo(0) == 0) return "$seconds seconds"
+    else return "$minutes minutes, $seconds seconds"
+}
+
 fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }
