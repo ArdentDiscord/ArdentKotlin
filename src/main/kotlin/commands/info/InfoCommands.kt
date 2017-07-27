@@ -4,12 +4,15 @@ import events.Category
 import events.Command
 import events.toCategory
 import main.factory
+import main.jda
 import main.waiter
+import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
 
 class Ping : Command(Category.INFO, "ping", "what did you think this command was gonna do?") {
@@ -20,6 +23,31 @@ class Ping : Command(Category.INFO, "ping", "what did you think this command was
         waiter.waitForMessage(Settings(event.author.id), { message: Message -> println(message.content) })
     }
 }
+
+class Invite : Command(Category.INFO, "invite", "Get the invite link for the bot") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val channelInvite = jda!!.asBot().getInviteUrl(Permission.MESSAGE_MANAGE, Permission.MANAGE_SERVER, Permission.VOICE_CONNECT, Permission.VOICE_SPEAK, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY)
+        channel.send(member, "The invite link for the bot is $channelInvite")
+        try {
+            guild.invites.queue { invites ->
+                if (invites.isEmpty()) {
+                    try {
+                        guild.publicChannel.createInvite().setMaxUses(0).setUnique(true).queue { createdInvite ->
+                            channel.send(member, "The default invite to the server is $createdInvite")
+                        }
+
+                    } catch(e: PermissionException) {
+                        channel.send(member, "I need permission to create invites!")
+                    }
+                }
+
+            }
+        } catch(e: Exception) {
+            channel.send(member, "I don't have permissions to view server invites! Please update my permissions!")
+        }
+    }
+}
+
 
 class Help : Command(Category.INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {

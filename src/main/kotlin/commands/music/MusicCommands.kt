@@ -150,7 +150,7 @@ class Volume : Command(Category.MUSIC, "volume", "see and change the volume of t
         val player = manager.player
         if (arguments.size == 0) {
             channel.send(member, "The volume of this server's music player is **${player.volume}**% ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
-            channel.send(member, "If the owner of your server or you are an Ardent patron, type *${guild.getPrefix()}volume percentage_here* to set " +
+            channel.send(member, "If the owner of your server or if you are an Ardent patron, type *${guild.getPrefix()}volume percentage_here* to set " +
                     "the volume")
             return
         }
@@ -190,6 +190,7 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
 
 class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks from the mentioned user or users", "rf") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+
         assert(member.checkSameChannel(channel))
         assert(member.hasOverride(channel, true))
         val mentioned = event.message.mentionedUsers
