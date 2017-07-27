@@ -128,17 +128,13 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                             "Players in lobby: *${game.players.toUsers()}*")
                                 }
                                 else {
-                                    if (invites.contains(member.id()) && invites[member.id()]!!.gameId == game.gameId) {
+                                    if (invites.containsKey(member.id()) && invites[member.id()]!!.gameId == game.gameId) {
                                         invites.remove(member.id())
                                         game.players.add(member.id())
                                         channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
                                                 "Players in lobby: *${game.players.toUsers()}*")
                                     }
-                                    else {
-                                        println(invites[member.id()]!!.gameId)
-                                        println(game.gameId)
-                                        channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
-                                    }
+                                    else channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
                                 }
                             }
                             return
