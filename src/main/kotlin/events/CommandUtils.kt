@@ -65,7 +65,7 @@ abstract class Command(val category: Category, val name: String, val description
 
     fun displayHelp(channel: TextChannel, member: Member) {
         val prefix = channel.guild.getPrefix()
-        val embed = embed("How can I use ${prefix}$name ?", member, Color.BLACK)
+        val embed = embed("How can I use $prefix$name ?", member, Color.BLACK)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
                 .setFooter("Aliases: ${aliases.toList().stringify()}", member.user.avatarUrl)
         embed.appendDescription("*$description*\n")

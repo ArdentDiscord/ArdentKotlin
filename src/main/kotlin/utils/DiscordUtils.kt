@@ -185,13 +185,19 @@ fun User.getData(): PlayerData {
     return data
 }
 
+fun Member.id() : String {
+    return user.id
+}
+
+
 fun Member.isPatron(): Boolean {
-    return user.donationLevel() != DonationLevel.NONE
+   return true
+   // TODO() return user.donationLevel() != DonationLevel.NONE
 }
 
 fun User.donationLevel(): DonationLevel {
-    // return DonationLevel.OG
-    return getData().donationLevel
+    return DonationLevel.OG
+    // TODO() return getData().donationLevel
 }
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel): Boolean {

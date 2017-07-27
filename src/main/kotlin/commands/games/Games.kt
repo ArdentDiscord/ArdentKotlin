@@ -39,13 +39,13 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                 public ->
                                 val isPublic = public == 0
                                 channel.send(member, "Are you sure you still want to host this game? Type **yes** if so or **no** if not")
-                                waiter.waitForMessage(Settings(1, member.user.id, channel.id, guild.id), {
+                                waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
                                     message ->
                                     if (message.content.startsWith("ye", true)) {
                                         when (gameType) {
                                             GameType.COINFLIP -> {
                                                 channel.send(member, "How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
-                                                waiter.waitForMessage(Settings(2, member.user.id, channel.id, guild.id), {
+                                                waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
                                                     playerCount ->
                                                     val count = playerCount.content.toIntOrNull() ?: 999
                                                     val game = CoinflipGame(channel, member.user.id, count, isPublic)
@@ -56,8 +56,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
 
                                         }
                                         // TODO("Fill in the other games")
-                                    }
-                                    else channel.send(member, "Cancelled game setup ${Emoji.SQUARED_OK}")
+                                    } else channel.send(member, "Cancelled game setup ${Emoji.SQUARED_OK}")
                                 }, 20, TimeUnit.SECONDS)
                             })
                         }
@@ -68,7 +67,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                 val embed = embed("Games in Lobby", member)
                 val builder = StringBuilder()
                         .append("**Red means that the game is private, Green that it's public and anyone can join**")
-                if (gamesInLobby.isEmpty()) builder.append("\n\nThere are no games in lobby right now. You can start one by typing **${guild.getPrefix()}minigames create**")
+                if (gamesInLobby.isEmpty()) channel.send(member, "\n\nThere are no games in lobby right now. You can start one by typing **${guild.getPrefix()}minigames create**")
                 else {
                     gamesInLobby.forEach {
                         builder.append("\n\n ")
@@ -81,10 +80,31 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                 }
             }
             "cancel" -> {
-
+                gamesInLobby.forEach { game ->
+                    if (game.creator == member.id()) {
+                        channel.send(member, "${Emoji.HEAVY_EXCLAMATION_MARK_SYMBOL}" +
+                                "Are you sure you want to cancel your __${game.type.readable}__ game? Type **yes** if so or **no** if you're not sure.\n" +
+                                "Current players in lobby: *${game.players.toUsers()}*")
+                        waiter.waitForMessage(Settings(member.id(), channel.id, guild.id), { message ->
+                            if (message.content.startsWith("ye", true)) {
+                                game.cancel(member)
+                            } else channel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} I'll keep the game in lobby")
+                        })
+                        return
+                    }
+                }
+                channel.send(member, "You're not the creator of a game that's in lobby! ${Emoji.NO_ENTRY_SIGN}")
             }
-            "start" -> {
+            "forcestart" -> {
+                gamesInLobby.forEach { game ->
+                    if (game.creator == member.id()) {
+                        if (game.players.size == 1) channel.send(member, "You can't force start a game with only **1** person!")
+                        else {
 
+                        }
+                    }
+                }
+                channel.send(member, "You're not the creator of a game that's in lobby! ${Emoji.NO_ENTRY_SIGN}")
             }
             "invite" -> {
 

@@ -62,7 +62,7 @@ class EventWaiter : EventListener {
         return pair
     }
 
-    fun waitForMessage(settings: Settings, consumer: (Message) -> Unit, time: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): Pair<Settings, (Message) -> Unit> {
+    fun waitForMessage(settings: Settings, consumer: (Message) -> Unit, time: Int = 20, unit: TimeUnit = TimeUnit.SECONDS): Pair<Settings, (Message) -> Unit> {
         val pair = Pair(settings, consumer)
         messageEvents.add(pair)
         executor.schedule({
@@ -82,7 +82,7 @@ class EventWaiter : EventListener {
 
 }
 
-data class Settings(val settingsNumber: Int, val id: String? = null, val channel: String? = null, val guild: String? = null, val message: String? = null)
+data class Settings(val id: String? = null, val channel: String? = null, val guild: String? = null, val message: String? = null)
 
 fun TextChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int) -> Unit, footerText: String? = null): Message? {
     val embed = embed(title, member)
@@ -93,7 +93,7 @@ fun TextChannel.selectFromList(member: Member, title: String, options: MutableLi
     }
     if (footerText != null) builder.append("\n$footerText")
 
-    waiter.waitForMessage(Settings(6, member.user.id, id, guild.id), { message ->
+    waiter.waitForMessage(Settings(member.user.id, id, guild.id), { message ->
         val option: Int? = message.rawContent.toIntOrNull()?.minus(1)
         if (option == null || (option < 0 || option >= options.size)) {
             send(member, "You sent an invalid reponse; you had to respond with the **number** of an option")

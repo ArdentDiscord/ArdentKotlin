@@ -72,8 +72,8 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         val embed = embed("${type.readable} Game Lobby", member, Color.ORANGE)
                 .setFooter("Ardent Game Engine - Adam#9261", member.user.avatarUrl)
                 .setDescription("This lobby has been active for ${((System.currentTimeMillis() - creation) / 1000).formatMinSec()}\n" +
-                        "It currently has **${players.size}** of **$playerCount** players required to start | ${players.stringify()}\n" +
-                        "To start, the host can also type *${prefix}minigames forcestart*)\n\n" +
+                        "It currently has **${players.size}** of **$playerCount** players required to start | ${players.toUsers()}\n" +
+                        "To start, the host can also type *${prefix}minigames forcestart*\n\n" +
                         "Join by typing *${prefix}minigames join #$gameId*\n" +
                         "This game was created by __${creator.toUser()?.withDiscrim()}__")
         return channel.sendReceive(channel.guild.selfMember, embed)
@@ -92,7 +92,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     fun cancel(member: Member) {
         gamesInLobby.remove(this)
         scheduledExecutor.shutdownNow()
-        channel.send(member, "${member.withDiscrim()} decided to cancel this game setup ;(")
+        channel.send(member, "**${member.withDiscrim()}** decided to cancel this game ;(")
     }
 
     fun end(gameData: Any) {
