@@ -52,8 +52,10 @@ class Website : Command(Category.INFO, "website", "Learn how to support Ardent a
 }
 class About: Command(Category.INFO, "about","learn more about Ardent"){
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Ardent Bot was originally founded by Adam#9261 in Decemeber 2016. It quickly reached over 4,000 servers until Adam had to shut it down due to issues with " +
-                "the bot and him leaving for a trip. When he came back, he decided to create a bug free bot with a focus on games. This is the continuation of the original Ardent bot." )
+        val builder = embed("About Ardent", channel.guild.selfMember)
+        builder.appendDescription("Ardent Bot was originally founded by Adam#9261 in Decemeber 2016. It quickly reached over 4,000 servers until Adam had to shut it down due to issues with " +
+                "the bot and him leaving for a trip. When he came back, he decided to create a bug free bot with a focus on games. This is the continuation of the original Ardent bot.")
+        channel.send(member, builder)
     }
 }
 
