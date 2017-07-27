@@ -97,7 +97,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
             }
             "forcestart" -> {
                 gamesInLobby.forEach { game ->
-                    if (game.creator == member.id()) {
+                    if (game.creator == member.id() && game.channel.guild == guild) {
                         if (game.players.size == 1) channel.send(member, "You can't force start a game with only **1** person!")
                         else {
                             game.startEvent()
@@ -124,7 +124,10 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                 }
                                 else {
                                     if (invites.contains(member.id()) && invites[member.id()] == game.gameId) {
-
+                                        invites.remove(member.id())
+                                        game.players.add(member.id())
+                                        channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
+                                                "Players in lobby: *${game.players.toUsers()}*")
                                     }
                                     else channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
                                 }
@@ -139,6 +142,12 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
 
             }
             "invite" -> {
+                gamesInLobby.forEach { game ->
+                    if (game.creator == member.id() && game.channel.guild == guild) {
+
+                    }
+                }
+                channel.send(member, "You're not the creator of a game that's in lobby! ${Emoji.NO_ENTRY_SIGN}")
 
             }
         }
