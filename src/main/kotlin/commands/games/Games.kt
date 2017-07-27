@@ -2,18 +2,79 @@ package commands.games
 
 import events.Category
 import events.Command
+import main.jda
 import main.waiter
+import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.entities.User
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import java.security.SecureRandom
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 val invites = ConcurrentHashMap<String, Game>()
+
+class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.COINFLIP, channel, creator, playerCount, isPublic) {
+    override fun onStart() {
+        val ardent = channel.guild.selfMember
+        val users = mutableListOf<User>()
+        players.forEach { users.add(it.toUser()!!) }
+        channel.send(ardent, "This is a **5** round game where the person who guesses the side the most times wins.\nIf there's a tie, the top player will flip a coin and if they guess correctly, they win. " +
+                "If not, the second place player will win.")
+        val results = mutableListOf<Round>()
+
+        val doRound = {
+            round: Int ->
+            val roundResults = Round()
+            val rand = SecureRandom()
+            users.forEach {
+                channel.send(it, "${it.asMention}, you're up in round **$round** of **5**. Type Heads now to guess Heads or Tails to guess Tails - you have 15 seconds!")
+                waiter.waitForMessage(Settings(it.id, channel.id, channel.guild.id), { message ->
+                    val content = message.content
+                    val isHeads: Boolean
+                    when {
+                        content.startsWith("he", true) -> isHeads = true
+                        content.startsWith("ta") -> isHeads = false
+                        else -> {
+                            channel.send(it, "You didn't type **heads** or **tails** - Heads will be assumed")
+                            isHeads = true
+                        }
+                    }
+                    if (rand.nextBoolean() == isHeads) {
+                        roundResults.winners.add(it.id)
+                        channel.send(it, "Congradulations ${it.asMention}, you guessed correctly!")
+                    } else channel.send(it, "Sorry, you didn't win!")
+                }, {
+                    channel.send(it, "You didn't select an option and automatically lost this round :(")
+                }, time = 15)
+            }
+            roundResults
+        }
+        (1..5).forEach { round ->
+            results.add(doRound.invoke(round))
+            displayCurrentResults(round)
+        }
+    }
+
+    fun displayCurrentResults(currentRound: Int) {
+        val embed = embed("Current Results", channel.guild.selfMember)
+        // TODO("lazy")
+
+    }
+
+    override fun onEnd() {
+
+    }
+
+    class Round(val winners: MutableList<String> = mutableListOf())
+}
+
 
 class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play against friends or compete for the leaderboards in these addicting games") {
     val inviteManager: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
@@ -126,23 +187,21 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                     game.players.add(member.id())
                                     channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
                                             "Players in lobby: *${game.players.toUsers()}*")
-                                }
-                                else {
+                                    return
+                                } else {
                                     if (invites.containsKey(member.id()) && invites[member.id()]!!.gameId == game.gameId) {
                                         invites.remove(member.id())
                                         game.players.add(member.id())
                                         channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
                                                 "Players in lobby: *${game.players.toUsers()}*")
-                                    }
-                                    else channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
+                                    } else channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
+                                    return
                                 }
                             }
-                            return
                         }
                     }
                     channel.send(member, "There's not a game in lobby with the ID of **#$id**")
-                }
-                else channel.send(member, "You need to include a Game ID! Example: **${guild.getPrefix()}minigames join #123456**")
+                } else channel.send(member, "You need to include a Game ID! Example: **${guild.getPrefix()}minigames join #123456**")
             }
             "leave" -> {
                 gamesInLobby.forEach { game ->
@@ -150,8 +209,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                         channel.send(member, "You can't leave the game that you've started! If you want to cancel the game, type **${guild.getPrefix()}minigames " +
                                 "cancel**")
                         return
-                    }
-                    else if (game.players.contains(member.id())) {
+                    } else if (game.players.contains(member.id())) {
                         game.players.remove(member.id())
                         channel.send(member, "${member.asMention}, you successfully left **${game.creator.toUser()!!.withDiscrim()}**'s game")
                         return
@@ -170,17 +228,16 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                         if (mentionedUsers.size == 0) channel.send(member, "You need to mention at least one member to invite them")
                         else {
                             mentionedUsers.forEach { toInvite ->
-                                if (invites.contains(toInvite.id)) channel.send(member, "You can't invite a member who already has a pending invite!")
+                                if (invites.containsKey(toInvite.id)) channel.send(member, "You can't invite a member who already has a pending invite!")
                                 else if (toInvite.isInGameOrLobby()) channel.send(member, "This person is already in a lobby or ingame!")
                                 else {
                                     invites.put(toInvite.id, game)
-                                    println(invites.toList())
                                     channel.send(member, "${toInvite.asMention}, you're being invited by ${member.asMention} to join a __${if (game.isPublic) "public" else "private"}__ game of " +
                                             "**${game.type.readable}**! Type *${guild.getPrefix()}minigames join #${game.gameId}* to accept this invite and join the game " +
                                             "or decline by typing *${guild.getPrefix()}minigames decline*")
                                     val delay = 45
                                     inviteManager.schedule({
-                                        if (invites.contains(toInvite.id)) {
+                                        if (invites.containsKey(toInvite.id)) {
                                             channel.send(member, "${toInvite.asMention}, your invite to **${game.creator.toUser()!!.withDiscrim()}**'s game has expired after $delay seconds.")
                                             invites.remove(toInvite.id)
                                         }
@@ -194,12 +251,11 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                 channel.send(member, "You're not the creator of a game that's in lobby! ${Emoji.NO_ENTRY_SIGN}")
             }
             "decline" -> {
-                if (invites.contains(member.id())) {
+                if (invites.containsKey(member.id())) {
                     val game = invites[member.id()]!!
                     channel.send(member, "${member.asMention} declined an invite to **${game.creator.toUser()!!.withDiscrim()}**'s game of **${game.type.readable}**")
                     invites.remove(member.id())
-                }
-                else channel.send(member, "You don't have a pending invite to decline!")
+                } else channel.send(member, "You don't have a pending invite to decline!")
             }
         }
     }

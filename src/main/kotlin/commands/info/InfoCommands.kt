@@ -27,20 +27,10 @@ class Ping : Command(Category.INFO, "ping", "what did you think this command was
 class Invite : Command(Category.INFO, "invite", "Get the invite link for the bot") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val channelInvite = jda!!.asBot().getInviteUrl(Permission.MESSAGE_MANAGE, Permission.MANAGE_SERVER, Permission.VOICE_CONNECT, Permission.VOICE_SPEAK, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY)
-        channel.send(member, "The invite link for the bot is $channelInvite")
+        channel.send(member, "Ardent's invite URL is $channelInvite")
         try {
-            guild.invites.queue { invites ->
-                if (invites.isEmpty()) {
-                    try {
-                        guild.publicChannel.createInvite().setMaxUses(0).setUnique(true).queue { createdInvite ->
-                            channel.send(member, "The default invite to the server is $createdInvite")
-                        }
-
-                    } catch(e: PermissionException) {
-                        channel.send(member, "I need permission to create invites!")
-                    }
-                }
-
+            guild.publicChannel.createInvite().setMaxUses(0).setUnique(true).queue { createdInvite ->
+                channel.send(member, "The default invite to your server is https://discord.gg/${createdInvite.code}")
             }
         } catch(e: Exception) {
             channel.send(member, "I don't have permissions to view server invites! Please update my permissions!")

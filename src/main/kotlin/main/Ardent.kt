@@ -16,6 +16,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import commands.games.Games
 import commands.info.Help
+import commands.info.Invite
 import commands.info.Ping
 import commands.manage.Prefix
 import commands.music.*
@@ -77,4 +78,5 @@ fun main(args: Array<String>) {
             .addCommand(Prefix())
             .addCommand(Leave())
             .addCommand(Games())
+            .addCommand(Invite())
 }

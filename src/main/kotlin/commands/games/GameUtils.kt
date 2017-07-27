@@ -5,6 +5,7 @@ import events.Category
 import events.Command
 import main.conn
 import main.r
+import main.waiter
 import net.dv8tion.jda.core.entities.*
 import utils.*
 import java.awt.Color
@@ -17,16 +18,6 @@ import java.util.concurrent.TimeUnit
 
 val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
-
-class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.COINFLIP, channel, creator, playerCount, isPublic) {
-    override fun onEnd() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onStart() {
-        // TODO("not implemented") // go implement that
-    }
-}
 
 class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.BLACKJACK, channel, creator, playerCount, isPublic) {
     override fun onEnd() {
@@ -62,7 +53,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()!!
     var gameId: Long = 0
     val players = mutableListOf<String>()
-    val creation : Long
+    val creation: Long
     var startTime: Long? = null
 
     init {
@@ -75,8 +66,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
             scheduledExecutor.scheduleAtFixedRate({
                 if (((System.currentTimeMillis() - creation) / 1000) > 300 /* Lobby cancels at 5 minutes */) {
                     cancel(creator.toUser()!!)
-                }
-                else displayLobby()
+                } else displayLobby()
             }, 25, 47, TimeUnit.SECONDS)
         }
         scheduledExecutor.scheduleWithFixedDelay({
@@ -199,5 +189,10 @@ fun User.isInGameOrLobby(): Boolean {
 class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0)
 
 class GameDataTrivia(gameId: Long, val winner: String, val scores: HashMap<String, Int>) : GameData(gameId)
+
+class CoinflipPlayerData(var wins: Int = 0, var losses: Int = 0, var tiebreakersWon: Int = 0, var tiebreakersLost: Int = 0,
+                         var roundsWon: Int = 0, var roundsLost: Int = 0)
+
+class GameDataCoinflip(gameId: Long, val winner: String, val losers : List<String>, val rounds : CoinflipGame.Round) : GameData(gameId)
 
 abstract class GameData(var id: Long? = null)

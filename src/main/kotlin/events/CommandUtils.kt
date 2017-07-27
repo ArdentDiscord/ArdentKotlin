@@ -8,10 +8,11 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import utils.*
 import java.awt.Color
+import java.util.concurrent.Executors
 
 class CommandFactory {
     val commands = mutableListOf<Command>()
-
+    val executor = Executors.newSingleThreadExecutor()
     fun addCommand(command: Command): CommandFactory {
         commands.add(command)
         return this
@@ -38,7 +39,7 @@ class CommandFactory {
             cmd ->
             if (cmd.containsAlias(args[0])) {
                 args.removeAt(0)
-                cmd.execute(args, event)
+                executor.execute { cmd.execute(args, event) }
                 return
             }
         }
@@ -81,7 +82,7 @@ abstract class Command(val category: Category, val name: String, val description
     }
 }
 
-fun String.toCategory() : Category {
+fun String.toCategory(): Category {
     when (this) {
         "Music & Radio" -> return Category.MUSIC
         "Bot & Server Information" -> return Category.INFO
