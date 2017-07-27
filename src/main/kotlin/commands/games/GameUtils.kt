@@ -102,6 +102,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     }
 
     fun startEvent() {
+        invites.forEach { i, g -> if (g.gameId == gameId) invites.remove(i) }
         val user = creator.toUser()!!
         channel.send(user, "The game of **${type.readable}**, created by __${user.withDiscrim()}__, is starting with **${players.size}** players")
         scheduledExecutor.shutdownNow()
