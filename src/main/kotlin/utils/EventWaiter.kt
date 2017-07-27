@@ -5,29 +5,32 @@ import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.Event
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import java.util.*
-import java.util.function.Consumer
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 
 class EventWaiter : EventListener {
     val executor = Executors.newSingleThreadScheduledExecutor()
-    val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
-    val reactionAddEvents = CopyOnWriteArrayList<Pair<Settings, (MessageReaction) -> Unit>>()
+    val messageEvents = ConcurrentLinkedDeque<Pair<Settings, (Message) -> Unit>>()
+    val reactionAddEvents = ConcurrentLinkedDeque<Pair<Settings, (MessageReaction) -> Unit>>()
+
     @SubscribeEvent
     fun onEvent(e: Event) {
         when (e) {
-            is GuildMessageReceivedEvent -> messageEvents.forEach {
-                mE ->
-                val settings = mE.first
-                if (settings.channel != null && settings.channel != e.channel.id) return
-                if (settings.id != null && settings.id != e.author.id) return
-                if (settings.guild != null && settings.guild != e.guild.id) return
-                mE.second.invoke(e.message)
-                messageEvents.remove(mE)
+            is GuildMessageReceivedEvent -> {
+                val iterator = messageEvents.iterator()
+                while (iterator.hasNext()) {
+                    val mE = iterator.next()
+                    val settings = mE.first
+                    if (settings.channel != null && settings.channel != e.channel.id) return
+                    if (settings.id != null && settings.id != e.author.id) return
+                    if (settings.guild != null && settings.guild != e.guild.id) return
+                    mE.second.invoke(e.message)
+                    iterator.remove()
+                }
             }
             is MessageReactionAddEvent -> reactionAddEvents.forEach {
                 rAE ->
@@ -56,7 +59,7 @@ class EventWaiter : EventListener {
         return pair
     }
 
-    fun waitForMessage(settings: Settings, consumer: (Message) -> Unit, time: Int = 60, unit: TimeUnit = TimeUnit.SECONDS): Pair<Settings, (Message) -> Unit> {
+    fun waitForMessage(settings: Settings, consumer: (Message) -> Unit, expiration: (() -> Unit)? = null, time: Int = 20, unit: TimeUnit = TimeUnit.SECONDS): Pair<Settings, (Message) -> Unit> {
         val pair = Pair(settings, consumer)
         messageEvents.add(pair)
         executor.schedule({
@@ -64,6 +67,7 @@ class EventWaiter : EventListener {
                 messageEvents.remove(pair)
                 val channel: TextChannel? = settings.channel?.toChannel()
                 channel?.send(channel.guild.selfMember, "You took too long to respond! [${unit.toSeconds(time.toLong())} seconds]")
+                if (expiration != null) expiration.invoke()
             }
         }, time.toLong(), unit)
         return pair
@@ -71,16 +75,17 @@ class EventWaiter : EventListener {
 
     fun cancel(pair: Pair<Settings, (Message) -> Unit>) {
         messageEvents.remove(pair)
+        // TODO("add expiration consumer invocation here")
     }
 
 }
 
-class Settings(val id: String? = null, val channel: String? = null, val guild: String? = null, val message: String? = null)
+data class Settings(val id: String? = null, val channel: String? = null, val guild: String? = null, val message: String? = null)
 
 fun TextChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int) -> Unit, footerText: String? = null): Message? {
     val embed = embed(title, member)
     val builder = StringBuilder()
-            .append("**Please type the number corresponding with the choice you want to select**\n\n")
+            .append("**Please type the number corresponding with the choice you want to select**\n")
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: _${value}_\n")
     }

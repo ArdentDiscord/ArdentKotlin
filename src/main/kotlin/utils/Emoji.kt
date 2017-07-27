@@ -265,6 +265,7 @@ enum class Emoji(val symbol : String) {
     MEDIUM_BLACK_CIRCLE("⚫"), //http://www.emojibase.com/emoji/26ab/mediumblackcircle
 
     //Row#: 27
+    LARGE_GREEN_CIRCLE("<:green_circle:339899982335180800>"),
     LARGE_RED_CIRCLE("🔴"), //http://www.emojibase.com/emoji/1f534/largeredcircle
     LARGE_BLUE_CIRCLE("🔵"), //http://www.emojibase.com/emoji/1f535/largebluecircle
     SMALL_ORANGE_DIAMOND("🔸"), //http://www.emojibase.com/emoji/1f538/smallorangediamond

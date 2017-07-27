@@ -14,6 +14,7 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
+import commands.games.Games
 import commands.info.Help
 import commands.info.Ping
 import commands.manage.Prefix
@@ -75,4 +76,5 @@ fun main(args: Array<String>) {
             .addCommand(Skip())
             .addCommand(Prefix())
             .addCommand(Leave())
+            .addCommand(Games())
 }

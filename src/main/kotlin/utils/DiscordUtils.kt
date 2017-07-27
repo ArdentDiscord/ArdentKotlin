@@ -1,13 +1,10 @@
 package utils
 
-import com.google.gson.Gson
 import net.dv8tion.jda.core.exceptions.PermissionException
-import com.rethinkdb.net.Cursor
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
-import com.sun.org.apache.xpath.internal.operations.Bool
 import com.vdurmont.emoji.EmojiParser
 import commands.music.getGuildAudioPlayer
-import games.TriviaPlayerData
+import commands.games.TriviaPlayerData
 import main.conn
 import main.jda
 import main.r
@@ -16,11 +13,7 @@ import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
-import org.json.simple.JSONObject
-import utils.Config.ip
 import java.awt.Color
-import java.util.*
-import java.util.ArrayList
 import java.util.HashMap
 
 fun String.toChannel(): TextChannel? {
@@ -68,6 +61,10 @@ fun embed(title: String, member: Member, color: Color = Color.MAGENTA): EmbedBui
 
 fun String.toUser(): User? {
     return jda?.getUserById(this)
+}
+
+fun List<String>.toUsers() : String {
+    return map { it.toUser()!!.withDiscrim() }.stringify()
 }
 
 fun Guild.getData(): GuildData {
@@ -188,13 +185,18 @@ fun User.getData(): PlayerData {
     return data
 }
 
+fun Member.id() : String {
+    return user.id
+}
+
 fun Member.isPatron(): Boolean {
-    return user.donationLevel() != DonationLevel.NONE
+   return true
+   // TODO() return user.donationLevel() != DonationLevel.NONE
 }
 
 fun User.donationLevel(): DonationLevel {
-    // return DonationLevel.OG
-    return getData().donationLevel
+    return DonationLevel.OG
+    // TODO() return getData().donationLevel
 }
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel): Boolean {
