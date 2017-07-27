@@ -5,14 +5,11 @@ import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.Event
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import java.util.*
-import java.util.function.Consumer
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
 import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
 
 
 class EventWaiter : EventListener {
@@ -62,7 +59,7 @@ class EventWaiter : EventListener {
         return pair
     }
 
-    fun waitForMessage(settings: Settings, consumer: (Message) -> Unit, time: Int = 20, unit: TimeUnit = TimeUnit.SECONDS): Pair<Settings, (Message) -> Unit> {
+    fun waitForMessage(settings: Settings, consumer: (Message) -> Unit, expiration: (() -> Unit)? = null, time: Int = 20, unit: TimeUnit = TimeUnit.SECONDS): Pair<Settings, (Message) -> Unit> {
         val pair = Pair(settings, consumer)
         messageEvents.add(pair)
         executor.schedule({
@@ -70,7 +67,7 @@ class EventWaiter : EventListener {
                 messageEvents.remove(pair)
                 val channel: TextChannel? = settings.channel?.toChannel()
                 channel?.send(channel.guild.selfMember, "You took too long to respond! [${unit.toSeconds(time.toLong())} seconds]")
-                println(pair.first)
+                if (expiration != null) expiration.invoke()
             }
         }, time.toLong(), unit)
         return pair
@@ -78,6 +75,7 @@ class EventWaiter : EventListener {
 
     fun cancel(pair: Pair<Settings, (Message) -> Unit>) {
         messageEvents.remove(pair)
+        // TODO("add expiration consumer invocation here")
     }
 
 }

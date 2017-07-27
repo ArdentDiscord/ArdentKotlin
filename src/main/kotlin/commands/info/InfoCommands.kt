@@ -11,7 +11,6 @@ import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
-import java.util.*
 
 class Ping : Command(Category.INFO, "ping", "what did you think this command was gonna do?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {

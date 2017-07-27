@@ -19,25 +19,41 @@ val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
 
 class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.COINFLIP, channel, creator, playerCount, isPublic) {
-    override fun start() {
+    override fun onEnd() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun onStart() {
         // TODO("not implemented") // go implement that
     }
 }
 
 class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.BLACKJACK, channel, creator, playerCount, isPublic) {
-    override fun start() {
+    override fun onEnd() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun onStart() {
         TODO("not implemented") // go implement that
     }
 }
 
 class ConnectFourGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.CONNECT_FOUR, channel, creator, playerCount, isPublic) {
-    override fun start() {
+    override fun onEnd() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun onStart() {
         TODO("not implemented") // go implement that
     }
 }
 
 class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.TRIVIA, channel, creator, playerCount, isPublic) {
-    override fun start() {
+    override fun onEnd() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun onStart() {
         TODO("not implemented") // go implement that
     }
 }
@@ -46,16 +62,22 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()!!
     var gameId: Long = 0
     val players = mutableListOf<String>()
-    val creation = System.currentTimeMillis()
+    val creation : Long
     var startTime: Long? = null
 
     init {
         gameId = type.findNextId()
         players.add(creator)
         this.announceCreation()
+        creation = System.currentTimeMillis()
         if (isPublic) {
             displayLobby()
-            scheduledExecutor.scheduleAtFixedRate({ displayLobby() }, 25, 47, TimeUnit.SECONDS)
+            scheduledExecutor.scheduleAtFixedRate({
+                if (((System.currentTimeMillis() - creation) / 1000) > 300 /* Lobby cancels at 5 minutes */) {
+                    cancel(creator.toUser()!!)
+                }
+                else displayLobby()
+            }, 25, 47, TimeUnit.SECONDS)
         }
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
@@ -80,23 +102,42 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     }
 
     fun startEvent() {
-        gamesInLobby.remove(this)
+        val user = creator.toUser()!!
+        channel.send(user, "The game of **${type.readable}**, created by __${user.withDiscrim()}__, is starting with **${players.size}** players")
         scheduledExecutor.shutdownNow()
+        gamesInLobby.remove(this)
         activeGames.add(this)
         startTime = System.currentTimeMillis()
-        start()
+        onStart()
     }
 
-    abstract fun start()
+    abstract fun onStart()
 
     fun cancel(member: Member) {
-        gamesInLobby.remove(this)
-        scheduledExecutor.shutdownNow()
-        channel.send(member, "**${member.withDiscrim()}** decided to cancel this game ;(")
+        cancel(member.user)
     }
 
-    fun end(gameData: Any) {
-        gameData.insert("${type.readable}Data")
+    fun cancel(user: User) {
+        gamesInLobby.remove(this)
+        channel.send(user, "**${user.withDiscrim()}** decided to cancel this game or the lobby was open for over 5 minutes ;(")
+        scheduledExecutor.shutdownNow()
+    }
+
+    abstract fun onEnd()
+
+    fun cleanup(gameData: GameData) {
+        val user = creator.toUser()!!
+        if (r.table("${type.readable}Data").get(gameId).run<Any?>(conn) == null) {
+            gameData.id = gameId
+            gameData.insert("${type.readable}Data")
+        } else {
+            val newGameId = type.findNextId()
+            gameData.id = gameId
+            channel.send(user, "This Game ID has already been inserted into the database. Your new Game ID is **#$newGameId**")
+            gameData.insert("${type.readable}Data")
+        }
+        channel.send(user, "Game Data has been successfully inserted into the database. To view the results and statistics for this match, " +
+                "you can go to https://ardentbot.com/${type.name.toLowerCase()}/$gameId")
         activeGames.remove(this)
     }
 
@@ -138,8 +179,8 @@ enum class GameType(val readable: String, val description: String, val id: Int) 
     }
 }
 
-fun Member.isInGame(): Boolean {
-    return user.isInGame()
+fun Member.isInGameOrLobby(): Boolean {
+    return user.isInGameOrLobby()
 }
 
 fun Guild.hasGameType(gameType: GameType): Boolean {
@@ -148,7 +189,7 @@ fun Guild.hasGameType(gameType: GameType): Boolean {
     return false
 }
 
-fun User.isInGame(): Boolean {
+fun User.isInGameOrLobby(): Boolean {
     gamesInLobby.forEach { if (it.players.contains(id)) return true }
     activeGames.forEach { if (it.players.contains(id)) return true }
     return false
@@ -156,4 +197,6 @@ fun User.isInGame(): Boolean {
 
 class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0)
 
-class GameDataTrivia(val id: Long, val winner: String, val scores: HashMap<String, Int>)
+class GameDataTrivia(gameId: Long, val winner: String, val scores: HashMap<String, Int>) : GameData(gameId)
+
+abstract class GameData(var id: Long? = null)

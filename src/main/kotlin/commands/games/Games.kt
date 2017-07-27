@@ -11,7 +11,7 @@ import utils.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-val invites = ConcurrentHashMap<String, String>()
+val invites = ConcurrentHashMap<String, Long>()
 
 class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play against friends or compete for the leaderboards in these addicting games") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -28,7 +28,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
         }
         when (arguments[0]) {
             "create" -> {
-                if (member.isInGame()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
+                if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
                 else {
                     channel.selectFromList(member, "Which type of game would you like to create?", GameType.values().map { it.readable }.toMutableList(), {
                         selected ->
@@ -57,7 +57,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                         }
                                         // TODO("Fill in the other games")
                                     } else channel.send(member, "Cancelled game setup ${Emoji.SQUARED_OK}")
-                                }, 20, TimeUnit.SECONDS)
+                                }, time = 20, unit = TimeUnit.SECONDS)
                             })
                         }
                     })
@@ -100,11 +100,43 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                     if (game.creator == member.id()) {
                         if (game.players.size == 1) channel.send(member, "You can't force start a game with only **1** person!")
                         else {
-
+                            game.startEvent()
                         }
                     }
                 }
                 channel.send(member, "You're not the creator of a game that's in lobby! ${Emoji.NO_ENTRY_SIGN}")
+            }
+            "join" -> {
+                if (arguments.size == 2) {
+                    val id = arguments[1].replace("#", "").toIntOrNull()
+                    if (id == null) {
+                        channel.send(member, "You need to include a Game ID! Example: **${guild.getPrefix()}minigames join #123456**")
+                        return
+                    }
+                    gamesInLobby.forEach { game ->
+                        if (game.channel.guild == guild) {
+                            if (member.isInGameOrLobby()) channel.send(member, "You can't join another game! You must leave the game you're currently in first")
+                            else {
+                                if (game.isPublic) {
+                                    game.players.add(member.id())
+                                    channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
+                                            "Players in lobby: *${game.players.toUsers()}*")
+                                }
+                                else {
+                                    if (invites.contains(member.id()) && invites[member.id()] == game.gameId) {
+
+                                    }
+                                    else channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
+                                }
+                            }
+                        }
+                    }
+                    channel.send(member, "There's not a game in lobby with the ID of **#$id**")
+                }
+                else channel.send(member, "You need to include a Game ID! Example: **${guild.getPrefix()}minigames join #123456**")
+            }
+            "leave" -> {
+
             }
             "invite" -> {
 

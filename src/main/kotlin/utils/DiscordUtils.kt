@@ -189,7 +189,6 @@ fun Member.id() : String {
     return user.id
 }
 
-
 fun Member.isPatron(): Boolean {
    return true
    // TODO() return user.donationLevel() != DonationLevel.NONE
