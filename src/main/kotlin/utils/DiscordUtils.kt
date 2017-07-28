@@ -58,7 +58,7 @@ fun User.withDiscrim(): String {
 fun embed(title: String, member: Member, color: Color = Color.MAGENTA): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", member.guild.iconUrl)
             .setColor(color)
-            .setFooter("Served ${member.withDiscrim()} with Ardent version $version", member.user.avatarUrl)
+            .setFooter("Served by Ardent ${Emoji.COPYRIGHT_SIGN} Adam#9261", member.user.avatarUrl)
 }
 
 fun String.toUser(): User? {

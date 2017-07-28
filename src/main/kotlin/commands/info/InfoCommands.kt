@@ -28,33 +28,28 @@ class Ping : Command(Category.INFO, "ping", "what did you think this command was
 class Invite : Command(Category.INFO, "invite", "Get the invite link for the bot") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val channelInvite = jda!!.asBot().getInviteUrl(Permission.MESSAGE_MANAGE, Permission.MANAGE_SERVER, Permission.VOICE_CONNECT, Permission.VOICE_SPEAK, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY)
-        channel.send(member, "The invite link for the bot is $channelInvite")
-        try {
-            guild.publicChannel.createInvite().setMaxUses(0).setUnique(true).queue { createdInvite ->
-                channel.send(member, "The default invite to your server is https://discord.gg/${createdInvite.code}")
-            }
-        } catch(e: Exception) {
-            channel.send(member, "I don't have permissions to view server invites! Please update my permissions!")
-        }
+        channel.send(member, "My invite link is $channelInvite - have fun using Ardent!")
     }
 }
 class Donate : Command(Category.INFO, "donate", "Learn how to support Ardent and get special perks for it!"){
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Want to support Ardent? We need your help! Pledge at https://patreon.com/ardent and receive perks and the " +
-                "satisfaction of helping us maintain our bot, used by over 500 people !\n" +
-                " You can also donate directly at https://www.paypal.me/ardentbot")
+        channel.send(member, "Want to support our work and obtain some perks along the way? Head to https://ardentbot.com/support_us to see the different ways " +
+                "you could help us out!")
     }
 }
-class Website : Command(Category.INFO, "website", "Learn how to support Ardent and get special perks for it!"){
+class Settings : Command(Category.INFO, "settings", "Learn how to support Ardent and get special perks for it!", "website"){
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "https://www.ardentbot.com/")
+        channel.send(member, "Manage the settings for this server at https://www.ardentbot.com/manage/${guild.id} - while you're there, be sure to check out " +
+                "the rest of our website!")
     }
 }
 class About: Command(Category.INFO, "about","learn more about Ardent"){
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val builder = embed("About Ardent", channel.guild.selfMember)
-        builder.appendDescription("Ardent Bot was originally founded by Adam#9261 in Decemeber 2016. It quickly reached over 4,000 servers until Adam had to shut it down due to issues with " +
-                "the bot and him leaving for a trip. When he came back, he decided to create a bug free bot with a focus on games. This is the continuation of the original Ardent bot.")
+        val builder = embed("About the bot and its founders", channel.guild.selfMember)
+        builder.appendDescription("Ardent was originally founded in November 2016 by ${jda!!.asBot().applicationInfo.complete().owner.withDiscrim()}. It reached over 4,000 servers " +
+                "by June, but Adam had to shut it down due to chronic stability issues with the bot and the fact that he was going on " +
+                "a language learning program without any internet for nearly two months. When he came back, he decided to recreate Ardent with a " +
+                "new focus on modern design, utility, usability, and games. This is the continuation of the original Ardent bot. We hope you like it!")
         channel.send(member, builder)
     }
 }
