@@ -84,7 +84,8 @@ class Help : Command(Category.INFO, "help", "can you figure out what this does? 
                 }
             }
             channel.send(member, embed)
-        }, "__*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*__")
+        }, "Command count: **${factory.commands.size}**\n" +
+                "__*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*__\n")
     }
 }
 

@@ -51,6 +51,11 @@ fun <T> Any.queryAsArrayList(t: Class<T>): ArrayList<T?> {
     return tS
 }
 
+fun String.shortenIf(numChars: Int) : String {
+    if (length <= numChars) return this
+    else return substring(0, numChars)
+}
+
 fun PlayerData.update() {
     r.table("playerData").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
 }

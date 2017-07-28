@@ -90,6 +90,7 @@ fun String.toCategory(): Category {
         "Manage" -> return Category.MANAGE
         "Server Administration" -> return Category.ADMINISTRATE
         "Games" -> return Category.GAMES
+        "Fun & Urban Dictionary" -> return Category.FUN
         else -> return Category.INFO
     }
 }
@@ -99,7 +100,8 @@ enum class Category(val fancyName: String, val description: String) {
     MUSIC("Music & Radio", "Play your favorite tracks or listen to the radio, all inside Discord"),
     INFO("Bot & Server Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
     MANAGE("Manage", "Manage settings, both for Ardent and your server"),
-    ADMINISTRATE("Server Administration", "Administrate your server: this category includes commands like warnings and mutes")
+    ADMINISTRATE("Server Administration", "Administrate your server: this category includes commands like warnings and mutes"),
+    FUN("Fun & Urban Dictionary", "Bored? Not interested in the games? We have a lot of commands for you to check out here!")
     ;
 
     override fun toString(): String {

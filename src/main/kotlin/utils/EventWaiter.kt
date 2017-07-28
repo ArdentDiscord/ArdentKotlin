@@ -105,7 +105,7 @@ fun TextChannel.selectFromList(member: Member, title: String, options: MutableLi
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: _${value}_\n")
     }
-    if (footerText != null) builder.append("\n$footerText")
+    if (footerText != null) builder.append("\n$footerText\n")
     builder.append("\n__Please type the number corresponding with the choice you want to select__\n")
 
     waiter.waitForMessage(Settings(member.user.id, id, guild.id), { message ->
