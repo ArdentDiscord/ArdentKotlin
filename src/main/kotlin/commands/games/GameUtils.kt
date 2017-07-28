@@ -154,20 +154,20 @@ fun User.isInGameOrLobby(): Boolean {
 
 class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0)
 
-class GameDataTrivia(gameId: Long, creator: String, val winner: String, val scores: HashMap<String, Int>) : GameData(gameId, creator)
+// class GameDataTrivia(gameId: Long, creator: String, val winner: String, val scores: HashMap<String, Int>) : GameData(gameId, creator)
 
-class CoinflipPlayerData(wins : Int = 0, losses : Int = 0, var roundsWon: Int = 0, var roundsLost: Int = 0) : PlayerGameData(wins, losses)
+class CoinflipPlayerData(wins: Int = 0, losses: Int = 0, var roundsWon: Int = 0, var roundsLost: Int = 0) : PlayerGameData(wins, losses)
 
 abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0) {
-    fun gamesPlayed() : Int {
+    fun gamesPlayed(): Int {
         return wins + losses
     }
 }
 
-class GameDataCoinflip(gameId: Long, creator: String, val winner: String, val losers : List<String>, val rounds : List<CoinflipGame.Round>) : GameData(gameId, creator) {
-    fun contains(id: String) : Boolean {
+class GameDataCoinflip(gameId: Long, creator: String, startTime: Long, val winner: String, val losers: List<String>, val rounds: List<CoinflipGame.Round>) : GameData(gameId, creator, startTime) {
+    fun contains(id: String): Boolean {
         return winner == id || losers.contains(id)
     }
 }
 
-abstract class GameData(var id: Long? = null, val creator: String)
+abstract class GameData(var id: Long? = null, val creator: String, val startTime: Long, val endTime: Long = System.currentTimeMillis())

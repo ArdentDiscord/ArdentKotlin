@@ -81,5 +81,8 @@ fun main(args: Array<String>) {
             .addCommand(Settings())
             .addCommand(About())
             .addCommand(Donate())
+            .addCommand(UserInfo())
+            .addCommand(ServerInfo())
+            .addCommand(RoleInfo())
 
 }

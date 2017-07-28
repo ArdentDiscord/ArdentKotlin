@@ -77,6 +77,14 @@ fun Guild.getData(): GuildData {
     return data
 }
 
+fun Message.getFirstRole(arguments: List<String>) : Role? {
+    if (mentionedRoles.size > 0) return mentionedRoles[0]
+    if (guild != null) {
+        val search = guild.getRolesByName(arguments.concat(), true)
+        if (search.size > 0) return search[0]
+    }
+    return null
+}
 
 fun MessageChannel.sendReceive(member: Member, embed: EmbedBuilder): Message? {
     try {

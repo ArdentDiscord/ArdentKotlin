@@ -15,6 +15,14 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
+import javax.swing.plaf.synth.SynthLookAndFeel.getRegion
+import java.nio.file.Files.getOwner
+import net.dv8tion.jda.core.OnlineStatus
+import org.apache.commons.lang3.CharSetUtils.count
+import sun.misc.MessageUtils
+import java.time.Instant
+import java.time.ZoneOffset
+
 
 class Ping : Command(Category.INFO, "ping", "what did you think this command was gonna do?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -31,19 +39,22 @@ class Invite : Command(Category.INFO, "invite", "Get the invite link for the bot
         channel.send(member, "My invite link is $channelInvite - have fun using Ardent!")
     }
 }
-class Donate : Command(Category.INFO, "donate", "Learn how to support Ardent and get special perks for it!"){
+
+class Donate : Command(Category.INFO, "donate", "Learn how to support Ardent and get special perks for it!") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "Want to support our work and obtain some perks along the way? Head to https://ardentbot.com/support_us to see the different ways " +
                 "you could help us out!")
     }
 }
-class Settings : Command(Category.INFO, "settings", "Learn how to support Ardent and get special perks for it!", "website"){
+
+class Settings : Command(Category.INFO, "settings", "Learn how to support Ardent and get special perks for it!", "website") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "Manage the settings for this server at https://www.ardentbot.com/manage/${guild.id} - while you're there, be sure to check out " +
                 "the rest of our website!")
     }
 }
-class About: Command(Category.INFO, "about","learn more about Ardent"){
+
+class About : Command(Category.INFO, "about", "learn more about Ardent") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val builder = embed("About the bot and its founders", channel.guild.selfMember)
         builder.appendDescription("Ardent was originally founded in November 2016 by ${jda!!.asBot().applicationInfo.complete().owner.withDiscrim()}. It reached over 4,000 servers " +
@@ -76,3 +87,61 @@ class Help : Command(Category.INFO, "help", "can you figure out what this does? 
         }, "__*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*__")
     }
 }
+
+class ServerInfo : Command(Category.INFO, "serverinfo", "view some basic information about this server", "guildinfo", "si", "gi") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val data = guild.getData()
+        val embed = embed("Server Info: ${guild.name}", member)
+        embed.addField("Number of users", guild.members.size.toString(), true)
+        embed.addField("Online users", guild.members.stream().filter { m -> m.onlineStatus != OnlineStatus.OFFLINE }.count().toString(), true)
+        embed.addField("Prefix", data.prefix, true)
+        embed.addField("Patron Server", guild.isPatronGuild().toString(), true)
+        embed.addField("Owner", guild.owner.withDiscrim(), true)
+        embed.addField("Creation Date", guild.creationTime.toLocalDate().toString(), true)
+        embed.addField("Public channel", guild.publicChannel.asMention, true)
+        embed.addField("# of Voice Channels", guild.voiceChannels.size.toString(), true)
+        embed.addField("# of Text Channels", guild.textChannels.size.toString(), true)
+        embed.addField("# of Roles", guild.roles.size.toString(), true)
+        embed.addField("Region", guild.region.getName(), true)
+        embed.addField("Verification Level", guild.verificationLevel.toString(), true)
+        channel.send(member, embed)
+    }
+}
+
+class UserInfo : Command(Category.INFO, "userinfo", "view cool information about your friends", "whois", "userinfo", "ui") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val mentionedUsers = event.message.mentionedUsers
+        if (mentionedUsers.size == 0) channel.send(member, "You need to mention a member!")
+        else {
+            val mentioned = mentionedUsers[0]
+            val mentionedMember = guild.getMember(mentioned)
+            channel.send(member, embed("Information about ${mentionedMember.effectiveName}", member)
+                    .setThumbnail(mentioned.avatarUrl)
+                    .addField("Name", mentioned.withDiscrim(), true)
+                    .addField("Nickname", mentionedMember.nickname ?: "None", true)
+                    .addField("Server Join Date", mentionedMember.joinDate.toLocalDate().toString(), true)
+                    .addField("Days in Guild", Math.ceil((Instant.now().atOffset(ZoneOffset.UTC).toEpochSecond() -
+                            member.joinDate.toInstant().atOffset(ZoneOffset.UTC).toEpochSecond() / (60 * 60 * 24)).toDouble())
+                            .toString(), true)
+                    .addField("Roles", mentionedMember.roles.map { it.name }.concat(), true)
+                    .addField("Account Creation", mentioned.creationTime.toLocalDate().toString(), true))
+        }
+    }
+}
+
+class RoleInfo : Command(Category.INFO, "roleinfo", "view useful information about roles in this server", "ri") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val role = event.message.getFirstRole(arguments)
+        if (role == null) channel.send(member, "You need to either mention a role or type its full name!")
+        else {
+            channel.send(member, embed("Info about ${role.name}", member)
+                    .setThumbnail(guild.iconUrl)
+                    .addField("# of people with role", guild.members.filter { it.roles.contains(role) }.count().toString(), true)
+                    .addField("Creation Date", role.creationTime.toLocalDateTime().toString(), true)
+                    .addField("Hex Color", "#${Integer.toHexString(role.color.rgb).substring(2).toUpperCase()}", true)
+                    .addField("Permissions", role.permissions.map { it.getName() }.concat(), true)
+            )
+        }
+    }
+}
+

@@ -101,7 +101,7 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
                 } else {
                     winner = second.id
                 }
-                channel.send(first, "suspense.....................")
+                channel.send(first, "Loading...")
             }, {
                 channel.send(first, "Bad time to go AFK! You lose because of inactivity :(")
                 winner = second.id
@@ -111,7 +111,7 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
             winner = scores.keys.toList()[0]
         }
         channel.send(channel.guild.selfMember, "Congratulations to **${winner!!.toUser()!!.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses")
-        val gameData = GameDataCoinflip(gameId, creator, winner!!, players.without(winner!!), results)
+        val gameData = GameDataCoinflip(gameId, creator, startTime!!, winner!!, players.without(winner!!), results)
         cleanup(gameData)
     }
 
