@@ -1,7 +1,9 @@
 package commands.`fun`
 
+import com.mb3364.twitch.api.Twitch
 import events.Category
 import events.Command
+import main.config
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
@@ -63,5 +65,43 @@ class UrbanDictionary : Command(Category.FUN, "urban", "get search results for y
                 )
             }
         }
+    }
+}
+
+class UnixFortune : Command(Category.FUN, "unixfortune", "in the mood for a unix fortune? us too", "fortune") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val doc = Jsoup.connect("http://motd.ambians.com/quotes" +
+                ".php/name/linux_fortunes_random/toc_id/1-1-1").userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
+                "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!
+        channel.send(member, doc.getElementsByTag("pre")[0].text())
+    }
+}
+
+class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your future... or something, idfk") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size == 0) channel.send(member, "${Emoji.HEAVY_MULTIPLICATION_X} How dare you try to ask the 8-ball an empty question??!!")
+        else {
+            channel.send(member, getGson().fromJson(Jsoup.connect("https://8ball.delegator.com/magic/JSON/${URLEncoder.encode(arguments.concat())}")
+                    .ignoreContentType(true).userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
+                    "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!.body().text(), EightBallResult::class.java).magic.answer)
+        }
+    }
+}
+
+class FML : Command(Category.FUN, "fml", "someone's had a shitty day.") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+         val doc = Jsoup.connect("http://fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
+                    "rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").ignoreContentType(true).get()!!
+        channel.send(member, doc.getElementsByTag("p")[0].getElementsByTag("a")[0].allElements[0].text())
+    }
+}
+
+class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is streaming on Twitch and see basic information") {
+    val twitch = Twitch()
+    init {
+        twitch.clientId = Config.getConfig()!!.getValue("twitch")
+    }
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        TODO("i'll do this shit tomorrow") //To change body of created functions use File | Settings | File Templates.
     }
 }

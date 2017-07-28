@@ -14,8 +14,7 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
-import commands.`fun`.Roll
-import commands.`fun`.UrbanDictionary
+import commands.`fun`.*
 import commands.games.Games
 import commands.info.*
 import commands.info.Settings
@@ -88,5 +87,9 @@ fun main(args: Array<String>) {
             .addCommand(RoleInfo())
             .addCommand(Roll())
             .addCommand(UrbanDictionary())
+            .addCommand(UnixFortune())
+            .addCommand(EightBall())
+            .addCommand(FML())
+            .addCommand(IsStreaming())
 
 }

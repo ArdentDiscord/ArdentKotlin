@@ -20,6 +20,7 @@ sourceCompatibility = 1.8
 repositories {
     mavenCentral()
     jcenter()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -32,6 +33,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
     compile 'com.sparkjava:spark-core:2.6.0.RC0'
     compile 'org.jsoup:jsoup:1.10.2'
+    compile files('twitch.jar')
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
