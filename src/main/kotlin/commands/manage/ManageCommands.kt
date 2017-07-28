@@ -11,6 +11,7 @@ import utils.*
 class Prefix : Command(Category.MANAGE, "prefix", "view or change your server's prefix for Ardent") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = guild.getData()
+
         if (arguments.size != 2) {
             channel.send(member, "${Emoji.INFORMATION_SOURCE} The current prefix is **${data.prefix}**\n" +
                     "See a list of all commands by typing **${data.prefix}help** __or__ **ardent help**\n\n" +
@@ -23,5 +24,17 @@ class Prefix : Command(Category.MANAGE, "prefix", "view or change your server's 
             data.update()
         }
         else channel.send(member, "${Emoji.NO_ENTRY_SIGN} Type **${data.prefix}prefix** to learn how to use this command")
+    }
+}
+
+class Tempban : Command(Category.MANAGE, "tempban", "temporarily ban someone", "tban") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val mentionedUsers = event.message.mentionedUsers
+        if (mentionedUsers.size == 0) {
+           // channel.send
+            return
+        }
+        assert(member.hasOverride(channel))
+
     }
 }

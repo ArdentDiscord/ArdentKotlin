@@ -249,7 +249,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
     val channel = member.voiceState.channel
     val musicManager = member.guild.getGuildAudioPlayer(textChannel)
     val data = member.guild.getData()
-    if (data.musicSettings.singleSongInQueueForMembers && !member.hasOverride()) {
+    if (data.musicSettings.singleSongInQueueForMembers && !member.hasOverride(textChannel, true)) {
         musicManager.scheduler.manager.queueAsList.forEach { track ->
             if (track.author == member.user.id) {
                 textChannel.send(member, "${Emoji.CROSS_MARK} You can only queue **1** song at a time, per the rules set by your administrators")

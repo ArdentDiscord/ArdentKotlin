@@ -12,6 +12,7 @@ import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
+import web.webCalls
 import java.awt.Color
 import java.lang.management.ManagementFactory
 import java.util.HashMap
@@ -30,13 +31,13 @@ fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
 }
 
-fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean): Boolean {
+fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false): Boolean {
     if (hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 1 && voiceChannel()!!.members[0] == this)) return true
     channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
 }
 
-fun Member.hasOverride(): Boolean {
+private fun Member.hasOverride(): Boolean {
     return hasPermission(Permission.MANAGE_CHANNEL) || guild.getData().advancedPermissions.contains(user.id)
 }
 
@@ -253,7 +254,7 @@ class Internals {
     var queueLength: Int = 0
     val uptime: Long
     val uptimeFancy: String
-
+    val apiCalls: Long = webCalls.get()
     init {
         val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
         ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)

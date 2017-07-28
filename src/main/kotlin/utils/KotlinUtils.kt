@@ -40,6 +40,7 @@ fun Any.insert(table: String) {
     r.table(table).insert(r.json(getGson().toJson(this))).runNoReply(conn)
 }
 
+
 fun <T> asPojo(map: HashMap<*, *>?, tClass: Class<T>): T? {
     return getGson().fromJson(JSONObject.toJSONString(map), tClass)
 }

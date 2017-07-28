@@ -93,6 +93,12 @@ abstract class Command(val category: Category, val name: String, val description
     fun containsAlias(arg: String): Boolean {
         return name.equals(arg, true) || aliases.contains(arg)
     }
+
+    override fun toString(): String {
+        return Model(category, name, description, aliases).toJson()
+    }
+
+    private class Model(val category: Category, val name: String, val description: String, val aliases: Array<out String>)
 }
 
 fun String.toCategory(): Category {

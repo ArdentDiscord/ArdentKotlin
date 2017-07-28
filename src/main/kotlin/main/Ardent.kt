@@ -17,6 +17,7 @@ import web.Web
 import commands.info.*
 import commands.info.Settings
 import commands.manage.Prefix
+import commands.manage.startAdministrativeDaemon
 import commands.music.*
 import events.CommandFactory
 import events.VoiceUtils
@@ -90,5 +91,6 @@ fun main(args: Array<String>) {
             .addCommand(IsStreaming())
             .addCommand(Status())
     Web()
+    startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")
 }
