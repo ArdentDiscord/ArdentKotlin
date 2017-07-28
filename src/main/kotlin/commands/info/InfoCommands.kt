@@ -72,7 +72,7 @@ class Help : Command(Category.INFO, "help", "can you figure out what this does? 
         channel.selectFromList(member, "Which category of commands do you need help in?", categories, {
             number ->
             val category = categories[number].toCategory()
-            val categoryCommands = factory.commands.filter { it.category == category }.toMutableList().shuffle()
+            val categoryCommands = factory.commands.filter { it.category == category }.toMutableList()
             val embed = embed("${category.fancyName} Commands", member)
                     .appendDescription("*${category.description}*")
             categoryCommands.forEach { command ->

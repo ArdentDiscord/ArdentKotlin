@@ -1,5 +1,7 @@
 package commands.`fun`
 
+import com.github.vbauer.yta.model.Language
+import com.github.vbauer.yta.service.YTranslateApiImpl
 import com.mb3364.twitch.api.Twitch
 import events.Category
 import events.Command
@@ -90,17 +92,43 @@ class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your fu
 
 class FML : Command(Category.FUN, "fml", "someone's had a shitty day.") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-         val doc = Jsoup.connect("http://fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
-                    "rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").ignoreContentType(true).get()!!
+        val doc = Jsoup.connect("http://fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
+                "rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").ignoreContentType(true).get()!!
         channel.send(member, doc.getElementsByTag("p")[0].getElementsByTag("a")[0].allElements[0].text())
+    }
+}
+
+class Translate : Command(Category.FUN, "translate", "translate text to the provided language", "tr") {
+    val api = YTranslateApiImpl("trnsl.1.1.20170227T013942Z.6878bfdf518abdf6.a6574733436345112da24eb08e7ee1ef2a0d6a97")
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size < 2) {
+            val prefix = guild.getPrefix()
+            channel.send(member, """Using the translation command is simple. The format for requesting one is as follows:
+**${prefix}translate language_code_here your text goes here**
+
+As follows are the language codes of some languages, but if you don't see the code for the language you want, go to https://ardentbot.com/commands/translate to view a full list.
+**English**: en, **French**: fr, **Spanish**: es, **Russian**: ru
+
+**Example**: *${prefix}translate en Bonjour tout le monde!* will return *Hello everyone!*""")
+        } else {
+            try {
+                val code = arguments[0]
+                arguments.removeAt(0)
+                channel.send(member, api.translationApi().translate(arguments.concat(), Language.of(code)).text()!!)
+            } catch (e: Exception) {
+                channel.send(member, "You need to include a valid language code! Please visit https://ardentbot.com/commands/translate for a guide")
+            }
+        }
     }
 }
 
 class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is streaming on Twitch and see basic information") {
     val twitch = Twitch()
+
     init {
         twitch.clientId = Config.getConfig()!!.getValue("twitch")
     }
+
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         TODO("i'll do this shit tomorrow") //To change body of created functions use File | Settings | File Templates.
     }
