@@ -2,10 +2,18 @@ package utils
 
 import com.google.gson.Gson
 import com.rethinkdb.net.Cursor
+import commands.games.CoinflipGame
 import main.conn
 import main.r
+import net.dv8tion.jda.core.entities.User
 import org.json.simple.JSONObject
 import java.util.*
+import kotlin.collections.HashMap
+import java.util.LinkedHashMap
+import java.util.function.Supplier
+import java.util.stream.Collectors
+
+
 
 private val random = Random()
 private val gsons = listOf(Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson())
@@ -60,6 +68,26 @@ fun Long.formatMinSec() : String {
 
 fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
+}
+
+fun MutableList<CoinflipGame.Round>.mapScores() : MutableMap<String, Int> {
+    val scores = hashMapOf<String, Int>()
+    forEach { round ->
+        round.winners.forEach {
+            scores.putIfAbsent(it, 0)
+            scores.replace(it, scores[it]!! + 1)
+        }
+        round.losers.forEach {
+            scores.putIfAbsent(it, 0)
+        }
+    }
+    return JavaUtils.sortByValue(scores)
+}
+
+
+fun <T> MutableList<T>.without(t: T) : MutableList<T> {
+    this.remove(t)
+    return this
 }
 
 /**

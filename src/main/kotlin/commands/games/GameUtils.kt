@@ -19,36 +19,6 @@ import java.util.concurrent.TimeUnit
 val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
 
-class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.BLACKJACK, channel, creator, playerCount, isPublic) {
-    override fun onEnd() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onStart() {
-        TODO("not implemented") // go implement that
-    }
-}
-
-class ConnectFourGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.CONNECT_FOUR, channel, creator, playerCount, isPublic) {
-    override fun onEnd() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onStart() {
-        TODO("not implemented") // go implement that
-    }
-}
-
-class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.TRIVIA, channel, creator, playerCount, isPublic) {
-    override fun onEnd() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onStart() {
-        TODO("not implemented") // go implement that
-    }
-}
-
 abstract class Game(val type: GameType, val channel: TextChannel, val creator: String, val playerCount: Int, var isPublic: Boolean) {
     val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()!!
     var gameId: Long = 0
@@ -62,12 +32,11 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         this.announceCreation()
         creation = System.currentTimeMillis()
         if (isPublic) {
-            displayLobby()
             scheduledExecutor.scheduleAtFixedRate({
                 if (((System.currentTimeMillis() - creation) / 1000) > 300 /* Lobby cancels at 5 minutes */) {
                     cancel(creator.toUser()!!)
                 } else displayLobby()
-            }, 25, 47, TimeUnit.SECONDS)
+            }, 60, 47, TimeUnit.SECONDS)
         }
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
@@ -93,8 +62,6 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
 
     fun startEvent() {
         invites.forEach { i, g -> if (g.gameId == gameId) invites.remove(i) }
-        val user = creator.toUser()!!
-        channel.send(user, "The game of **${type.readable}**, created by __${user.withDiscrim()}__, is starting with **${players.size}** players")
         scheduledExecutor.shutdownNow()
         gamesInLobby.remove(this)
         activeGames.add(this)
@@ -114,7 +81,6 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         scheduledExecutor.shutdownNow()
     }
 
-    abstract fun onEnd()
 
     fun cleanup(gameData: GameData) {
         val user = creator.toUser()!!
@@ -188,11 +154,20 @@ fun User.isInGameOrLobby(): Boolean {
 
 class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0)
 
-class GameDataTrivia(gameId: Long, val winner: String, val scores: HashMap<String, Int>) : GameData(gameId)
+class GameDataTrivia(gameId: Long, creator: String, val winner: String, val scores: HashMap<String, Int>) : GameData(gameId, creator)
 
-class CoinflipPlayerData(var wins: Int = 0, var losses: Int = 0, var tiebreakersWon: Int = 0, var tiebreakersLost: Int = 0,
-                         var roundsWon: Int = 0, var roundsLost: Int = 0)
+class CoinflipPlayerData(wins : Int = 0, losses : Int = 0, var roundsWon: Int = 0, var roundsLost: Int = 0) : PlayerGameData(wins, losses)
 
-class GameDataCoinflip(gameId: Long, val winner: String, val losers : List<String>, val rounds : CoinflipGame.Round) : GameData(gameId)
+abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0) {
+    fun gamesPlayed() : Int {
+        return wins + losses
+    }
+}
 
-abstract class GameData(var id: Long? = null)
+class GameDataCoinflip(gameId: Long, creator: String, val winner: String, val losers : List<String>, val rounds : List<CoinflipGame.Round>) : GameData(gameId, creator) {
+    fun contains(id: String) : Boolean {
+        return winner == id || losers.contains(id)
+    }
+}
+
+abstract class GameData(var id: Long? = null, val creator: String)

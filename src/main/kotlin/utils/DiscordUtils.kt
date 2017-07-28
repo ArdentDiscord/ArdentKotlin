@@ -3,6 +3,8 @@ package utils
 import net.dv8tion.jda.core.exceptions.PermissionException
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.vdurmont.emoji.EmojiParser
+import commands.games.CoinflipPlayerData
+import commands.games.GameDataCoinflip
 import commands.music.getGuildAudioPlayer
 import commands.games.TriviaPlayerData
 import main.conn
@@ -180,7 +182,7 @@ fun Guild.donationLevel(): DonationLevel {
 fun User.getData(): PlayerData {
     var data: Any? = r.table("playerData").get(id).run(conn)
     if (data != null) return asPojo(data as HashMap<*, *>?, PlayerData::class.java)!!
-    data = PlayerData(id, DonationLevel.NONE, TriviaPlayerData())
+    data = PlayerData(id, DonationLevel.NONE)
     data.insert("playerData")
     return data
 }
@@ -209,4 +211,22 @@ fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
     send(member, "${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
 }
 
-class PlayerData(val id: String, var donationLevel: DonationLevel, var triviaData: TriviaPlayerData, var gold: Double = 0.0)
+class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 0.0) {
+    fun coinflipData() : CoinflipPlayerData {
+        val data = CoinflipPlayerData()
+        val coinflipGames = r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java)
+        coinflipGames.forEach { game : GameDataCoinflip? ->
+            if (game != null) {
+                if (game.contains(id)) {
+                    if (game.winner == id) data.wins++
+                    else data.losses++
+                    game.rounds.forEach { round ->
+                        if (round.winners.contains(id)) data.roundsWon++
+                        else data.roundsLost++
+                    }
+                }
+            }
+        }
+        return data
+    }
+}

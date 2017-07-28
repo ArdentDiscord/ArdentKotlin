@@ -8,11 +8,12 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import utils.*
 import java.awt.Color
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class CommandFactory {
     val commands = mutableListOf<Command>()
-    val executor = Executors.newSingleThreadExecutor()
+    val executor: ExecutorService = Executors.newCachedThreadPool()
     fun addCommand(command: Command): CommandFactory {
         commands.add(command)
         return this

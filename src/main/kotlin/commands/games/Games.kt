@@ -2,6 +2,7 @@ package commands.games
 
 import events.Category
 import events.Command
+import main.factory
 import main.jda
 import main.waiter
 import net.dv8tion.jda.core.Permission
@@ -33,46 +34,98 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
             round: Int ->
             val roundResults = Round()
             val rand = SecureRandom()
-            users.forEach {
-                channel.send(it, "${it.asMention}, you're up in round **$round** of **5**. Type Heads now to guess Heads or Tails to guess Tails - you have 15 seconds!")
-                waiter.waitForMessage(Settings(it.id, channel.id, channel.guild.id), { message ->
-                    val content = message.content
-                    val isHeads: Boolean
-                    when {
-                        content.startsWith("he", true) -> isHeads = true
-                        content.startsWith("ta") -> isHeads = false
-                        else -> {
-                            channel.send(it, "You didn't type **heads** or **tails** - Heads will be assumed")
-                            isHeads = true
+            channel.send(channel.guild.selfMember, "${users.map { it.asMention }.concat()}, you're up in round **$round** of **5**. Type `heads` now to guess **Heads** or `tails` to guess **Tails** - you have __15__ seconds!")
+                factory.executor.execute {
+                    val answered = mutableListOf<String>()
+                    waiter.gameChannelWait(channel.id, { message ->
+                        val it = message.author
+                        if (players.contains(it.id) && !answered.contains(it.id)) {
+                            val content = message.content
+                            val isHeads: Boolean
+                            when {
+                                content.startsWith("he", true) -> isHeads = true
+                                content.startsWith("ta", true) -> isHeads = false
+                                else -> {
+                                    channel.send(it, "${it.asMention} didn't type **heads** or **tails** - Heads will be assumed")
+                                    isHeads = true
+                                }
+                            }
+                            if (rand.nextBoolean() == isHeads) {
+                                roundResults.winners.add(it.id)
+                                channel.send(it, "Congrats, ${it.asMention} guessed correctly!")
+                            } else {
+                                channel.send(it, "Sadly, ${it.asMention} didn't guess correctly ;(")
+                                roundResults.losers.add(it.id)
+                            }
+                            answered.add(it.id)
                         }
-                    }
-                    if (rand.nextBoolean() == isHeads) {
-                        roundResults.winners.add(it.id)
-                        channel.send(it, "Congradulations ${it.asMention}, you guessed correctly!")
-                    } else channel.send(it, "Sorry, you didn't win!")
-                }, {
-                    channel.send(it, "You didn't select an option and automatically lost this round :(")
-                }, time = 15)
-            }
+                    })
+                }
+
+            Thread.sleep(15000)
+            val missedRound = mutableListOf<String>()
+            users.forEach { if (!roundResults.losers.contains(it.id) && !roundResults.winners.contains(it.id)) {
+                roundResults.losers.add(it.id)
+                missedRound.add(it.id)
+            } }
+            if (missedRound.size > 0) channel.send(channel.guild.selfMember, "The following user(s) missed this round and therefore lost: ${missedRound.toUsers()}")
             roundResults
+
         }
         (1..5).forEach { round ->
             results.add(doRound.invoke(round))
-            displayCurrentResults(round)
+            displayCurrentResults(results)
         }
+        val scores = results.mapScores()
+        var winner: String? = null
+        val values = scores.values.toIntArray()
+        if (values[0] == values[1]) {
+            val tiedPlayers = scores.keys.toList().subList(0, 2)
+            val first = tiedPlayers[0].toUser()!!
+            val second = tiedPlayers[1].toUser()!!
+            channel.send(channel.guild.selfMember, "There's a tie between **${first.withDiscrim()}** and **${second.withDiscrim()}**!\n" +
+                    "${first.asMention}, to prove the true winner, decide whether the next coin will land `heads` or `tails` - Choose wisely - you have 20 seconds!")
+            waiter.waitForMessage(Settings(first.id, channel.id, channel.guild.id), { message ->
+                val content = message.content
+                val isHeads: Boolean
+                when {
+                    content.startsWith("he", true) -> isHeads = true
+                    content.startsWith("ta") -> isHeads = false
+                    else -> {
+                        channel.send(first, "You didn't type **heads** or **tails** - Heads will be assumed")
+                        isHeads = true
+                    }
+                }
+                if (SecureRandom().nextBoolean() == isHeads) {
+                    winner = first.id
+                } else {
+                    winner = second.id
+                }
+                channel.send(first, "suspense.....................")
+            }, {
+                channel.send(first, "Bad time to go AFK! You lose because of inactivity :(")
+                winner = second.id
+            }, time = 20)
+            Thread.sleep(20000)
+        } else {
+            winner = scores.keys.toList()[0]
+        }
+        channel.send(channel.guild.selfMember, "Congratulations to **${winner!!.toUser()!!.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses")
+        val gameData = GameDataCoinflip(gameId, creator, winner!!, players.without(winner!!), results)
+        cleanup(gameData)
     }
 
-    fun displayCurrentResults(currentRound: Int) {
+    fun displayCurrentResults(results: MutableList<Round>) {
         val embed = embed("Current Results", channel.guild.selfMember)
-        // TODO("lazy")
-
+        val scores = results.mapScores()
+        scores.iterator().withIndex().forEach { (index, value) ->
+            embed.appendDescription(" #${index.plus(1)} **${value.key.toUser()!!.withDiscrim()}**: *${value.value} correct guesses*\n")
+        }
+        embed.appendDescription("\n__Current Round__: **${results.size}**")
+        channel.send(creator.toUser()!!, embed)
     }
 
-    override fun onEnd() {
-
-    }
-
-    class Round(val winners: MutableList<String> = mutableListOf())
+    class Round(val winners: MutableList<String> = mutableListOf(), val losers: MutableList<String> = mutableListOf())
 }
 
 
@@ -103,26 +156,20 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                             channel.selectFromList(member, "Would you like this game of ${gameType.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), {
                                 public ->
                                 val isPublic = public == 0
-                                channel.send(member, "Are you sure you still want to host this game? Type **yes** if so or **no** if not")
-                                waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
-                                    message ->
-                                    if (message.content.startsWith("ye", true)) {
-                                        when (gameType) {
-                                            GameType.COINFLIP -> {
-                                                channel.send(member, "How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
-                                                waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
-                                                    playerCount ->
-                                                    val count = playerCount.content.toIntOrNull() ?: 999
-                                                    val game = CoinflipGame(channel, member.user.id, count, isPublic)
-                                                    gamesInLobby.add(game)
+                                when (gameType) {
+                                    GameType.COINFLIP -> {
+                                        channel.send(member, "How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
+                                        waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
+                                            playerCount ->
+                                            val count = playerCount.content.toIntOrNull() ?: 999
+                                            val game = CoinflipGame(channel, member.user.id, count, isPublic)
+                                            gamesInLobby.add(game)
 
-                                                })
-                                            }
+                                        })
+                                    }
 
-                                        }
-                                        // TODO("Fill in the other games")
-                                    } else channel.send(member, "Cancelled game setup ${Emoji.SQUARED_OK}")
-                                }, time = 20, unit = TimeUnit.SECONDS)
+                                }
+                                // TODO("Fill in the other games")
                             })
                         }
                     })
@@ -187,7 +234,6 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                     game.players.add(member.id())
                                     channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
                                             "Players in lobby: *${game.players.toUsers()}*")
-                                    return
                                 } else {
                                     if (invites.containsKey(member.id()) && invites[member.id()]!!.gameId == game.gameId) {
                                         invites.remove(member.id())
@@ -195,9 +241,9 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                         channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
                                                 "Players in lobby: *${game.players.toUsers()}*")
                                     } else channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
-                                    return
                                 }
                             }
+                            return
                         }
                     }
                     channel.send(member, "There's not a game in lobby with the ID of **#$id**")
