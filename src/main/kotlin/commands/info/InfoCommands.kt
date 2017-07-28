@@ -69,7 +69,7 @@ class About : Command(Category.INFO, "about", "learn more about Ardent") {
 class Help : Command(Category.INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val categories = Category.values().map { it.toString() }.toMutableList().shuffle()
-        channel.selectFromList(member, "Which category of commands do you need help in?", categories, {
+        channel.selectFromList(member, "Which category of commands would you like help in?", categories, {
             number ->
             val category = categories[number].toCategory()
             val categoryCommands = factory.commands.filter { it.category == category }.toMutableList()
@@ -85,7 +85,7 @@ class Help : Command(Category.INFO, "help", "can you figure out what this does? 
             }
             channel.send(member, embed)
         }, "Command count: **${factory.commands.size}**\n" +
-                "__*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*__\n")
+                "*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
     }
 }
 
