@@ -7,15 +7,13 @@ import commands.games.CoinflipPlayerData
 import commands.games.GameDataCoinflip
 import commands.music.getGuildAudioPlayer
 import commands.games.TriviaPlayerData
-import main.conn
-import main.jda
-import main.r
-import main.version
+import main.*
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import java.awt.Color
+import java.lang.management.ManagementFactory
 import java.util.HashMap
 
 fun String.toChannel(): TextChannel? {
@@ -28,11 +26,11 @@ fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
     return false
 }
 
-fun Member.voiceChannel() : VoiceChannel? {
+fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
 }
 
-fun Member.hasOverride(channel: TextChannel, ifAloneInVoice : Boolean): Boolean {
+fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean): Boolean {
     if (hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 1 && voiceChannel()!!.members[0] == this)) return true
     channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
@@ -65,7 +63,7 @@ fun String.toUser(): User? {
     return jda?.getUserById(this)
 }
 
-fun List<String>.toUsers() : String {
+fun List<String>.toUsers(): String {
     return map { it.toUser()!!.withDiscrim() }.stringify()
 }
 
@@ -77,7 +75,7 @@ fun Guild.getData(): GuildData {
     return data
 }
 
-fun Message.getFirstRole(arguments: List<String>) : Role? {
+fun Message.getFirstRole(arguments: List<String>): Role? {
     if (mentionedRoles.size > 0) return mentionedRoles[0]
     if (guild != null) {
         val search = guild.getRolesByName(arguments.concat(), true)
@@ -195,13 +193,13 @@ fun User.getData(): PlayerData {
     return data
 }
 
-fun Member.id() : String {
+fun Member.id(): String {
     return user.id
 }
 
 fun Member.isPatron(): Boolean {
-   return true
-   // TODO() return user.donationLevel() != DonationLevel.NONE
+    return true
+    // TODO() return user.donationLevel() != DonationLevel.NONE
 }
 
 fun User.donationLevel(): DonationLevel {
@@ -220,10 +218,10 @@ fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
 }
 
 class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 0.0) {
-    fun coinflipData() : CoinflipPlayerData {
+    fun coinflipData(): CoinflipPlayerData {
         val data = CoinflipPlayerData()
         val coinflipGames = r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java)
-        coinflipGames.forEach { game : GameDataCoinflip? ->
+        coinflipGames.forEach { game: GameDataCoinflip? ->
             if (game != null) {
                 if (game.contains(id)) {
                     if (game.winner == id) data.wins++
@@ -236,5 +234,52 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
             }
         }
         return data
+    }
+}
+
+class Internals {
+    val messagesReceived: Long = factory.messagesReceived.get()
+    val commandsReceived: Long = factory.commandsReceived().toLong()
+    val commandCount: Int = factory.commands.size
+    val commandDistribution: HashMap<String, Int> = factory.commandsById
+    val guilds: List<String> = jda!!.guilds.map { it.id }
+    val users: Int = jda!!.users.size
+    val cpuUsage: Double = JavaUtils.getProcessCpuLoad()
+    val ramUsage: Pair<Long /* Used RAM in MB */, Long /* Available RAM in MB */>
+    var roleCount: Long = 0
+    var channelCount: Long = 0
+    var voiceCount: Long = 0
+    val loadedMusicPlayers: Int = managers.size
+    var queueLength: Int = 0
+    val uptime: Long
+    val uptimeFancy: String
+
+    init {
+        val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
+        ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)
+        jda!!.guilds.forEach { guild ->
+            roleCount += guild.roles.size
+            channelCount += guild.textChannels.size
+            voiceCount += guild.voiceChannels.size
+        }
+        managers.forEach { _, u ->  queueLength += u.scheduler.manager.queue.size }
+        uptime = ManagementFactory.getRuntimeMXBean().uptime
+        val seconds = (uptime / 1000) % 60
+        val minutes = (uptime / (1000 * 60)) % 60
+        val hours = (uptime / (1000 * 60 * 60)) % 24
+        val days = (uptime / (1000 * 60 * 60 * 24))
+        val builder = StringBuilder()
+        if (days == 1.toLong()) builder.append("$days day, ")
+        else if (days > 1.toLong()) builder.append("$days days, ")
+
+        if (hours == 1.toLong()) builder.append("$hours hour, ")
+        else if (hours > 1.toLong()) builder.append("$hours hours, ")
+
+        if (minutes == 1.toLong()) builder.append("$minutes minute, ")
+        else if (minutes > 1.toLong()) builder.append("$minutes minutes, ")
+
+        if (seconds == 1.toLong()) builder.append("$minutes second")
+        else builder.append("$seconds seconds")
+        uptimeFancy = builder.toString()
     }
 }

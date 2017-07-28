@@ -5,7 +5,6 @@ import com.rethinkdb.net.Connection
 import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.JDABuilder
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager
@@ -14,13 +13,11 @@ import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import commands.`fun`.*
 import commands.games.Games
+import web.Web
 import commands.info.*
-import commands.info.Invite
 import commands.info.Settings
 import commands.manage.Prefix
 import commands.music.*
-import events.Category
-import events.Command
 import events.CommandFactory
 import events.VoiceUtils
 import net.dv8tion.jda.core.entities.*
@@ -91,5 +88,7 @@ fun main(args: Array<String>) {
             .addCommand(FML())
             .addCommand(Translate())
             .addCommand(IsStreaming())
-
+            .addCommand(Status())
+    Web()
+    println("Successfully set up. Ready to receive commands!")
 }

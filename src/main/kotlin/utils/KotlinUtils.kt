@@ -56,6 +56,12 @@ fun String.shortenIf(numChars: Int) : String {
     else return substring(0, numChars)
 }
 
+fun <K> MutableMap<K, Int>.incrementValue(key : K) : Int {
+    val value = putIfAbsent(key, 0) ?: 0
+    replace(key, value + 1)
+    return value
+}
+
 fun PlayerData.update() {
     r.table("playerData").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
 }
@@ -89,6 +95,9 @@ fun MutableList<CoinflipGame.Round>.mapScores() : MutableMap<String, Int> {
     return JavaUtils.sortByValue(scores)
 }
 
+fun Any.toJson() : String {
+    return getGson().toJson(this)
+}
 
 fun <T> MutableList<T>.without(t: T) : MutableList<T> {
     this.remove(t)

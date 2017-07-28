@@ -10,10 +10,20 @@ import utils.*
 import java.awt.Color
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 
 class CommandFactory {
     val commands = mutableListOf<Command>()
     val executor: ExecutorService = Executors.newCachedThreadPool()
+    val commandsById = hashMapOf<String, Int>()
+    val messagesReceived = AtomicLong(0)
+
+    fun commandsReceived() : Int {
+        var temp = 0
+        commandsById.forEach { temp += it.value }
+        return temp
+    }
+
     fun addCommand(command: Command): CommandFactory {
         commands.add(command)
         return this
@@ -22,6 +32,7 @@ class CommandFactory {
     @SubscribeEvent
     fun onMessageEvent(event: MessageReceivedEvent) {
         if (event.author.isBot) return
+        messagesReceived.getAndIncrement()
         val args = event.message.rawContent.split(" ").toMutableList()
         val prefix = event.guild.getPrefix()
 
@@ -40,6 +51,7 @@ class CommandFactory {
             cmd ->
             if (cmd.containsAlias(args[0])) {
                 args.removeAt(0)
+                commandsById.incrementValue(cmd.name)
                 executor.execute { cmd.execute(args, event) }
                 return
             }
@@ -86,19 +98,21 @@ abstract class Command(val category: Category, val name: String, val description
 fun String.toCategory(): Category {
     when (this) {
         "Music & Radio" -> return Category.MUSIC
-        "Bot & Server Information" -> return Category.INFO
+        "Bot Information" -> return Category.BOT_INFO
+        "Server Information" -> return Category.SERVER_INFO
         "Manage" -> return Category.MANAGE
         "Server Administration" -> return Category.ADMINISTRATE
         "Games" -> return Category.GAMES
         "Fun & Urban Dictionary" -> return Category.FUN
-        else -> return Category.INFO
+        else -> return Category.BOT_INFO
     }
 }
 
 enum class Category(val fancyName: String, val description: String) {
     GAMES("Games", "Compete against your friends or users around the world in classic and addicting games!"),
     MUSIC("Music & Radio", "Play your favorite tracks or listen to the radio, all inside Discord"),
-    INFO("Bot & Server Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
+    BOT_INFO("Bot Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
+    SERVER_INFO("Server Information", "Check current information about different aspects of your server"),
     MANAGE("Manage", "Manage settings, both for Ardent and your server"),
     ADMINISTRATE("Server Administration", "Administrate your server: this category includes commands like warnings and mutes"),
     FUN("Fun & Urban Dictionary", "Bored? Not interested in the games? We have a lot of commands for you to check out here!")

@@ -22,9 +22,12 @@ import org.apache.commons.lang3.CharSetUtils.count
 import sun.misc.MessageUtils
 import java.time.Instant
 import java.time.ZoneOffset
+import java.text.DecimalFormat
 
 
-class Ping : Command(Category.INFO, "ping", "what did you think this command was gonna do?") {
+
+
+class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command was gonna do?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val currentTime = System.currentTimeMillis()
         event.channel.sendReceive(member, "I'll calculate my ping to Discord using this message")
@@ -33,28 +36,28 @@ class Ping : Command(Category.INFO, "ping", "what did you think this command was
     }
 }
 
-class Invite : Command(Category.INFO, "invite", "Get the invite link for the bot") {
+class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val channelInvite = jda!!.asBot().getInviteUrl(Permission.MESSAGE_MANAGE, Permission.MANAGE_SERVER, Permission.VOICE_CONNECT, Permission.VOICE_SPEAK, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY)
         channel.send(member, "My invite link is $channelInvite - have fun using Ardent!")
     }
 }
 
-class Donate : Command(Category.INFO, "donate", "Learn how to support Ardent and get special perks for it!") {
+class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and get special perks for it!") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "Want to support our work and obtain some perks along the way? Head to https://ardentbot.com/support_us to see the different ways " +
                 "you could help us out!")
     }
 }
 
-class Settings : Command(Category.INFO, "settings", "Learn how to support Ardent and get special perks for it!", "website") {
+class Settings : Command(Category.SERVER_INFO, "settings", "manage the settings for your server using our shiny new web panel", "website") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "Manage the settings for this server at https://www.ardentbot.com/manage/${guild.id} - while you're there, be sure to check out " +
                 "the rest of our website!")
     }
 }
 
-class About : Command(Category.INFO, "about", "learn more about Ardent") {
+class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val builder = embed("About the bot and its founders", channel.guild.selfMember)
         builder.appendDescription("Ardent was originally founded in November 2016 by ${jda!!.asBot().applicationInfo.complete().owner.withDiscrim()}. It reached over 4,000 servers " +
@@ -66,7 +69,7 @@ class About : Command(Category.INFO, "about", "learn more about Ardent") {
 }
 
 
-class Help : Command(Category.INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
+class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val categories = Category.values().map { it.toString() }.toMutableList().shuffle()
         channel.selectFromList(member, "Which category of commands would you like help in?", categories, {
@@ -89,7 +92,7 @@ class Help : Command(Category.INFO, "help", "can you figure out what this does? 
     }
 }
 
-class ServerInfo : Command(Category.INFO, "serverinfo", "view some basic information about this server", "guildinfo", "si", "gi") {
+class ServerInfo : Command(Category.SERVER_INFO, "serverinfo", "view some basic information about this server", "guildinfo", "si", "gi") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = guild.getData()
         val embed = embed("Server Info: ${guild.name}", member)
@@ -109,7 +112,7 @@ class ServerInfo : Command(Category.INFO, "serverinfo", "view some basic informa
     }
 }
 
-class UserInfo : Command(Category.INFO, "userinfo", "view cool information about your friends", "whois", "userinfo", "ui") {
+class UserInfo : Command(Category.SERVER_INFO, "userinfo", "view cool information about your friends", "whois", "userinfo", "ui") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) channel.send(member, "You need to mention a member!")
@@ -130,7 +133,7 @@ class UserInfo : Command(Category.INFO, "userinfo", "view cool information about
     }
 }
 
-class RoleInfo : Command(Category.INFO, "roleinfo", "view useful information about roles in this server", "ri") {
+class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful information about roles in this server", "ri") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val role = event.message.getFirstRole(arguments)
         if (role == null) channel.send(member, "You need to either mention a role or type its full name!")
@@ -146,3 +149,21 @@ class RoleInfo : Command(Category.INFO, "roleinfo", "view useful information abo
     }
 }
 
+class Status : Command(Category.BOT_INFO, "status", "check realtime statistics about the bot") {
+    var formatter = DecimalFormat("#,###")
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val internals = Internals()
+        channel.send(member, embed("Ardent Realtime Status", member)
+                .addField("Loaded Commands", internals.commandCount.toString(), true)
+                .addField("Messages Received", formatter.format(internals.messagesReceived), true)
+                .addField("Commands Received", formatter.format(internals.commandsReceived), true)
+                .addField("Servers", formatter.format(internals.guilds.size), true)
+                .addField("Users", formatter.format(internals.users), true)
+                .addField("Loaded Music Players", formatter.format(internals.loadedMusicPlayers), true)
+                .addField("Queue Length", "${formatter.format(internals.queueLength)} tracks", true)
+                .addField("CPU Usage", "${internals.cpuUsage}%", true)
+                .addField("RAM Usage", "${internals.ramUsage.first} / ${internals.ramUsage.second} mb", true)
+                .addField("Uptime", internals.uptimeFancy, true)
+                .addField("Website", "https://ardentbot.com", true))
+    }
+}
