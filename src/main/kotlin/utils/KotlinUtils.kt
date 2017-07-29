@@ -3,6 +3,7 @@ package utils
 import com.google.gson.Gson
 import com.rethinkdb.net.Cursor
 import commands.games.CoinflipGame
+import commands.info.formatter
 import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.User
@@ -50,6 +51,14 @@ fun <T> Any.queryAsArrayList(t: Class<T>): MutableList<T?> {
     val tS = mutableListOf<T?>()
     cursor.forEach { hashMap -> tS.add(asPojo(hashMap, t)) }
     return tS
+}
+
+fun Int.format() : String {
+    return formatter.format(this)
+}
+
+fun Long.format() : String {
+    return formatter.format(this)
 }
 
 fun String.shortenIf(numChars: Int) : String {

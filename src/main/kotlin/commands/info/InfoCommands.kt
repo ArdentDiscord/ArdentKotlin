@@ -25,7 +25,7 @@ import java.time.ZoneOffset
 import java.text.DecimalFormat
 
 
-
+val formatter = DecimalFormat("#,###")
 
 class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command was gonna do?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -150,7 +150,6 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
 }
 
 class Status : Command(Category.BOT_INFO, "status", "check realtime statistics about the bot") {
-    var formatter = DecimalFormat("#,###")
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val internals = Internals()
         channel.send(member, embed("Ardent Realtime Status", member)

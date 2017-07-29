@@ -3,6 +3,11 @@ package commands.`fun`
 import com.github.vbauer.yta.model.Language
 import com.github.vbauer.yta.service.YTranslateApiImpl
 import com.mb3364.twitch.api.Twitch
+import com.mb3364.twitch.api.handlers.ChannelResponseHandler
+import com.mb3364.twitch.api.handlers.StreamResponseHandler
+import com.mb3364.twitch.api.handlers.StreamsResponseHandler
+import com.mb3364.twitch.api.models.Channel
+import com.mb3364.twitch.api.models.Stream
 import events.Category
 import events.Command
 import main.config
@@ -130,6 +135,57 @@ class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is
     }
 
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        TODO("i'll do this shit tomorrow") //To change body of created functions use File | Settings | File Templates.
+        if (arguments.size == 0) channel.send(member, "Please include the name of a channel - **Example**: `${guild.getPrefix()}streaming ardentdiscord`")
+        else {
+            val ch = arguments.concat()
+            twitch.channels().get(ch, object : ChannelResponseHandler {
+                override fun onSuccess(twitchChannel: Channel) {
+                    twitch.streams().get(twitchChannel.name, object : StreamResponseHandler {
+                        override fun onSuccess(stream: Stream?) {
+                            val embed = embed("${twitchChannel.name} - on Twitch", member)
+                                    .addField("Display Name", twitchChannel.displayName, true)
+                                    .addField("Twitch Link", "[Click Here](${twitchChannel.url})", true)
+                            if (stream != null && stream.isOnline) {
+                                embed.setColor(Color.GREEN)
+                                        .addField("Currently Streaming", "true", true)
+                                        .addField("Streaming Game", stream.game, true)
+                                        .addField("Viewers", stream.game, true)
+                                        .addField("Average FPS", stream.game, true)
+                                embed.setImage(stream.preview.medium)
+                            } else {
+                                embed.setColor(Color.RED)
+                                        .addField("Currently Streaming", "false", true)
+                                if (twitchChannel.videoBanner == null) embed.setThumbnail(twitchChannel.logo)
+                                else embed.setThumbnail(twitchChannel.videoBanner)
+                            }
+                            embed.addField("Views", twitchChannel.views.format(), true)
+                                    .addField("Followers", twitchChannel.followers.format(), true)
+                                    .addField("Creation Date", twitchChannel.createdAt.toGMTString(), true)
+                                    .addField("Is Partnered?", twitchChannel.isPartner.toString(), true)
+                                    .addField("Mature Content?", twitchChannel.isMature.toString(), true)
+                                    .addField("Language", twitchChannel.language, true)
+
+                            channel.send(member, embed)
+                        }
+
+                        override fun onFailure(failure: Throwable) {
+                            channel.send(member, "Unable to retrieve channel data. **Reason**: ${failure.localizedMessage}")
+                        }
+
+                        override fun onFailure(p0: Int, p1: String?, p2: String?) {
+                            onFailure(Exception("Unknown API Error"))
+                        }
+                    })
+                }
+
+                override fun onFailure(failure: Throwable) {
+                    channel.send(member, "Unable to retrieve channel data. **Reason**: ${failure.localizedMessage}")
+                }
+
+                override fun onFailure(p0: Int, p1: String?, p2: String?) {
+                    onFailure(Exception("Unknown API Error"))
+                }
+            })
+        }
     }
 }
