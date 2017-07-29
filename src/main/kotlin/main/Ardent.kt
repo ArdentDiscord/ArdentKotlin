@@ -15,11 +15,14 @@ import commands.`fun`.*
 import commands.games.Games
 import web.Web
 import commands.info.*
+import commands.info.Invite
 import commands.info.Settings
+import commands.manage.Clear
 import commands.manage.Prefix
 import commands.manage.startAdministrativeDaemon
 import commands.music.*
 import events.CommandFactory
+import events.JoinRemoveEvents
 import events.VoiceUtils
 import net.dv8tion.jda.core.entities.*
 import utils.*
@@ -45,6 +48,7 @@ fun main(args: Array<String>) {
             .setGame(Game.of("With a fancy new /help", "https://twitch.tv/ "))
             .addEventListener(waiter)
             .addEventListener(factory)
+            .addEventListener(JoinRemoveEvents())
             .addEventListener(VoiceUtils())
             .setEventManager(AnnotatedEventManager())
             .setToken(config.getValue("token"))
@@ -75,7 +79,7 @@ fun main(args: Array<String>) {
             .addCommand(Prefix())
             .addCommand(Leave())
             .addCommand(Games())
-            // .addCommand(Invite())
+            .addCommand(Invite())
             .addCommand(Settings())
             .addCommand(About())
             .addCommand(Donate())
@@ -90,6 +94,7 @@ fun main(args: Array<String>) {
             .addCommand(Translate())
             .addCommand(IsStreaming())
             .addCommand(Status())
+            .addCommand(Clear())
     Web()
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")

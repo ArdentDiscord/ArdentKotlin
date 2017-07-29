@@ -85,6 +85,16 @@ fun Message.getFirstRole(arguments: List<String>): Role? {
     return null
 }
 
+fun Member.punishments(): MutableList<Punishment?> {
+    val punishments = r.table("punishments").filter(r.hashMap("guildId", guild.id).with("userId", user.id))
+            .run<Any>(conn).queryAsArrayList(Punishment::class.java)
+    val iterator = punishments.iterator()
+    while (iterator.hasNext()) {
+        if (iterator.next() == null) iterator.remove()
+    }
+    return punishments
+}
+
 fun MessageChannel.sendReceive(member: Member, embed: EmbedBuilder): Message? {
     try {
         return this.sendMessage(embed.build()).complete()

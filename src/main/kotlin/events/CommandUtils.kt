@@ -33,6 +33,7 @@ class CommandFactory {
     fun onMessageEvent(event: MessageReceivedEvent) {
         if (event.author.isBot) return
         messagesReceived.getAndIncrement()
+        val member = event.member
         val args = event.message.rawContent.split(" ").toMutableList()
         val prefix = event.guild.getPrefix()
 

@@ -24,6 +24,7 @@ class EventWaiter : EventListener {
         factory.executor.execute {
             when (e) {
                 is GuildMessageReceivedEvent -> {
+                    if (e.author.isBot) return@execute
                     val gameIterator = gameEvents.iterator()
                     while (gameIterator.hasNext()) {
                         val game = gameIterator.next()

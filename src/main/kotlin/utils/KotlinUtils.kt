@@ -45,9 +45,9 @@ fun <T> asPojo(map: HashMap<*, *>?, tClass: Class<T>): T? {
     return getGson().fromJson(JSONObject.toJSONString(map), tClass)
 }
 
-fun <T> Any.queryAsArrayList(t: Class<T>): ArrayList<T?> {
+fun <T> Any.queryAsArrayList(t: Class<T>): MutableList<T?> {
     val cursor = this as Cursor<HashMap<*, *>>
-    val tS = ArrayList<T?>()
+    val tS = mutableListOf<T?>()
     cursor.forEach { hashMap -> tS.add(asPojo(hashMap, t)) }
     return tS
 }
