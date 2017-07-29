@@ -18,7 +18,7 @@ class CommandFactory {
     val commandsById = hashMapOf<String, Int>()
     val messagesReceived = AtomicLong(0)
 
-    fun commandsReceived() : Int {
+    fun commandsReceived(): Int {
         var temp = 0
         commandsById.forEach { temp += it.value }
         return temp
@@ -38,18 +38,13 @@ class CommandFactory {
         val prefix = event.guild.getPrefix()
 
         when (args[0]) {
-            "ardent" -> {
-                args.removeAt(0)
-            }
+            "ardent" -> args.removeAt(0)
             else -> {
-                if (args[0].startsWith(prefix)) {
-                    args[0] = args[0].replace(prefix, "")
-                } else return
+                if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "") else return
             }
         }
 
-        commands.forEach {
-            cmd ->
+        commands.forEach { cmd ->
             if (cmd.containsAlias(args[0])) {
                 args.removeAt(0)
                 commandsById.incrementValue(cmd.name)
@@ -64,8 +59,7 @@ abstract class Command(val category: Category, val name: String, val description
     val help = mutableListOf<Pair<String, String>>()
     fun execute(args: MutableList<String>, event: MessageReceivedEvent) {
         if (event.channelType == ChannelType.PRIVATE)
-            event.author.openPrivateChannel().queue {
-                channel ->
+            event.author.openPrivateChannel().queue { channel ->
                 channel.send(event.author, "Please use commands inside a Discord server!")
             }
         else execute(event.member, event.textChannel, event.guild, args, event)
@@ -83,7 +77,7 @@ abstract class Command(val category: Category, val name: String, val description
         val embed = embed("How can I use $prefix$name ?", member, Color.BLACK)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
                 .setFooter("Aliases: ${aliases.toList().stringify()}", member.user.avatarUrl)
-        embed.appendDescription("*$description*\n")
+                .appendDescription("*$description*\n")
         help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first}**: *${it.second}*") }
         if (help.size > 0) embed.appendDescription("\n\n**Example**: $prefix$name ${help[0].first}")
         embed.appendDescription("\n\nType ${channel.guild.getPrefix()}help to view a full list of commands")
