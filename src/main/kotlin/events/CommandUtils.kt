@@ -107,7 +107,6 @@ fun String.toCategory(): Category {
         "Music & Radio" -> return Category.MUSIC
         "Bot Information" -> return Category.BOT_INFO
         "Server Information" -> return Category.SERVER_INFO
-        "Manage" -> return Category.MANAGE
         "Server Administration" -> return Category.ADMINISTRATE
         "Games" -> return Category.GAMES
         "Fun & Urban Dictionary" -> return Category.FUN
@@ -120,7 +119,6 @@ enum class Category(val fancyName: String, val description: String) {
     MUSIC("Music & Radio", "Play your favorite tracks or listen to the radio, all inside Discord"),
     BOT_INFO("Bot Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
     SERVER_INFO("Server Information", "Check current information about different aspects of your server"),
-    MANAGE("Manage", "Manage settings, both for Ardent and your server"),
     ADMINISTRATE("Server Administration", "Administrate your server: this category includes commands like warnings and mutes"),
     FUN("Fun & Urban Dictionary", "Bored? Not interested in the games? We have a lot of commands for you to check out here!")
     ;

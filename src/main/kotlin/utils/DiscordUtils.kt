@@ -31,14 +31,15 @@ fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
 }
 
-fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false): Boolean {
+fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false): Boolean {
     if (hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 1 && voiceChannel()!!.members[0] == this)) return true
-    channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
+    if (!failQuietly) channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
 }
 
 private fun Member.hasOverride(): Boolean {
-    return hasPermission(Permission.MANAGE_CHANNEL) || guild.getData().advancedPermissions.contains(user.id)
+    return isOwner || hasPermission(Permission.ADMINISTRATOR) || hasPermission(Permission.MANAGE_CHANNEL)
+            || guild.getData().advancedPermissions.contains(user.id)
 }
 
 fun String.getChannel(): TextChannel? {
@@ -265,6 +266,7 @@ class Internals {
     val uptime: Long
     val uptimeFancy: String
     val apiCalls: Long = webCalls.get()
+
     init {
         val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
         ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)
@@ -273,7 +275,7 @@ class Internals {
             channelCount += guild.textChannels.size
             voiceCount += guild.voiceChannels.size
         }
-        managers.forEach { _, u ->  queueLength += u.scheduler.manager.queue.size }
+        managers.forEach { _, u -> queueLength += u.scheduler.manager.queue.size }
         uptime = ManagementFactory.getRuntimeMXBean().uptime
         val seconds = (uptime / 1000) % 60
         val minutes = (uptime / (1000 * 60)) % 60

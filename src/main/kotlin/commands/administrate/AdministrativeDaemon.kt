@@ -1,9 +1,10 @@
-package commands.manage
+package commands.administrate
 
 import main.conn
 import main.jda
 import main.r
 import utils.Punishment
+import utils.id
 import utils.queryAsArrayList
 import utils.send
 import java.util.concurrent.Executors
@@ -18,18 +19,20 @@ class AdministrativeDaemon : Runnable {
         activePunishments.forEach { punishment ->
             if (punishment != null) {
                 val guild = jda!!.getGuildById(punishment.guildId)
-                val member = guild?.getMemberById(punishment.userId)
-                if (member == null) {
+                val user = jda!!.getUserById(punishment.userId)
+                if (user == null) {
                     r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
                 } else {
-                    if (punishment.expiration > time) {
-                        member.user.openPrivateChannel().queue { privateChannel ->
-                            privateChannel.send(member,
+                    if (time > punishment.expiration) {
+                        guild.controller.unban(user.id).queue()
+                        user.openPrivateChannel().queue { privateChannel ->
+                            privateChannel.send(user,
                                     when (punishment.type) {
                                         Punishment.Type.TEMPBAN -> "You were unbanned from **${guild.name}**"
                                         Punishment.Type.MUTE -> "You were unmuted from **${guild.name}**"
                                     })
                         }
+                        r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
                     }
                 }
             }
@@ -39,5 +42,5 @@ class AdministrativeDaemon : Runnable {
 
 fun startAdministrativeDaemon() {
     val administrativeDaemon = AdministrativeDaemon()
-    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 0, 1, TimeUnit.MINUTES)
+    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 5, 20, TimeUnit.SECONDS)
 }

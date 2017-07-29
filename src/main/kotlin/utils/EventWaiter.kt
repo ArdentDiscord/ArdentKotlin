@@ -104,7 +104,7 @@ fun TextChannel.selectFromList(member: Member, title: String, options: MutableLi
     val embed = embed(title, member)
     val builder = StringBuilder()
     for ((index, value) in options.iterator().withIndex()) {
-        builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: _${value}_\n")
+        builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
     }
     if (footerText != null) builder.append("\n$footerText\n")
     builder.append("\n__Please type the number corresponding with the choice you want to select__\n")

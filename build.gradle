@@ -24,7 +24,7 @@ repositories {
 }
 
 dependencies {
-    compile 'net.dv8tion:JDA:3.2.0_236'
+    compile 'net.dv8tion:JDA:3.2.0_241'
     compile 'com.sedmelluq:jda-nas:1.0.3'
     compile 'com.sedmelluq:lavaplayer:1.2.42'
     compile group: 'com.rethinkdb', name: 'rethinkdb-driver', version: '2.3.3'

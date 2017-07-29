@@ -17,9 +17,10 @@ import web.Web
 import commands.info.*
 import commands.info.Invite
 import commands.info.Settings
-import commands.manage.Clear
-import commands.manage.Prefix
-import commands.manage.startAdministrativeDaemon
+import commands.administrate.Clear
+import commands.administrate.Prefix
+import commands.administrate.Tempban
+import commands.administrate.startAdministrativeDaemon
 import commands.music.*
 import events.CommandFactory
 import events.JoinRemoveEvents
@@ -95,6 +96,7 @@ fun main(args: Array<String>) {
             .addCommand(IsStreaming())
             .addCommand(Status())
             .addCommand(Clear())
+            .addCommand(Tempban())
     Web()
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")

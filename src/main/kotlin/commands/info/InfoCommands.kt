@@ -18,7 +18,6 @@ import utils.*
 import javax.swing.plaf.synth.SynthLookAndFeel.getRegion
 import java.nio.file.Files.getOwner
 import net.dv8tion.jda.core.OnlineStatus
-import org.apache.commons.lang3.CharSetUtils.count
 import sun.misc.MessageUtils
 import java.time.Instant
 import java.time.ZoneOffset
@@ -50,9 +49,9 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
     }
 }
 
-class Settings : Command(Category.SERVER_INFO, "settings", "manage the settings for your server using our shiny new web panel", "website") {
+class Settings : Command(Category.SERVER_INFO, "settings", "administrate the settings for your server using our shiny new web panel", "website") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Manage the settings for this server at https://www.ardentbot.com/manage/${guild.id} - while you're there, be sure to check out " +
+        channel.send(member, "Manage the settings for this server at https://www.ardentbot.com/administrate/${guild.id} - while you're there, be sure to check out " +
                 "the rest of our website!")
     }
 }
@@ -71,15 +70,15 @@ class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
 
 class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val categories = Category.values().map { it.toString() }.toMutableList().shuffle()
+        val categories = Category.values().map { it.toString() }.toMutableList()
         channel.selectFromList(member, "Which category of commands would you like help in?", categories, {
             number ->
             val category = categories[number].toCategory()
-            val categoryCommands = factory.commands.filter { it.category == category }.toMutableList()
+            val categoryCommands = factory.commands.filter { it.category == category }.toMutableList().shuffle()
             val embed = embed("${category.fancyName} Commands", member)
                     .appendDescription("*${category.description}*")
             categoryCommands.forEach { command ->
-                embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: *${command.description}*")
+                embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: ${command.description}")
                 if (command.aliases.isNotEmpty()) {
                     embed.appendDescription("\n")
                     if (command.aliases.size > 1) embed.appendDescription("         __aliases: [${command.aliases.toList().stringify()}]__")

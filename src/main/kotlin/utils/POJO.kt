@@ -1,5 +1,7 @@
 package utils
 
+import com.rethinkdb.gen.ast.Uuid
+import main.conn
 import main.r
 
 class GuildData(val id: String, var prefix: String, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>)
@@ -15,7 +17,7 @@ data class UDResult(val definition: String, val permalink: String, val thumbs_up
 data class EightBallResult(val magic: Magic)
 data class Magic /* The name was not my choice...... */(val question: String, val answer: String, val type: String)
 
-class Punishment(val userId: String, val punisherId: String, val guildId: String, val type: Type, val expiration: Long, val start: Long = System.currentTimeMillis(), val uuid : String = r.uuid().toString()) {
+class Punishment(val userId: String, val punisherId: String, val guildId: String, val type: Type, val expiration: Long, val start: Long = System.currentTimeMillis(), val uuid : String = r.uuid().run(conn)) {
     enum class Type {
         TEMPBAN, MUTE
     }
