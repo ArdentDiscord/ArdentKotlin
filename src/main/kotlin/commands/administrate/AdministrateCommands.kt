@@ -11,6 +11,7 @@ import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import java.util.concurrent.TimeUnit
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -109,7 +110,60 @@ class DefaultRole : Command(Category.ADMINISTRATE, "defaultrole", "set a default
     }
 }
 
-class Mute : Command(Category.ADMINISTRATE, "mute", "temporarily mute members who abuse their ability to send messages")
+class Mute : Command(Category.ADMINISTRATE, "mute", "temporarily mute members who abuse their ability to send messages") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val mentionedUsers = event.message.mentionedUsers
+        if (mentionedUsers.size == 0 || arguments.size != 2) channel.send(member,
+                """**Muting**: The first parameter for this command must be a mention of the member you wish to mute (obviously)
+The second parameter is the amount of time to mute them for - this can be in minutes, hours, or days.
+Type the number you wish (decimals are **not** allowed) and then suffix that with **m** (for minutes), **h** (for hours), or **d** (for days)
+**Example**: *${guild.getPrefix()}mute @User 3h* - would mute that user for three hours""")
+        else {
+            assert(member.hasOverride(channel))
+            val unmuteMember = guild.getMember(mentionedUsers[0])
+            if (unmuteMember.hasOverride(channel, failQuietly = true) || !member.canInteract(unmuteMember) || !guild.selfMember.canInteract(unmuteMember)) {
+                channel.send(member, "You don't have permission to mute this member! Make sure that they do not have the `Manage Server` or other elevated " +
+                        "permissions")
+                return
+            }
+            val punishments = unmuteMember.punishments()
+            punishments.forEach { punishment ->
+                if (punishment != null) {
+                    if (punishment.type == Punishment.Type.MUTE) {
+                        channel.send(member, "**${unmuteMember.withDiscrim()}** is already muted!")
+                        return
+                    }
+                }
+            }
+            var unparsedTime = arguments[1]
+            val unit: TimeUnit
+            when {
+                unparsedTime.endsWith("m") -> {
+                    unit = TimeUnit.MINUTES
+                    unparsedTime = unparsedTime.removeSuffix("m")
+                }
+                unparsedTime.endsWith("h") -> {
+                    unit = TimeUnit.HOURS
+                    unparsedTime = unparsedTime.removeSuffix("h")
+                }
+                unparsedTime.endsWith("d") -> {
+                    unit = TimeUnit.DAYS
+                    unparsedTime = unparsedTime.removeSuffix("d")
+                }
+                else -> {
+                    channel.send(member, "You didn't include a time unit! Type ${guild.getPrefix()}mute for help with this command")
+                    return
+                }
+            }
+            val number = unparsedTime.toLongOrNull()
+            if (number == null) channel.send(member, "You specified an invalid number. Type ${guild.getPrefix()}mute for help with this command")
+            else {
+                val unmuteTime = System.currentTimeMillis() + (unit.toMillis(number))
+                TODO("start again here")
+            }
+        }
+    }
+}
 
 class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are muted") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
