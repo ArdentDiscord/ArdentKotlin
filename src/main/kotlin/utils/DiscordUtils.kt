@@ -42,6 +42,10 @@ private fun Member.hasOverride(): Boolean {
             || guild.getData().advancedPermissions.contains(user.id)
 }
 
+fun Guild.panelUrl() : String {
+    return "https://ardentbot.com/manage/$id"
+}
+
 fun String.getChannel(): TextChannel? {
     return jda!!.getTextChannelById(this)
 }

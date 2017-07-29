@@ -51,7 +51,7 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
 
 class Settings : Command(Category.SERVER_INFO, "settings", "administrate the settings for your server using our shiny new web panel", "website") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Manage the settings for this server at https://www.ardentbot.com/administrate/${guild.id} - while you're there, be sure to check out " +
+        channel.send(member, "Manage the settings for this server at ${guild.panelUrl()} - while you're there, be sure to check out " +
                 "the rest of our website!")
     }
 }

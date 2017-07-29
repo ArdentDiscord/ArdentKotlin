@@ -2,11 +2,13 @@ package events
 
 import main.waiter
 import net.dv8tion.jda.core.Permission
+import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.guild.GuildJoinEvent
+import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent
+import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
-import utils.hasOverride
-import utils.stringify
+import utils.*
 import java.awt.Color
 
 class JoinRemoveEvents {
@@ -37,20 +39,71 @@ class JoinRemoveEvents {
                         }
                         if (succeeded.size == 0) {
                             guild.publicChannel.sendMessage("Success! You will need to manually disable role permissions in your channels, but the role was successfully created").queue()
-                        }
-                        else if (failed.size == 0) {
+                        } else if (failed.size == 0) {
                             guild.publicChannel.sendMessage("Successfully created role. Try `/help` to see our commands!").queue()
-                        }
-                        else {
+                        } else {
                             guild.publicChannel.sendMessage("I set Permission Overrides for the following channels: ${succeeded.map { it.name }.stringify()}. " +
                                     "You will need to set them manually for other channels. Try `/help` to get started with Ardent!")
                         }
                     }, {
                         guild.publicChannel.sendMessage("Failed to create role due to lack of permission. Keep in mind that you will not be able to use `/mute` without a **Muted** role").queue()
                     })
-                }
-                else guild.publicChannel.sendMessage("${message.author.asMention}, you don't have sufficient status in this server to accept or deny this offer!")
+                } else guild.publicChannel.sendMessage("${message.author.asMention}, you don't have sufficient status in this server to accept or deny this offer!")
             }, time = 30)
+        }
+    }
+
+    @SubscribeEvent
+    fun onMemberJoin(e: GuildMemberJoinEvent) {
+        val data = e.guild.getData()
+        val joinMessage = data.joinMessage
+        if (joinMessage != null) {
+            val channel: TextChannel? = e.guild.getTextChannelById(joinMessage.second)
+            if (channel != null) {
+                if (joinMessage.first /* Message */ != null) {
+                    channel.send(e.guild.owner,
+                            joinMessage.first!!.replace("\$username", e.member.withDiscrim())
+                                    .replace("\$usermention", e.member.asMention)
+                                    .replace("\$membercount", e.guild.members.size.toString())
+                                    .replace("\$servername", e.guild.name)
+                    )
+                }
+            }
+        }
+        if (data.defaultRole != null) {
+            val role: Role? = e.guild.getRoleById(data.defaultRole)
+            if (role != null) {
+                e.guild.controller.addRolesToMember(e.member, role).reason("Default Role - Automatic Addition")
+                        .queue({
+                            e.member.user.openPrivateChannel().queue({ channel ->
+                                channel.send(e.member, "Added the role **${role.name}** to you in the **${e.guild.name}** server by default")
+                            })
+                        }, {
+                            e.member.user.openPrivateChannel().queue({ channel ->
+                                channel.send(e.member, "Unable to give you the default role **${role.name}** in **${e.guild.name}**. Please contact the server " +
+                                        "owner or administrators to let them know.")
+                            })
+                        })
+            }
+        }
+    }
+
+    @SubscribeEvent
+    fun onMemberLeave(e: GuildMemberLeaveEvent) {
+        val data = e.guild.getData()
+        val leaveMessage = data.joinMessage
+        if (leaveMessage != null) {
+            val channel: TextChannel? = e.guild.getTextChannelById(leaveMessage.second)
+            if (channel != null) {
+                if (leaveMessage.first /* Message */ != null) {
+                    channel.send(e.guild.owner,
+                            leaveMessage.first!!.replace("\$username", e.member.withDiscrim())
+                                    .replace("\$usermention", e.member.withDiscrim())
+                                    .replace("\$membercount", e.guild.members.size.toString())
+                                    .replace("\$servername", e.guild.name)
+                    )
+                }
+            }
         }
     }
 }

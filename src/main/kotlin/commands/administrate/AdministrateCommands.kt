@@ -2,6 +2,8 @@ package commands.administrate
 
 import events.Category
 import events.Command
+import main.conn
+import main.r
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
@@ -92,5 +94,41 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
             } else channel.send(member, "I don't have permission to ban this user!")
         } else channel.send(member, "You cannot ban this person!")
 
+    }
+}
+
+class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "You can manage settings for the **join** and **leave** messages on the web panel: ${guild.panelUrl()}")
+    }
+}
+
+class DefaultRole : Command(Category.ADMINISTRATE, "defaultrole", "set a default role that new members will receive when they join") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "You can manage settings for the default role on the web panel: ${guild.panelUrl()}")
+    }
+}
+
+class Mute : Command(Category.ADMINISTRATE, "mute", "temporarily mute members who abuse their ability to send messages")
+
+class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are muted") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val mentionedUsers = event.message.mentionedUsers
+        if (mentionedUsers.size == 0) channel.send(member, "Please mention the member you want to unmute!")
+        else {
+            assert(member.hasOverride(channel))
+            val unmuteMember = guild.getMember(mentionedUsers[0])
+            val punishments = unmuteMember.punishments()
+            punishments.forEach { punishment ->
+                if (punishment != null) {
+                    if (punishment.type == Punishment.Type.MUTE) {
+                        r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
+                        channel.send(member, "Successfully unmuted **${unmuteMember.withDiscrim()}**")
+                        return
+                    }
+                }
+            }
+            channel.send(member, "This person isn't muted!")
+        }
     }
 }

@@ -12,15 +12,12 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import commands.`fun`.*
+import commands.administrate.*
 import commands.games.Games
 import web.Web
 import commands.info.*
 import commands.info.Invite
 import commands.info.Settings
-import commands.administrate.Clear
-import commands.administrate.Prefix
-import commands.administrate.Tempban
-import commands.administrate.startAdministrativeDaemon
 import commands.music.*
 import events.CommandFactory
 import events.JoinRemoveEvents
@@ -97,6 +94,10 @@ fun main(args: Array<String>) {
             .addCommand(Status())
             .addCommand(Clear())
             .addCommand(Tempban())
+            .addCommand(DefaultRole())
+            .addCommand(Automessages())
+            .addCommand(Mute())
+            .addCommand(Unmute())
     Web()
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")
