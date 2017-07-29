@@ -126,7 +126,7 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
     val queueAsList: MutableList<ArdentTrack> get() = queue.toMutableList()
 
     fun addToBeginningOfQueue(track: ArdentTrack?) {
-        assert(track != null)
+        if (track == null) return
         queue.addFirst(track)
     }
 }

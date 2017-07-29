@@ -66,9 +66,10 @@ class EventWaiter : EventListener {
         executor.schedule({
             if (reactionAddEvents.contains(pair)) {
                 reactionAddEvents.remove(pair)
-                assert(!silentExpiration)
-                val channel: TextChannel? = settings.channel?.toChannel()
-                channel?.send(channel.guild.selfMember, "You took too long to add a reaction! [${unit.toSeconds(time.toLong())} seconds]")
+                if (!silentExpiration) {
+                    val channel: TextChannel? = settings.channel?.toChannel()
+                    channel?.send(channel.guild.selfMember, "You took too long to add a reaction! [${unit.toSeconds(time.toLong())} seconds]")
+                }
             }
         }, time.toLong(), unit)
         return pair

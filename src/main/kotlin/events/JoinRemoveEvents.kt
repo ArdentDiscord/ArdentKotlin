@@ -18,10 +18,10 @@ class JoinRemoveEvents {
         guild.publicChannel.sendMessage("Thanks for adding Ardent! To open an interactive list where you can see our list of commands, please " +
                 "type `/help` or `ardent help`. You can change the default prefix, which is a forward slash, by typing `/prefix set prefix_here`, " +
                 "but if you forget what you set it as, remember that `ardent help` will always work.\n" +
-                "Happy Discording and best wishes from the development team!\n" +
-                "**--------------------------**").queue()
+                "Happy Discording and best wishes from the development team!").queue()
         if (guild.getRolesByName("muted", true).size == 0 && guild.selfMember.hasPermission(guild.publicChannel, Permission.MESSAGE_WRITE)) {
-            guild.publicChannel.sendMessage("To enable me to issue mutes, you either need to create a role called `Muted` and deny that role permission " +
+            guild.publicChannel.sendMessage("\n**--------------------------**\n" +
+                    "To enable me to issue mutes, you either need to create a role called `Muted` and deny that role permission " +
                     "to send messages, or I can automagically create it for you. Would you like me to create this role? Type **yes** if so or **no** to skip creation.").queue()
             waiter.gameChannelWait(guild.publicChannel.id, { message ->
                 if (guild.getMember(message.author).hasOverride(guild.publicChannel)) {

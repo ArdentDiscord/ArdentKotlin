@@ -11,6 +11,9 @@ import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import java.awt.Color
+import java.time.Instant
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
@@ -24,7 +27,7 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
             return
         }
         if (arguments[0].equals("set", true)) {
-            assert(member.hasOverride(channel, false))
+            if (!member.hasOverride(channel, false)) return
             data.prefix = arguments[1]
             data.update()
         } else channel.send(member, "${Emoji.NO_ENTRY_SIGN} Type **${data.prefix}prefix** to learn how to use this command")
@@ -33,7 +36,7 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
 
 class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the channel you're sending the command in") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        assert(member.hasOverride(channel))
+        if (!member.hasOverride(channel)) return
         if (!guild.selfMember.hasPermission(channel, Permission.MESSAGE_MANAGE)) {
             channel.send(member, "I need the `Message Manage` permission to be able to delete messages!")
             return
@@ -73,7 +76,7 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
                     "represents the amount of hours")
             return
         }
-        assert(member.hasOverride(channel))
+        if (!member.hasOverride(channel)) return
         val toBan = guild.getMember(mentionedUsers[0])
         if (toBan.hasOverride(channel, failQuietly = true)) channel.send(member, "You don't have permission to ban this person!")
         else if (member.canInteract(toBan)) {
@@ -119,18 +122,18 @@ The second parameter is the amount of time to mute them for - this can be in min
 Type the number you wish (decimals are **not** allowed) and then suffix that with **m** (for minutes), **h** (for hours), or **d** (for days)
 **Example**: *${guild.getPrefix()}mute @User 3h* - would mute that user for three hours""")
         else {
-            assert(member.hasOverride(channel))
-            val unmuteMember = guild.getMember(mentionedUsers[0])
-            if (unmuteMember.hasOverride(channel, failQuietly = true) || !member.canInteract(unmuteMember) || !guild.selfMember.canInteract(unmuteMember)) {
+            if(!member.hasOverride(channel)) return
+            val muteMember = guild.getMember(mentionedUsers[0])
+            if (muteMember.hasOverride(channel, failQuietly = true) || !member.canInteract(muteMember) || !guild.selfMember.canInteract(muteMember)) {
                 channel.send(member, "You don't have permission to mute this member! Make sure that they do not have the `Manage Server` or other elevated " +
                         "permissions")
                 return
             }
-            val punishments = unmuteMember.punishments()
+            val punishments = muteMember.punishments()
             punishments.forEach { punishment ->
                 if (punishment != null) {
                     if (punishment.type == Punishment.Type.MUTE) {
-                        channel.send(member, "**${unmuteMember.withDiscrim()}** is already muted!")
+                        channel.send(member, "**${muteMember.withDiscrim()}** is already muted!")
                         return
                     }
                 }
@@ -158,8 +161,36 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
             val number = unparsedTime.toLongOrNull()
             if (number == null) channel.send(member, "You specified an invalid number. Type ${guild.getPrefix()}mute for help with this command")
             else {
-                val unmuteTime = System.currentTimeMillis() + (unit.toMillis(number))
-                TODO("start again here")
+                val mutedRoles = guild.getRolesByName("muted", true)
+                if (mutedRoles.size == 0) {
+                    channel.send(member, "There isn't a `Muted` role in this server! I'll try to create one automatically, but this is necessary.")
+                    guild.controller.createRole().setColor(Color.PINK).setMentionable(true).setName("Muted").queue({ role ->
+                        val succeeded = mutableListOf<TextChannel>()
+                        val failed = mutableListOf<TextChannel>()
+                        guild.textChannels.forEach { ch -> ch.createPermissionOverride(role).setDeny(Permission.MESSAGE_WRITE).queue({}, {}) }
+                        if (succeeded.size == 0) {
+                            guild.publicChannel.sendMessage("Role successfully created, but I couldn't set any Permission Overrides").queue()
+                        } else if (failed.size == 0) {
+                            guild.publicChannel.sendMessage("Successfully created role. Try `/help` to see our commands!").queue()
+                        } else {
+                            guild.publicChannel.sendMessage("I set Permission Overrides for the following channels: ${succeeded.map { it.name }.stringify()}. " +
+                                    "You will need to set them manually for other channels. Try `/help` to get started with Ardent!")
+                            mutedRoles.add(role)
+                        }
+                    }, {
+                        guild.publicChannel.sendMessage("Failed to create role due to lack of permission, and therefore failed to mute." +
+                                " Keep in mind that you will not be able to use `/mute` without a **Muted** role").queue()
+                    })
+                }
+                if (mutedRoles.size == 1) {
+                    guild.controller.addRolesToMember(muteMember, mutedRoles[0]).reason("Muted by ${member.withDiscrim()}").queue({
+                        val unmuteTime = System.currentTimeMillis() + (unit.toMillis(number))
+                        Punishment(muteMember.id(), member.id(), guild.id, Punishment.Type.MUTE, unmuteTime).insert("punishments")
+                        channel.send(member, "Successfully muted **${muteMember.id()}** until ${Date.from(Instant.ofEpochMilli(unmuteTime)).toGMTString()}")
+                    }, {
+                        channel.send(member, "Failed to add the `Muted` role to **${muteMember.withDiscrim()}**. Please update my permissions and retry1")
+                    })
+                }
             }
         }
     }
@@ -170,7 +201,7 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) channel.send(member, "Please mention the member you want to unmute!")
         else {
-            assert(member.hasOverride(channel))
+            if (!member.hasOverride(channel)) return
             val unmuteMember = guild.getMember(mentionedUsers[0])
             val punishments = unmuteMember.punishments()
             punishments.forEach { punishment ->
