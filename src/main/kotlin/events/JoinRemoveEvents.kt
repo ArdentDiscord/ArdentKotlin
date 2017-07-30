@@ -38,7 +38,7 @@ class JoinRemoveEvents {
                             }, {})
                         }
                         if (succeeded.size == 0) {
-                            guild.publicChannel.sendMessage("Success! You will need to manually disable role permissions in your channels, but the role was successfully created").queue()
+                            guild.publicChannel.sendMessage("Success! You will need to manually disable this role's ability to send messages in your channels, but the role was successfully created").queue()
                         } else if (failed.size == 0) {
                             guild.publicChannel.sendMessage("Successfully created role. Try `/help` to see our commands!").queue()
                         } else {

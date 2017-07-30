@@ -8,6 +8,7 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.User
 import org.json.simple.JSONObject
+import java.time.Instant
 import java.util.*
 import kotlin.collections.HashMap
 import java.util.LinkedHashMap
@@ -51,6 +52,10 @@ fun <T> Any.queryAsArrayList(t: Class<T>): MutableList<T?> {
     val tS = mutableListOf<T?>()
     cursor.forEach { hashMap -> tS.add(asPojo(hashMap, t)) }
     return tS
+}
+
+fun Long.readableDate() : String {
+    return "${Date.from(Instant.ofEpochMilli(this)).toLocaleString()} EST"
 }
 
 fun Int.format() : String {

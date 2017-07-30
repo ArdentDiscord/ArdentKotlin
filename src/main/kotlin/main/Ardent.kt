@@ -98,6 +98,7 @@ fun main(args: Array<String>) {
             .addCommand(Automessages())
             .addCommand(Mute())
             .addCommand(Unmute())
+            .addCommand(Punishments())
     Web()
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")

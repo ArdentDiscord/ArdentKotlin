@@ -90,6 +90,16 @@ fun Message.getFirstRole(arguments: List<String>): Role? {
     return null
 }
 
+fun Guild.punishments(): MutableList<Punishment?> {
+    val punishments = mutableListOf<Punishment?>()
+    members.forEach { member ->
+        punishments.addAll(r.table("punishments").filter(r.hashMap("guildId", id).with("userId", member.id()))
+                .run<Any>(conn).queryAsArrayList(Punishment::class.java))
+        return@forEach
+    }
+    return punishments
+}
+
 fun Member.punishments(): MutableList<Punishment?> {
     val punishments = r.table("punishments").filter(r.hashMap("guildId", guild.id).with("userId", user.id))
             .run<Any>(conn).queryAsArrayList(Punishment::class.java)

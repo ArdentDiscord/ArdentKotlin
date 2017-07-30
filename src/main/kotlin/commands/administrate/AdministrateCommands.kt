@@ -101,6 +101,21 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
     }
 }
 
+class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of everyone in this server who currently has a punishment") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val embed = embed("Punishments in ${guild.name}", member)
+        val builder = StringBuilder()
+        val punishments = guild.punishments()
+        if (punishments.size == 0) builder.append("There are no current punishments in this server.")
+        else {
+            punishments.forEach { punishment ->
+                builder.append(" ${Emoji.NO_ENTRY_SIGN} **${punishment?.userId?.toUser()?.withDiscrim()}**: ${punishment?.type} until ${punishment?.expiration?.readableDate()}\n")
+            }
+        }
+        channel.send(member, embed.setColor(Color.RED).setDescription(builder.toString()))
+    }
+}
+
 class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "You can manage settings for the **join** and **leave** messages on the web panel: ${guild.panelUrl()}")
@@ -169,7 +184,7 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
                         val failed = mutableListOf<TextChannel>()
                         guild.textChannels.forEach { ch -> ch.createPermissionOverride(role).setDeny(Permission.MESSAGE_WRITE).queue({}, {}) }
                         if (succeeded.size == 0) {
-                            guild.publicChannel.sendMessage("Role successfully created, but I couldn't set any Permission Overrides").queue()
+                            guild.publicChannel.sendMessage("Success! You will need to manually disable this role's ability to send messages in your channels, but the role was successfully created").queue()
                         } else if (failed.size == 0) {
                             guild.publicChannel.sendMessage("Successfully created role. Try `/help` to see our commands!").queue()
                         } else {
@@ -186,7 +201,7 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
                     guild.controller.addRolesToMember(muteMember, mutedRoles[0]).reason("Muted by ${member.withDiscrim()}").queue({
                         val unmuteTime = System.currentTimeMillis() + (unit.toMillis(number))
                         Punishment(muteMember.id(), member.id(), guild.id, Punishment.Type.MUTE, unmuteTime).insert("punishments")
-                        channel.send(member, "Successfully muted **${muteMember.id()}** until ${Date.from(Instant.ofEpochMilli(unmuteTime)).toGMTString()}")
+                        channel.send(member, "Successfully muted **${muteMember.withDiscrim()}** until ${unmuteTime.readableDate()}")
                     }, {
                         channel.send(member, "Failed to add the `Muted` role to **${muteMember.withDiscrim()}**. Please update my permissions and retry1")
                     })
@@ -207,8 +222,14 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
             punishments.forEach { punishment ->
                 if (punishment != null) {
                     if (punishment.type == Punishment.Type.MUTE) {
-                        r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
-                        channel.send(member, "Successfully unmuted **${unmuteMember.withDiscrim()}**")
+                        guild.controller.removeRolesFromMember(unmuteMember, guild.getRolesByName("muted", true))
+                                .reason("Unmuted by ${member.withDiscrim()}")
+                                .queue ({
+                                    r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
+                                    channel.send(member, "Successfully unmuted **${unmuteMember.withDiscrim()}**")
+                                }, {
+                                channel.send(member, "Failed to unmute **${unmuteMember.withDiscrim()}** - Please give me proper permissions to remove roles")
+                        })
                         return
                     }
                 }

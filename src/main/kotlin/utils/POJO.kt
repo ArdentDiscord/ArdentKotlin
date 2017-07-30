@@ -20,5 +20,11 @@ data class Magic /* The name was not my choice...... */(val question: String, va
 class Punishment(val userId: String, val punisherId: String, val guildId: String, val type: Type, val expiration: Long, val start: Long = System.currentTimeMillis(), val uuid : String = r.uuid().run(conn)) {
     enum class Type {
         TEMPBAN, MUTE
+        ;
+
+        override fun toString(): String {
+            if (this == TEMPBAN) return "temp-banned"
+            else return "muted"
+        }
     }
 }

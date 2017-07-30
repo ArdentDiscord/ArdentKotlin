@@ -24,13 +24,21 @@ class AdministrativeDaemon : Runnable {
                     r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
                 } else {
                     if (time > punishment.expiration) {
-                        guild.controller.unban(user.id).queue()
-                        user.openPrivateChannel().queue { privateChannel ->
-                            privateChannel.send(user,
-                                    when (punishment.type) {
-                                        Punishment.Type.TEMPBAN -> "You were unbanned from **${guild.name}**"
-                                        Punishment.Type.MUTE -> "You were unmuted from **${guild.name}**"
-                                    })
+                        when (punishment.type) {
+                            Punishment.Type.TEMPBAN -> {
+                                guild.controller.unban(user.id).queue()
+                                user.openPrivateChannel().queue { privateChannel -> privateChannel.send(user, "You were unbanned from **${guild.name}**") }
+                            }
+                            Punishment.Type.MUTE -> {
+                                guild.controller.removeRolesFromMember(guild.getMember(user), guild.getRolesByName("muted", true))
+                                        .reason("Automatic Unmute").queue({
+                                    user.openPrivateChannel().queue { privateChannel -> privateChannel.send(user, "You were unmuted in **${guild.name}**") }
+                                }, {
+                                    user.openPrivateChannel().queue { privateChannel -> privateChannel.send(user, "I was unable to unmute you in **${guild.name}**." +
+                                            " Please contact a server administrator to resolve your mute.") }
+
+                                })
+                            }
                         }
                         r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
                     }
