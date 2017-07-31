@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import events.Category
 import events.Command
+import main.managers
 import main.playerManager
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -181,6 +182,23 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
     }
 }
 
+class FixMusic : Command(Category.MUSIC, "fixmusic", "fix your music player if something isn't going right") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (member.hasOverride(channel, true)) {
+            val manager = guild.getGuildAudioPlayer(channel)
+            val queue = manager.scheduler.manager.queueAsList
+            val current = manager.scheduler.manager.current
+            managers.remove(guild.idLong)
+            val newManager = guild.getGuildAudioPlayer(channel)
+            if (current != null) newManager.scheduler.manager.queue(ArdentTrack(current.author, current.channel, current.track.makeClone()))
+            queue.forEach { queueMember ->
+                newManager.scheduler.manager.queue(ArdentTrack(queueMember.author, queueMember.channel, queueMember.track.makeClone()))
+            }
+            channel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Successfully reset player")
+        }
+    }
+}
+
 class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks from the mentioned user or users", "rf") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true)) return
@@ -204,7 +222,7 @@ fun VoiceChannel.connect(member: Member, textChannel: TextChannel) {
     try {
         audioManager.openAudioConnection(this)
         textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} I successfully joined **$name**!")
-    } catch (e: PermissionException) {
+    } catch (e: Exception) {
         textChannel.send(member, "${Emoji.CROSS_MARK} I cannot join that voice channel ($name)! Reason: *${e.localizedMessage}*")
     }
 }
@@ -240,7 +258,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
     val channel = member.voiceState.channel
     val musicManager = member.guild.getGuildAudioPlayer(textChannel)
     val data = member.guild.getData()
-    if (data.musicSettings.singleSongInQueueForMembers && !member.hasOverride(textChannel, true)) {
+    if (data.musicSettings.singleSongInQueueForMembers && !member.hasOverride(textChannel, true, failQuietly = true)) {
         musicManager.scheduler.manager.queueAsList.forEach { track ->
             if (track.author == member.user.id) {
                 textChannel.send(member, "${Emoji.CROSS_MARK} You can only queue **1** song at a time, per the rules set by your administrators")

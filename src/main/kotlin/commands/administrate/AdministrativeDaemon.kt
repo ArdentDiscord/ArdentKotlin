@@ -1,12 +1,8 @@
 package commands.administrate
 
 import main.conn
-import main.jda
 import main.r
-import utils.Punishment
-import utils.id
-import utils.queryAsArrayList
-import utils.send
+import utils.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -18,9 +14,9 @@ class AdministrativeDaemon : Runnable {
         val time = System.currentTimeMillis()
         activePunishments.forEach { punishment ->
             if (punishment != null) {
-                val guild = jda!!.getGuildById(punishment.guildId)
-                val user = jda!!.getUserById(punishment.userId)
-                if (user == null) {
+                val guild = getGuildById(punishment.guildId)
+                val user = getUserById(punishment.userId)
+                if (user == null || guild == null) {
                     r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
                 } else {
                     if (time > punishment.expiration) {
@@ -36,7 +32,6 @@ class AdministrativeDaemon : Runnable {
                                 }, {
                                     user.openPrivateChannel().queue { privateChannel -> privateChannel.send(user, "I was unable to unmute you in **${guild.name}**." +
                                             " Please contact a server administrator to resolve your mute.") }
-
                                 })
                             }
                         }

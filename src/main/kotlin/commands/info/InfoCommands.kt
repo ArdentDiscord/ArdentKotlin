@@ -4,7 +4,7 @@ import events.Category
 import events.Command
 import events.toCategory
 import main.factory
-import main.jda
+import main.jdas
 import main.waiter
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
@@ -37,7 +37,7 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
 
 class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val channelInvite = jda!!.asBot().getInviteUrl(Permission.MESSAGE_MANAGE, Permission.MANAGE_SERVER, Permission.VOICE_CONNECT, Permission.MANAGE_CHANNEL, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY, Permission.MANAGE_ROLES)
+        val channelInvite = jdas[0].asBot().getInviteUrl(Permission.MESSAGE_MANAGE, Permission.MANAGE_SERVER, Permission.VOICE_CONNECT, Permission.MANAGE_CHANNEL, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY, Permission.MANAGE_ROLES)
         channel.send(member, "My invite link is $channelInvite - have fun using Ardent!")
     }
 }
@@ -59,7 +59,7 @@ class Settings : Command(Category.SERVER_INFO, "settings", "administrate the set
 class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val builder = embed("About the bot and its founders", channel.guild.selfMember)
-        builder.appendDescription("Ardent was originally founded in November 2016 by ${jda!!.asBot().applicationInfo.complete().owner.withDiscrim()}. It reached over 4,000 servers " +
+        builder.appendDescription("Ardent was originally founded in November 2016 by Adam#9261. It reached over 4,000 servers " +
                 "by June, but Adam had to shut it down due to chronic stability issues with the bot and the fact that he was going on " +
                 "a language learning program without any internet for nearly two months. When he came back, he decided to recreate Ardent with a " +
                 "new focus on modern design, utility, usability, and games. This is the continuation of the original Ardent bot. We hope you like it!")

@@ -238,3 +238,11 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
         }
     }
 }
+
+class Nono: Command(Category.ADMINISTRATE, "a", "commands for bot administrators only") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (member.id() == "169904324980244480") {
+
+        }
+    }
+}

@@ -8,13 +8,15 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.User
 import org.json.simple.JSONObject
+import java.lang.management.ManagementFactory
 import java.time.Instant
 import java.util.*
 import kotlin.collections.HashMap
 import java.util.LinkedHashMap
 import java.util.function.Supplier
 import java.util.stream.Collectors
-
+import javax.management.Attribute
+import javax.management.ObjectName
 
 
 private val random = Random()
@@ -107,7 +109,7 @@ fun MutableList<CoinflipGame.Round>.mapScores() : MutableMap<String, Int> {
             scores.putIfAbsent(it, 0)
         }
     }
-    return JavaUtils.sortByValue(scores)
+    return scores.toList().sortedWith(compareBy { it.second }).reversed().toMap().toMutableMap()
 }
 
 fun Any.toJson() : String {
@@ -119,6 +121,25 @@ fun <T> MutableList<T>.without(t: T) : MutableList<T> {
     return this
 }
 
+/**
+ * Full credit goes to http://stackoverflow.com/questions/18489273/how-to-get-percentage-of-cpu-usage-of-os-from-java
+ */
+@Throws(Exception::class)
+fun getProcessCpuLoad(): Double {
+    val mbs = ManagementFactory.getPlatformMBeanServer()
+    val name = ObjectName.getInstance("java.lang:type=OperatingSystem")
+    val list = mbs.getAttributes(name, arrayOf("ProcessCpuLoad"))
+
+    if (list.isEmpty()) return java.lang.Double.NaN
+
+    val att = list[0] as Attribute
+    val value = att.value as Double
+
+    // usually takes a couple of seconds before we get real values
+    if (value === -1.0) return java.lang.Double.NaN
+    // returns a percentage value with 1 decimal point precision
+    return (value * 1000).toInt() / 10.0
+}
 /**
  * Credit mfulton26 @ https://stackoverflow.com/questions/34498368/kotlin-convert-large-list-to-sublist-of-set-partition-size
  */

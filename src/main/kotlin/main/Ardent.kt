@@ -23,34 +23,43 @@ import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
 import net.dv8tion.jda.core.entities.*
+import org.apache.commons.io.IOUtils
 import utils.*
-
-
-val version = 1.001
+import web.retrieveToken
+import java.io.File
+import java.io.FileReader
+import java.io.IOException
+import java.util.HashMap
 
 var r = RethinkDB.r
 var conn: Connection? = null
 
-var jda: JDA? = null
+var jdas = mutableListOf<JDA>()
 val waiter = EventWaiter()
 val factory = CommandFactory()
 
-val config = Config("C:\\Users\\Adam\\Desktop\\config.txt")
+val config = Config("/root/Ardent/config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()
 
+val shards = 2
+
 fun main(args: Array<String>) {
-    jda = JDABuilder(AccountType.BOT)
-            .setCorePoolSize(10)
-            .setGame(Game.of("With a fancy new /help", "https://twitch.tv/ "))
-            .addEventListener(waiter)
-            .addEventListener(factory)
-            .addEventListener(JoinRemoveEvents())
-            .addEventListener(VoiceUtils())
-            .setEventManager(AnnotatedEventManager())
-            .setToken(config.getValue("token"))
-            .buildBlocking()
+    for (sh in 1..shards) {
+       jdas.add(JDABuilder(AccountType.BOT)
+                .setCorePoolSize(10)
+                .setGame(Game.of("With a fancy new /help", "https://twitch.tv/ "))
+                .addEventListener(waiter)
+                .addEventListener(factory)
+                .addEventListener(JoinRemoveEvents())
+                .addEventListener(VoiceUtils())
+                .setEventManager(AnnotatedEventManager())
+               .useSharding(sh - 1, shards)
+                .setToken(config.getValue("token"))
+                .buildBlocking())
+    }
+
 
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
@@ -99,7 +108,32 @@ fun main(args: Array<String>) {
             .addCommand(Mute())
             .addCommand(Unmute())
             .addCommand(Punishments())
+            .addCommand(FixMusic())
     Web()
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")
+}
+
+class Config(url: String) {
+    private val keys: MutableMap<String, String>
+
+    init {
+        keys = HashMap<String, String>()
+        try {
+            val keysTemp = IOUtils.readLines(FileReader(File(url)))
+            keysTemp.forEach { pair ->
+                val keyPair = pair.split(" :: ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                if (keyPair.size == 2) keys.put(keyPair[0], keyPair[1])
+            }
+        } catch (e: IOException) {
+            println("Unable to load Config....")
+            e.printStackTrace()
+            System.exit(1)
+        }
+        conn = r.connection().db("ardent").hostname("ardentbot.com").port(28015).connect()
+    }
+
+    fun getValue(keyName: String): String {
+        return (keys as Map<String, String>).getOrDefault(keyName, "not_available")
+    }
 }

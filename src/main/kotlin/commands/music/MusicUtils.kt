@@ -17,9 +17,7 @@ import jdk.nashorn.internal.objects.NativeDate
 import main.managers
 import main.playerManager
 import net.dv8tion.jda.core.entities.Guild
-import utils.embed
-import utils.getChannel
-import utils.getData
+import utils.*
 import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
 
@@ -41,7 +39,7 @@ class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHa
     }
 }
 
-class ArdentTrack(val author: String, val channel: String, val track: AudioTrack) {
+class ArdentTrack(val author: String, val channel: String, var track: AudioTrack) {
     private val votedToSkip = ArrayList<String>()
 
     fun addSkipVote(user: User): Boolean {
@@ -52,12 +50,12 @@ class ArdentTrack(val author: String, val channel: String, val track: AudioTrack
 }
 
 
-class GuildMusicManager(manager: AudioPlayerManager, channel: TextChannel?) {
+class GuildMusicManager(manager: AudioPlayerManager, channel: TextChannel?, guild: Guild) {
     val scheduler: TrackScheduler
     internal val player: AudioPlayer = manager.createPlayer()
 
     init {
-        scheduler = TrackScheduler(player, channel)
+        scheduler = TrackScheduler(player, channel, guild)
         player.addListener(scheduler)
     }
 
@@ -87,7 +85,9 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
     fun nextTrack() {
         val track = queue.poll()
         if (track != null) {
+            val set: Boolean = track.track.position != 0.toLong()
             player.startTrack(track.track, false)
+            if (set) player.playingTrack.position = track.track.position
             current = track
         } else {
             player.startTrack(null, false)
@@ -127,11 +127,12 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
 
     fun addToBeginningOfQueue(track: ArdentTrack?) {
         if (track == null) return
+        track.track = track.track.makeClone()
         queue.addFirst(track)
     }
 }
 
-class TrackScheduler(player: AudioPlayer, var channel: TextChannel?) : AudioEventAdapter() {
+class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: Guild) : AudioEventAdapter() {
     var manager: ArdentMusicManager = ArdentMusicManager(player, channel?.id)
 
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
@@ -153,8 +154,16 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?) : AudioEven
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
-        manager.nextTrack()
-        onException(FriendlyException("Track got stuck", FriendlyException.Severity.COMMON, Exception()))
+        val queue = manager.queueAsList
+        val current = manager.current
+        managers.remove(guild.idLong)
+        val newManager = guild.getGuildAudioPlayer(channel)
+        if (current != null) newManager.scheduler.manager.queue(ArdentTrack(current.author, current.channel, current.track.makeClone()))
+        queue.forEach { queueMember ->
+            newManager.scheduler.manager.queue(ArdentTrack(queueMember.author, queueMember.channel, queueMember.track.makeClone()))
+        }
+        channel?.send(guild.selfMember, "${Emoji.BALLOT_BOX_WITH_CHECK} The player got stuck... resetting now (this is Discord's fault)")
+
     }
 
     override fun onTrackException(player: AudioPlayer, track: AudioTrack, exception: FriendlyException) {
@@ -210,7 +219,7 @@ fun AudioTrack.getCurrentTime(): String {
     val guildId = id.toLong()
     var musicManager = managers[guildId]
     if (musicManager == null) {
-        musicManager = GuildMusicManager(playerManager, channel)
+        musicManager = GuildMusicManager(playerManager, channel, this)
         audioManager.sendingHandler = musicManager.sendHandler
         managers.put(guildId, musicManager)
     } else {

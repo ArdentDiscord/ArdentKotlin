@@ -15,10 +15,15 @@ class JoinRemoveEvents {
     @SubscribeEvent
     fun onGuildAdd(e: GuildJoinEvent) {
         val guild = e.guild
-        guild.publicChannel.sendMessage("Thanks for adding Ardent! To open an interactive list where you can see our list of commands, please " +
-                "type `/help` or `ardent help`. You can change the default prefix, which is a forward slash, by typing `/prefix set prefix_here`, " +
-                "but if you forget what you set it as, remember that `ardent help` will always work.\n" +
-                "Happy Discording and best wishes from the development team!").queue()
+        try {
+            guild.publicChannel.sendMessage("Thanks for adding Ardent! To open an interactive list where you can see our list of commands, please " +
+                    "type `/help` or `ardent help`. You can change the default prefix, which is a forward slash, by typing `/prefix set prefix_here`, " +
+                    "but if you forget what you set it as, remember that `ardent help` will always work.\n" +
+                    "Happy Discording and best wishes from the development team!").queue()
+        }
+        catch (e: Exception) {
+            return
+        }
         if (guild.getRolesByName("muted", true).size == 0 && guild.selfMember.hasPermission(guild.publicChannel, Permission.MESSAGE_WRITE)) {
             guild.publicChannel.sendMessage("\n**--------------------------**\n" +
                     "To enable me to issue mutes, you either need to create a role called `Muted` and deny that role permission " +
@@ -33,9 +38,12 @@ class JoinRemoveEvents {
                         val succeeded = mutableListOf<TextChannel>()
                         val failed = mutableListOf<TextChannel>()
                         guild.textChannels.forEach { channel ->
-                            channel.createPermissionOverride(role).setDeny(Permission.MESSAGE_WRITE).queue({
-                                succeeded.add(channel)
-                            }, {})
+                            try {
+                                channel.createPermissionOverride(role).setDeny(Permission.MESSAGE_WRITE).queue({
+                                    succeeded.add(channel)
+                                }, {})
+                            } catch (e: Exception) {
+                            }
                         }
                         if (succeeded.size == 0) {
                             guild.publicChannel.sendMessage("Success! You will need to manually disable this role's ability to send messages in your channels, but the role was successfully created").queue()

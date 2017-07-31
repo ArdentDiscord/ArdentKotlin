@@ -3,7 +3,6 @@ package commands.games
 import events.Category
 import events.Command
 import main.factory
-import main.jda
 import main.waiter
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Guild

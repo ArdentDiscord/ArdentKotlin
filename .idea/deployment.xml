@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="Ardent">
+    <serverData>
+      <paths name="Ardent">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/root/Ardent/bot" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/root/Ardent/bot" local="$PROJECT_DIR$/src/test" />
+            <mapping deploy="/root/Ardent/bot" local="$PROJECT_DIR$/src/main" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

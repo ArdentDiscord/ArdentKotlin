@@ -18,8 +18,11 @@ import java.lang.management.ManagementFactory
 import java.util.HashMap
 
 fun String.toChannel(): TextChannel? {
-    return jda?.getTextChannelById(this)
-}
+    jdas.forEach { jda ->
+        val channel = jda.getTextChannelById(this)
+        if (channel != null) return channel
+    }
+    return null}
 
 fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
     if (playingTrack != null && channel.guild.getGuildAudioPlayer(channel).scheduler.manager.current != null) return true
@@ -32,7 +35,7 @@ fun Member.voiceChannel(): VoiceChannel? {
 }
 
 fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false): Boolean {
-    if (hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 1 && voiceChannel()!!.members[0] == this)) return true
+    if (hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this))) return true
     if (!failQuietly) channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
 }
@@ -43,11 +46,15 @@ private fun Member.hasOverride(): Boolean {
 }
 
 fun Guild.panelUrl() : String {
-    return "https://ardentbot.com/manage/$id"
+    return "this doesn't work yet :("
 }
 
 fun String.getChannel(): TextChannel? {
-    return jda!!.getTextChannelById(this)
+    jdas.forEach { jda ->
+        val channel = jda.getTextChannelById(this)
+        if (channel != null) return channel
+    }
+    return null
 }
 
 fun Member.withDiscrim(): String {
@@ -66,7 +73,35 @@ fun embed(title: String, member: Member, color: Color = Color.MAGENTA): EmbedBui
 }
 
 fun String.toUser(): User? {
-    return jda?.getUserById(this)
+    jdas.forEach { jda ->
+        val user = jda.getUserById(this)
+        if (user != null) return user
+    }
+    return null
+}
+
+fun getGuildById(id: String) : Guild? {
+    jdas.forEach { jda ->
+        val guild = jda.getGuildById(id)
+        if (guild != null) return guild
+    }
+    return null
+}
+
+fun getUserById(id: String) : User? {
+    return id.toUser()
+}
+
+fun guilds() : ArrayList<Guild> {
+    val guilds = arrayListOf<Guild>()
+    jdas.forEach { guilds.addAll(it.guilds) }
+    return guilds
+}
+
+fun users() : ArrayList<User> {
+    val users = arrayListOf<User>()
+    jdas.forEach { users.addAll(it.users) }
+    return users
 }
 
 fun List<String>.toUsers(): String {
@@ -91,13 +126,7 @@ fun Message.getFirstRole(arguments: List<String>): Role? {
 }
 
 fun Guild.punishments(): MutableList<Punishment?> {
-    val punishments = mutableListOf<Punishment?>()
-    members.forEach { member ->
-        punishments.addAll(r.table("punishments").filter(r.hashMap("guildId", id).with("userId", member.id()))
-                .run<Any>(conn).queryAsArrayList(Punishment::class.java))
-        return@forEach
-    }
-    return punishments
+        return r.table("punishments").filter(r.hashMap("guildId", id)).run<Any>(conn).queryAsArrayList(Punishment::class.java)
 }
 
 fun Member.punishments(): MutableList<Punishment?> {
@@ -113,7 +142,7 @@ fun Member.punishments(): MutableList<Punishment?> {
 fun MessageChannel.sendReceive(member: Member, embed: EmbedBuilder): Message? {
     try {
         return this.sendMessage(embed.build()).complete()
-    } catch (ex: PermissionException) {
+    } catch (ex: Throwable) {
         sendFailed(member.user, false)
     }
     return null
@@ -181,7 +210,7 @@ fun sendFailed(user: User, embed: Boolean) {
     user.openPrivateChannel().queue { privateChannel ->
         try {
             if (!embed) {
-                privateChannel.sendMessage("I don't have permission to type in this channel!").queue()
+                privateChannel.sendMessage("I don't have permission to send embeds in this channel!").queue()
             } else {
                 privateChannel.sendMessage("I don't have permission to send embeds in this channel!").queue()
             }
@@ -268,9 +297,9 @@ class Internals {
     val commandsReceived: Long = factory.commandsReceived().toLong()
     val commandCount: Int = factory.commands.size
     val commandDistribution: HashMap<String, Int> = factory.commandsById
-    val guilds: List<String> = jda!!.guilds.map { it.id }
-    val users: Int = jda!!.users.size
-    val cpuUsage: Double = JavaUtils.getProcessCpuLoad()
+    val guilds: List<String> = guilds().map { it.id }
+    val users: Int = users().size
+    val cpuUsage: Double = getProcessCpuLoad()
     val ramUsage: Pair<Long /* Used RAM in MB */, Long /* Available RAM in MB */>
     var roleCount: Long = 0
     var channelCount: Long = 0
@@ -284,12 +313,15 @@ class Internals {
     init {
         val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
         ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)
-        jda!!.guilds.forEach { guild ->
+        guilds().forEach { guild ->
             roleCount += guild.roles.size
             channelCount += guild.textChannels.size
             voiceCount += guild.voiceChannels.size
         }
-        managers.forEach { _, u -> queueLength += u.scheduler.manager.queue.size }
+        managers.forEach { _, u ->
+            queueLength += u.scheduler.manager.queue.size
+            if (u.player.playingTrack != null) queueLength++
+        }
         uptime = ManagementFactory.getRuntimeMXBean().uptime
         val seconds = (uptime / 1000) % 60
         val minutes = (uptime / (1000 * 60)) % 60

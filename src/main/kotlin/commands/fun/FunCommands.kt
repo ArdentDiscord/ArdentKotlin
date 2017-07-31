@@ -131,7 +131,7 @@ class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is
     val twitch = Twitch()
 
     init {
-        twitch.clientId = Config.getConfig()!!.getValue("twitch")
+        twitch.clientId = config.getValue("twitch")
     }
 
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
