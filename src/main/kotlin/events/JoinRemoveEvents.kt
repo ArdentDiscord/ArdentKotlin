@@ -101,14 +101,14 @@ class JoinRemoveEvents {
     @SubscribeEvent
     fun onMemberLeave(e: GuildMemberLeaveEvent) {
         val data = e.guild.getData()
-        val leaveMessage = data.joinMessage
+        val leaveMessage = data.leaveMessage
         if (leaveMessage != null) {
             val channel: TextChannel? = e.guild.getTextChannelById(leaveMessage.second)
             if (channel != null) {
                 if (leaveMessage.first /* Message */ != null) {
                     channel.send(e.guild.owner,
-                            leaveMessage.first!!.replace("\$username", e.member.withDiscrim())
-                                    .replace("\$usermention", e.member.withDiscrim())
+                            leaveMessage.first!!.replace("\$username", "**${e.member.withDiscrim()}**")
+                                    .replace("\$usermention", "**${e.member.withDiscrim()}**")
                                     .replace("\$membercount", e.guild.members.size.toString())
                                     .replace("\$servername", e.guild.name)
                     )

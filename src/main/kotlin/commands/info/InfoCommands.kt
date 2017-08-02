@@ -71,25 +71,82 @@ class Settings : Command(Category.SERVER_INFO, "settings", "administrate the set
                             .addField("Default Role", data.defaultRole?.toRole(guild)?.name ?: "None", false)
                             .addField("Join Message", data.joinMessage?.first ?: "None", false)
                             .addField("Leave Message", data.leaveMessage?.first ?: "None", false)
-                            .addField("Channel for Join/Leave Message", data.joinMessage?.second ?: "None", false)
+                            .addField("Channel for Join/Leave Message", data.joinMessage?.second?.toChannel()?.asMention ?: "None", false)
                             .addField("Add more than 1 song at a time for normal users", (!data.musicSettings.singleSongInQueueForMembers).toString(), false)
                             .addField("Announce Start of New Songs", data.musicSettings.announceNewMusic.toString(), false)
                     )
                 }
                 "messageparam" -> {
-
+                    channel.send(member, "You can use the following parameters:\n" +
+                            "- \$usermention: replaced with a mention of the user leaving/joining\n" +
+                            "- \$username: replaced with username#discriminator of the user\n" +
+                            "- \$servername: replaced with the server name\n" +
+                            "- \$membercount: replaced with the current member count of this server")
                 }
                 "joinmessage" -> {
-
+                    if (arguments.size == 1) channel.send(member, "You need to include a message or `none` to remove the current message")
+                    else {
+                        arguments.removeAt(0)
+                        val message = arguments.concat()
+                        if (message.equals("none", true)) {
+                            data.joinMessage = Pair(null, data.joinMessage?.second)
+                            channel.send(member, "Removed the set **join message**")
+                        }
+                        else {
+                            data.joinMessage = Pair(message, data.joinMessage?.second)
+                            channel.send(member, "Set the join message. Make sure you've set a **receiver channel** where I should send the messages to.")
+                        }
+                    }
+                    data.update()
                 }
                 "leavemessage" -> {
-
+                    if (arguments.size == 1) channel.send(member, "You need to include a message or `none` to remove the current message")
+                    else {
+                        arguments.removeAt(0)
+                        val message = arguments.concat()
+                        if (message.equals("none", true)) {
+                            data.leaveMessage = Pair(null, data.leaveMessage?.second)
+                            channel.send(member, "Removed the set **leave message**")
+                        }
+                        else {
+                            data.leaveMessage = Pair(message, data.leaveMessage?.second)
+                            channel.send(member, "Set the leave message. Make sure you've set a **receiver channel** where I should send the messages to.")
+                        }
+                    }
+                    data.update()
                 }
                 "messagechannel" -> {
-
+                    if (arguments.size == 1) channel.send(member, "You need to include a channel name or `none` to remove the current channel")
+                    else {
+                        arguments.removeAt(0)
+                        val message = arguments.concat()
+                        if (message.equals("none", true)) {
+                            data.joinMessage = Pair(data.joinMessage?.first, null)
+                            data.leaveMessage = Pair(data.leaveMessage?.first, null)
+                            channel.send(member, "Removed the set **receiver channel**")
+                        }
+                        else {
+                            val results = guild.getTextChannelsByName(message, true)
+                            if (results.size == 0) channel.send(member, "No channel matched that name! Please check your spelling and try again")
+                            else {
+                                val setChannel = results[0]
+                                data.joinMessage = Pair(data.joinMessage?.first, setChannel.id)
+                                data.leaveMessage = Pair(data.leaveMessage?.first, setChannel.id)
+                                channel.send(member, "Set the **receiver channel** as ${setChannel.asMention}")
+                            }
+                        }
+                    }
+                    data.update()
                 }
                 "announcemusic" -> {
-
+                    if (arguments.size == 1) channel.send(member, "You need to specify true or false!")
+                    else {
+                        val change = arguments[1].toBoolean()
+                        data.musicSettings.announceNewMusic = change
+                        data.update()
+                        if (change) channel.send(member, "I will now **announce** the start of songs")
+                        else channel.send(member, "I **won't** announce the start of songs")
+                    }
                 }
                 "trusteveryone" -> {
                     if (arguments.size == 1) channel.send(member, "You need to specify true or false!")
@@ -224,7 +281,7 @@ class Status : Command(Category.BOT_INFO, "status", "check realtime statistics a
                 .addField("Loaded Commands", internals.commandCount.toString(), true)
                 .addField("Messages Received", formatter.format(internals.messagesReceived), true)
                 .addField("Commands Received", formatter.format(internals.commandsReceived), true)
-                .addField("Servers", formatter.format(internals.guilds.size), true)
+                .addField("Servers", formatter.format(internals.guilds), true)
                 .addField("Users", formatter.format(internals.users), true)
                 .addField("Loaded Music Players", formatter.format(internals.loadedMusicPlayers), true)
                 .addField("Queue Length", "${formatter.format(internals.queueLength)} tracks", true)

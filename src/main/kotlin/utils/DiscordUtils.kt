@@ -312,7 +312,7 @@ class Internals {
     val commandsReceived: Long = factory.commandsReceived().toLong()
     val commandCount: Int = factory.commands.size
     val commandDistribution: HashMap<String, Int> = factory.commandsById
-    val guilds: List<String> = guilds().map { it.id }
+    val guilds: Int = utils.guilds().size
     val users: Int = users().size
     val cpuUsage: Double = getProcessCpuLoad()
     val ramUsage: Pair<Long /* Used RAM in MB */, Long /* Available RAM in MB */>

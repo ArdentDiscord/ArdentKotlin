@@ -38,7 +38,7 @@ var jdas = mutableListOf<JDA>()
 val waiter = EventWaiter()
 val factory = CommandFactory()
 
-val config = Config("C:\\Users\\Adam\\Desktop\\config.txt")
+val config = Config("/root/Ardent/config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()

@@ -28,7 +28,7 @@ class Web {
         val credentials = r.table("apiCodes").run<Any>(conn).queryAsArrayList(Credential::class.java)
         credentials.forEach { if (it != null) apiCredentials.put(it.code, it.id) }
         port(443)
-        // secure("/root/Ardent/keystore.p12", "ardent", null, null)
+        secure("/root/Ardent/keystore.p12", "ardent", null, null)
         internalServerError({ _, _ ->
             "Well, you fucked up. Congrats!".toJson()
         })

@@ -144,6 +144,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                     .addField("Duration", track.getDurationFancy(), true)
                     .addField("URL", track.info.uri, true)
                     .addField("Is Stream", track.info.isStream.toString(), true)
+            channel?.send(guild.selfMember, builder)
         }
     }
 
