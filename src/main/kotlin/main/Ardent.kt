@@ -110,6 +110,7 @@ fun main(args: Array<String>) {
             .addCommand(Punishments())
             .addCommand(FixMusic())
             .addCommand(Nono())
+            .addCommand(GiveAll())
     Web()
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")

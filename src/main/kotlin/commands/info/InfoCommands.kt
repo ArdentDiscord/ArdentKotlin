@@ -49,7 +49,7 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
     }
 }
 
-class Settings : Command(Category.SERVER_INFO, "settings", "administrate the settings for your server", "s") {
+class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server", "s") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             withHelp("current", "see a list of settings along with their current values")

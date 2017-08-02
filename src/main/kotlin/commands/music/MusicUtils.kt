@@ -137,7 +137,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
 
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
         if (channel!!.guild.getData().musicSettings.announceNewMusic) {
-            val builder = embed("Now Playing: ${track.info.title}", channel!!.guild.selfMember)
+            val builder = embed("Now Playing: ${track.info.title}", guild.selfMember)
             builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
             builder.addField("Title", track.info.title, true)
                     .addField("Author", track.info.author, true)

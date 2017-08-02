@@ -266,26 +266,50 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                                     if (type == "add") {
                                         if (r.table("staff").get(user.id).run<Any>(conn) != null) {
                                             r.table("staff").get(user.id).update(r.hashMap("role", roleName.toUpperCase())).runNoReply(conn)
-                                        }
-                                        else r.table("staff").insert(r.json(getGson().toJson(Staff(user.id, Staff.StaffRole.valueOf(roleName.toUpperCase()))))).runNoReply(conn)
-                                    }
-                                    else if (type == "remove") {
+                                        } else r.table("staff").insert(r.json(getGson().toJson(Staff(user.id, Staff.StaffRole.valueOf(roleName.toUpperCase()))))).runNoReply(conn)
+                                    } else if (type == "remove") {
                                         r.table("staff").get(user.id).delete().runNoReply(conn)
-                                    }
-                                    else {
+                                    } else {
                                         channel.send(member, "no")
                                         return
                                     }
                                     channel.send(member, "updated database")
-                                }
-                                else channel.send(member, "/nono staff add|remove @User roleName")
-                            }
-                            else channel.send(member, "/nono staff remove|add @User roleName")
+                                } else channel.send(member, "/nono staff add|remove @User roleName")
+                            } else channel.send(member, "/nono staff remove|add @User roleName")
                         }
                         else -> channel.send(member, "You're an idiot")
                     }
                 }
                 return@forEach
+            }
+        }
+    }
+}
+
+class GiveAll : Command(Category.ADMINISTRATE, "giveall", "give all users who don't have any role, the role you specify") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size == 0) {
+            channel.send(member, "You need to type the name of the role that you'd like to give to all members who currently have no roles in this server!")
+            return
+        }
+        if (member.hasOverride(channel)) {
+            val query = arguments.concat()
+            val results = guild.getRolesByName(query, true)
+            if (results.size == 0) channel.send(member, "No roles with that name were found")
+            else {
+                channel.send(member, "Running... This could take a while.")
+                var addedTo = 0
+                val role = results[0]
+                guild.members.forEach { m ->
+                    if (m.roles.size < 2) {
+                        try {
+                            guild.controller.addRolesToMember(m, role).queue({
+                                addedTo++
+                            }, {})
+                        } catch(ignored: Exception) {
+                        }
+                    }
+                }
             }
         }
     }

@@ -10,7 +10,7 @@ class VoiceUtils {
     @SubscribeEvent
     fun onVoiceLeave(e: GuildVoiceLeaveEvent) {
         val member = e.guild.selfMember
-        if (member.voiceState.channel == e.channelLeft && e.channelLeft.members.size == 1) {
+        if (member.voiceState.channel != null && member.voiceState.channel == e.channelLeft && e.channelLeft.members.size == 1) {
             val manager = e.guild.getGuildAudioPlayer(null)
             val player = manager.player
             if (player.playingTrack != null && !player.isPaused) {
@@ -22,7 +22,7 @@ class VoiceUtils {
     @SubscribeEvent
     fun onVoiceJoin(e: GuildVoiceJoinEvent) {
         val member = e.guild.selfMember
-        if (member.voiceState.channel == e.channelJoined && e.channelJoined.members.size == 2) {
+        if (member.voiceState.channel != null && member.voiceState.channel == e.channelJoined && e.channelJoined.members.size == 2) {
             val manager = e.guild.getGuildAudioPlayer(null)
             val player = manager.player
             if (player.playingTrack != null && player.isPaused) {
