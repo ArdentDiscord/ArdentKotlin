@@ -1,12 +1,13 @@
 package commands.administrate
 
 import main.conn
+import main.factory
 import main.r
 import utils.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-private val administrativeExecutor = Executors.newSingleThreadScheduledExecutor()
+private val administrativeExecutor = Executors.newScheduledThreadPool(2)
 
 class AdministrativeDaemon : Runnable {
     override fun run() {
@@ -45,5 +46,7 @@ class AdministrativeDaemon : Runnable {
 
 fun startAdministrativeDaemon() {
     val administrativeDaemon = AdministrativeDaemon()
-    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 5, 20, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleWithFixedDelay(administrativeDaemon, 5, 45, TimeUnit.SECONDS)
+    val ranksDaemon = RanksDaemon()
+    administrativeExecutor.scheduleWithFixedDelay(ranksDaemon, 5, 60, TimeUnit.SECONDS)
 }

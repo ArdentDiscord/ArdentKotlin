@@ -38,7 +38,7 @@ var jdas = mutableListOf<JDA>()
 val waiter = EventWaiter()
 val factory = CommandFactory()
 
-val config = Config("/root/Ardent/config.txt")
+val config = Config("C:\\Users\\Adam\\Desktop\\config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()
@@ -64,7 +64,7 @@ fun main(args: Array<String>) {
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
     playerManager.registerSourceManager(SoundCloudAudioSourceManager())
-
+    playerManager.useRemoteNodes(config.getValue("node1"), config.getValue("node2"))
     AudioSourceManagers.registerRemoteSources(playerManager)
     AudioSourceManagers.registerLocalSource(playerManager)
 
@@ -109,6 +109,7 @@ fun main(args: Array<String>) {
             .addCommand(Unmute())
             .addCommand(Punishments())
             .addCommand(FixMusic())
+            .addCommand(Nono())
     Web()
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")
@@ -130,7 +131,7 @@ class Config(url: String) {
             e.printStackTrace()
             System.exit(1)
         }
-        conn = r.connection().db("ardent").hostname("ardentbot.com").port(28015).connect()
+        conn = r.connection().timeout(5000).db("ardent").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
     }
 
     fun getValue(keyName: String): String {

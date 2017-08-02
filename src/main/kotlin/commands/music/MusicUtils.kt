@@ -187,8 +187,7 @@ fun AudioTrack.getDurationFancy(): String {
     val seconds = (length / 1000).toInt()
     val minutes = seconds / 60
     val hours = minutes / 60
-    if (NativeDate.getHours(this) < 0) return "[Live Stream]"
-    else return "[${String.format("%02d", hours % 60)}:${String.format("%02d", minutes % 60)}:${String.format("%02d", seconds % 60)}]"
+    return "[${String.format("%02d", hours % 60)}:${String.format("%02d", minutes % 60)}:${String.format("%02d", seconds % 60)}]"
 }
 
 fun ArrayList<ArdentTrack>.getDuration(): String {

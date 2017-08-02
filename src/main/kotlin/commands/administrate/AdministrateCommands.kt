@@ -3,6 +3,7 @@ package commands.administrate
 import events.Category
 import events.Command
 import main.conn
+import main.jdas
 import main.r
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Guild
@@ -137,7 +138,7 @@ The second parameter is the amount of time to mute them for - this can be in min
 Type the number you wish (decimals are **not** allowed) and then suffix that with **m** (for minutes), **h** (for hours), or **d** (for days)
 **Example**: *${guild.getPrefix()}mute @User 3h* - would mute that user for three hours""")
         else {
-            if(!member.hasOverride(channel)) return
+            if (!member.hasOverride(channel)) return
             val muteMember = guild.getMember(mentionedUsers[0])
             if (muteMember.hasOverride(channel, failQuietly = true) || !member.canInteract(muteMember) || !guild.selfMember.canInteract(muteMember)) {
                 channel.send(member, "You don't have permission to mute this member! Make sure that they do not have the `Manage Server` or other elevated " +
@@ -224,12 +225,12 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
                     if (punishment.type == Punishment.Type.MUTE) {
                         guild.controller.removeRolesFromMember(unmuteMember, guild.getRolesByName("muted", true))
                                 .reason("Unmuted by ${member.withDiscrim()}")
-                                .queue ({
+                                .queue({
                                     r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
                                     channel.send(member, "Successfully unmuted **${unmuteMember.withDiscrim()}**")
                                 }, {
-                                channel.send(member, "Failed to unmute **${unmuteMember.withDiscrim()}** - Please give me proper permissions to remove roles")
-                        })
+                                    channel.send(member, "Failed to unmute **${unmuteMember.withDiscrim()}** - Please give me proper permissions to remove roles")
+                                })
                         return
                     }
                 }
@@ -239,10 +240,53 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
     }
 }
 
-class Nono: Command(Category.ADMINISTRATE, "a", "commands for bot administrators only") {
+class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administrators only") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (member.id() == "169904324980244480") {
-
+        staff.forEach {
+            if (member.id() == it.id && it.role == Staff.StaffRole.ADMINISTRATOR) {
+                if (arguments.size == 0) channel.send(member, "no")
+                else {
+                    when (arguments[0]) {
+                        "shutdown" -> {
+                            jdas.forEach { it.shutdown() }
+                            channel.send(member, "Shut down JDA instances, exiting...")
+                            System.exit(0)
+                        }
+                        "staff" -> {
+                            if (arguments.size == 3) {
+                                val type = arguments[1]
+                                val roleName = arguments[3]
+                                val roles = Staff.StaffRole.values().map { it.name.toLowerCase() }
+                                if (roles.contains(roleName)) {
+                                    if (event.message.mentionedUsers.size == 0) {
+                                        channel.send(member, "no")
+                                        return
+                                    }
+                                    val user = event.message.mentionedUsers[0]
+                                    if (type == "add") {
+                                        if (r.table("staff").get(user.id).run<Any>(conn) != null) {
+                                            r.table("staff").get(user.id).update(r.hashMap("role", roleName.toUpperCase())).runNoReply(conn)
+                                        }
+                                        else r.table("staff").insert(r.json(getGson().toJson(Staff(user.id, Staff.StaffRole.valueOf(roleName.toUpperCase()))))).runNoReply(conn)
+                                    }
+                                    else if (type == "remove") {
+                                        r.table("staff").get(user.id).delete().runNoReply(conn)
+                                    }
+                                    else {
+                                        channel.send(member, "no")
+                                        return
+                                    }
+                                    channel.send(member, "updated database")
+                                }
+                                else channel.send(member, "/nono staff add|remove @User roleName")
+                            }
+                            else channel.send(member, "/nono staff remove|add @User roleName")
+                        }
+                        else -> channel.send(member, "You're an idiot")
+                    }
+                }
+                return@forEach
+            }
         }
     }
 }

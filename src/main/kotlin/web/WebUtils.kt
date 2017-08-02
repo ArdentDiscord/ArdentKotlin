@@ -10,6 +10,12 @@ val dapi = "https://discordapp.com/api"
 
 data class Failure(val failure: String)
 
+class Setting(val route: String, val name: String, val description: String, vararg val optionalParameters: String) {
+    override fun toString(): String {
+        return getGson().toJson(this)
+    }
+}
+
 data class Token(val access_token: String, val token_type: String, val expires_in: Int, val refresh_token: String, val scope: String) {
     fun getScopes(): MutableList<Scope> {
         val list = mutableListOf<Scope>()
@@ -27,6 +33,7 @@ data class Token(val access_token: String, val token_type: String, val expires_i
 
 data class IdentificationObject(val username: String, val verified: Boolean, val mfa_enabled: Boolean, val id: String, val avatar: String,
                                 val discriminator: String)
+
 data class Credential(val code: String, val id: String)
 enum class Scope(val route: String) {
     CONNECTIONS("/users/@me/connections"),
@@ -41,7 +48,7 @@ enum class Scope(val route: String) {
     }
 }
 
-fun identityObject(access_token: String) : IdentificationObject? {
+fun identityObject(access_token: String): IdentificationObject? {
     val obj = getGson().fromJson(retrieveObject(access_token, Scope.IDENTIFY), IdentificationObject::class.java)
     if (obj.id == null) return null /* This is possible */
     else return obj

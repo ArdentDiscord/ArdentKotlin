@@ -20,8 +20,7 @@ class JoinRemoveEvents {
                     "type `/help` or `ardent help`. You can change the default prefix, which is a forward slash, by typing `/prefix set prefix_here`, " +
                     "but if you forget what you set it as, remember that `ardent help` will always work.\n" +
                     "Happy Discording and best wishes from the development team!").queue()
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             return
         }
         if (guild.getRolesByName("muted", true).size == 0 && guild.selfMember.hasPermission(guild.publicChannel, Permission.MESSAGE_WRITE)) {
@@ -81,17 +80,20 @@ class JoinRemoveEvents {
         if (data.defaultRole != null) {
             val role: Role? = e.guild.getRoleById(data.defaultRole)
             if (role != null) {
-                e.guild.controller.addRolesToMember(e.member, role).reason("Default Role - Automatic Addition")
-                        .queue({
-                            e.member.user.openPrivateChannel().queue({ channel ->
-                                channel.send(e.member, "Added the role **${role.name}** to you in the **${e.guild.name}** server by default")
+                try {
+                    e.guild.controller.addRolesToMember(e.member, role).reason("Default Role - Automatic Addition")
+                            .queue({
+                                e.member.user.openPrivateChannel().queue({ channel ->
+                                    channel.send(e.member, "Added the role **${role.name}** to you in the **${e.guild.name}** server [the default role]")
+                                })
+                            }, {
+                                e.member.user.openPrivateChannel().queue({ channel ->
+                                    channel.send(e.member, "Unable to give you the default role **${role.name}** in **${e.guild.name}**. Please contact the server " +
+                                            "owner or administrators to let them know.")
+                                })
                             })
-                        }, {
-                            e.member.user.openPrivateChannel().queue({ channel ->
-                                channel.send(e.member, "Unable to give you the default role **${role.name}** in **${e.guild.name}**. Please contact the server " +
-                                        "owner or administrators to let them know.")
-                            })
-                        })
+                } catch(ignored: Exception) {
+                }
             }
         }
     }

@@ -141,8 +141,8 @@ fun Member.isInGameOrLobby(): Boolean {
 }
 
 fun Guild.hasGameType(gameType: GameType): Boolean {
-    gamesInLobby.forEach { if (it.type == gameType) return true }
-    activeGames.forEach { if (it.type == gameType) return true }
+    gamesInLobby.forEach { if (it.type == gameType && it.channel.guild.id == id) return true }
+    activeGames.forEach { if (it.type == gameType && it.channel.guild.id == id) return true }
     return false
 }
 

@@ -3,6 +3,7 @@ package utils
 import net.dv8tion.jda.core.exceptions.PermissionException
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.vdurmont.emoji.EmojiParser
+import commands.administrate.staff
 import commands.games.CoinflipPlayerData
 import commands.games.GameDataCoinflip
 import commands.music.getGuildAudioPlayer
@@ -34,15 +35,21 @@ fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
 }
 
-fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false): Boolean {
-    if (hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this))) return true
+fun String.toRole(guild: Guild) : Role? {
+    try {
+        return guild.getRoleById(this)
+    }
+    catch (e: Exception) { return null }
+}
+
+fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false, djCommand: Boolean = false): Boolean {
+    if (staff.map { it.id }.contains(id()) || hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this)) || (djCommand && guild.getData().allowGlobalOverride)) return true
     if (!failQuietly) channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
 }
 
 private fun Member.hasOverride(): Boolean {
     return isOwner || hasPermission(Permission.ADMINISTRATOR) || hasPermission(Permission.MANAGE_CHANNEL)
-            || guild.getData().advancedPermissions.contains(user.id)
 }
 
 fun Guild.panelUrl() : String {
@@ -74,16 +81,24 @@ fun embed(title: String, member: Member, color: Color = Color.MAGENTA): EmbedBui
 
 fun String.toUser(): User? {
     jdas.forEach { jda ->
-        val user = jda.getUserById(this)
-        if (user != null) return user
+        try {
+            val user = jda.getUserById(this)
+            if (user != null) return user
+        }
+        catch (ignored: Exception) {
+        }
     }
     return null
 }
 
 fun getGuildById(id: String) : Guild? {
     jdas.forEach { jda ->
-        val guild = jda.getGuildById(id)
-        if (guild != null) return guild
+        try {
+            val guild = jda.getGuildById(id)
+            if (guild != null) return guild
+        }
+        catch (ignored: Exception) {
+        }
     }
     return null
 }
@@ -214,18 +229,18 @@ fun sendFailed(user: User, embed: Boolean) {
             } else {
                 privateChannel.sendMessage("I don't have permission to send embeds in this channel!").queue()
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }
 }
 
 fun Guild.getPrefix(): String {
-    return "/"
+    return this.getData().prefix
 }
 
 enum class DonationLevel(val readable: String, val level: Int) {
-    NONE("None", 1), PATRON("Patron", 2), PATRON_PLUS("Patron+", 3), OG("OG", 4);
+    NONE("None", 1), SUPPORTER("Supporter", 2), BASIC("Basic", 3), INTERMEDIATE("Intermediate", 4), EXTREME("Extreme", 5);
 
     override fun toString(): String {
         return readable
@@ -258,13 +273,13 @@ fun Member.isPatron(): Boolean {
 }
 
 fun User.donationLevel(): DonationLevel {
-    return DonationLevel.OG
-    // TODO() return getData().donationLevel
+    staff.forEach { if (it.id == id) return DonationLevel.EXTREME }
+    return getData().donationLevel
 }
 
-fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel): Boolean {
+fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
     if (user.donationLevel().level >= donationLevel.level || guild.donationLevel().level >= donationLevel.level) return true
-    channel.requires(this, donationLevel)
+    if (!failQuietly) channel.requires(this, donationLevel)
     return false
 }
 
@@ -304,7 +319,7 @@ class Internals {
     var roleCount: Long = 0
     var channelCount: Long = 0
     var voiceCount: Long = 0
-    val loadedMusicPlayers: Int = managers.size
+    var loadedMusicPlayers: Int = 0
     var queueLength: Int = 0
     val uptime: Long
     val uptimeFancy: String
@@ -320,7 +335,10 @@ class Internals {
         }
         managers.forEach { _, u ->
             queueLength += u.scheduler.manager.queue.size
-            if (u.player.playingTrack != null) queueLength++
+            if (u.player.playingTrack != null) {
+                queueLength++
+                loadedMusicPlayers++
+            }
         }
         uptime = ManagementFactory.getRuntimeMXBean().uptime
         val seconds = (uptime / 1000) % 60

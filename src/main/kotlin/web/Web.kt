@@ -1,30 +1,45 @@
 package web
 
+import commands.administrate.staff
 import main.conn
 import spark.*
 import spark.Spark.*
 import main.factory
 import main.r
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Role
+import net.dv8tion.jda.core.entities.User
 import utils.*
 import java.util.concurrent.atomic.AtomicLong
 
 val webCalls = AtomicLong(0)
 val apiCredentials = hashMapOf<String /* Code given to frontend */, String /* User ID */>()
 
+val settings = mutableListOf<Setting>()
+
 class Web {
     init {
+        settings.add(Setting("/defaultrole", "Default Role", "Remove or set the role given to all new members. Can fail if Ardent doesn't " +
+                "have sufficient permissions to give them the role."))
+        settings.add(Setting("/joinmessage", "Join Message", "Set or remove the message displayed when a member joins your server"))
+        settings.add(Setting("/leavemessage", "Leave Message", "Set or remove the message displayed when a member joins your server"))
+        settings.add(Setting("/music/announcenewmusic", "Announce Songs at Start", "Choose whether you want to allow "))
+
         val credentials = r.table("apiCodes").run<Any>(conn).queryAsArrayList(Credential::class.java)
         credentials.forEach { if (it != null) apiCredentials.put(it.code, it.id) }
-        port(444)
-       secure("/root/Ardent/keystore.p12", "ardent", null, null)
-        internalServerError({ _, _ -> "Well, we fucked up".toJson() })
-        get("", { request, response ->
-            "hi"
+        port(443)
+        // secure("/root/Ardent/keystore.p12", "ardent", null, null)
+        internalServerError({ _, _ ->
+            "Well, you fucked up. Congrats!".toJson()
         })
+        get("/support", { _, response -> response.redirect("https://discord.gg/rfGSxNA") })
+        get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192") })
         path("/api", {
             before("/*", { _, _ -> webCalls.getAndIncrement() })
-            get("/status", { _, _ -> Internals().toJson() })
-            get("/commands", { _, _ -> factory.commands })
+            post("/patreon", { request, _ ->
+                println(request.body())
+                println(request.headers())
+            })
             path("/oauth", {
                 get("/login", { request, response ->
                     val code = request.params("code")
@@ -49,10 +64,48 @@ class Web {
                     }
                 })
             })
+            path("/public", {
+                get("/status", { _, _ -> Internals().toJson() })
+                get("/commands", { _, _ -> factory.commands })
+                get("/staff", { _, _ -> staff.toJson() })
+                path("/data", {
+                    path("/user", {
+                        get("/*/*", { request, _ ->
+                            val id = request.splat()[0]
+                            val guildId = request.splat()[1]
+                            val guild: Guild? = getGuildById(guildId)
+                            if (guild == null) createUserModel(id).toJson()
+                            else {
+                                val member = guild.getMemberById(id)
+                                if (member == null) Failure("invalid user specified")
+                                else {
+                                    GuildMemberModel(id, member.effectiveName, member.roles.map { it.name },
+                                            member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
+                                }
+                            }
+                        })
+                    })
+                })
+
+            })
             path("/internal", {
+                path("/settings", {
+                    get("/", { request, response ->
+
+                    })
+                })
 
             })
         })
     }
 }
+
+fun createUserModel(id: String): Any {
+    val user: User = getUserById(id) ?: return Failure("invalid user requested").toJson()
+    return UserModel(id, user.name, user.discriminator, user.effectiveAvatarUrl)
+}
+
+data class UserModel(val id: String, val username: String, val discrim: String, val avatar: String)
+
+data class GuildMemberModel(val id: String, val effectiveName: String, val roles: List<String>, val hasOverride: Boolean)
 

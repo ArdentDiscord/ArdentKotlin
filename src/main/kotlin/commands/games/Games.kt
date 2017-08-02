@@ -150,7 +150,10 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                     channel.selectFromList(member, "Which type of game would you like to create?", GameType.values().map { it.readable }.toMutableList(), {
                         selected ->
                         val gameType = GameType.values()[selected]
-                        if (guild.hasGameType(gameType)) channel.send(member, "There can only be one of this type of game active at a time in a server!")
+                        if (guild.hasGameType(gameType) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)){
+                            channel.send(member, "There can only be one of this type of game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
+                                    "https://ardentbot.com/support_us to start more than one game per type at a time**")
+                        }
                         else {
                             channel.selectFromList(member, "Would you like this game of ${gameType.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), {
                                 public ->

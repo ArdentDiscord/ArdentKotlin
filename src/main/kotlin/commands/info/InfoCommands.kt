@@ -49,10 +49,79 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
     }
 }
 
-class Settings : Command(Category.SERVER_INFO, "settings", "administrate the settings for your server using our shiny new web panel", "website") {
+class Settings : Command(Category.SERVER_INFO, "settings", "administrate the settings for your server", "s") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Manage the settings for this server at ${guild.panelUrl()} - while you're there, be sure to check out " +
-                "the rest of our website!")
+        if (arguments.size == 0) {
+            withHelp("current", "see a list of settings along with their current values")
+                    .withHelp("trusteveryone true|false", "choose whether to allow everyone to access advanced DJ commands like /skip, /leave, etc.")
+                    .withHelp("defaultrole [role name **OR** type `none` to disable]", "set the default role given to users when they join this server")
+                    .withHelp("messageparam", "see a list of special parameters you can add to your join or leave message")
+                    .withHelp("joinmessage [message **or** `none` to remove]", "set or remove the join message")
+                    .withHelp("leavemessage [message **or** `none` to remove]", "set or remove the leave message")
+                    .withHelp("messagechannel [channel name **or** `none` to remove]", "set or remove the channel to send join/leave messages to")
+                    .withHelp("announcemusic true|false", "set whether you want me to send an info message whenever a new song starts playing")
+                    .displayHelp(channel, member)
+        } else {
+            if (!member.hasOverride(channel)) return
+            val data = guild.getData()
+            when (arguments[0]) {
+                "current" -> {
+                    channel.send(member, embed("Settings for ${guild.name}", member)
+                            .addField("Can everyone use DJ commands?", data.allowGlobalOverride.toString(), false)
+                            .addField("Default Role", data.defaultRole?.toRole(guild)?.name ?: "None", false)
+                            .addField("Join Message", data.joinMessage?.first ?: "None", false)
+                            .addField("Leave Message", data.leaveMessage?.first ?: "None", false)
+                            .addField("Channel for Join/Leave Message", data.joinMessage?.second ?: "None", false)
+                            .addField("Add more than 1 song at a time for normal users", (!data.musicSettings.singleSongInQueueForMembers).toString(), false)
+                            .addField("Announce Start of New Songs", data.musicSettings.announceNewMusic.toString(), false)
+                    )
+                }
+                "messageparam" -> {
+
+                }
+                "joinmessage" -> {
+
+                }
+                "leavemessage" -> {
+
+                }
+                "messagechannel" -> {
+
+                }
+                "announcemusic" -> {
+
+                }
+                "trusteveryone" -> {
+                    if (arguments.size == 1) channel.send(member, "You need to specify true or false!")
+                    else {
+                        val change = arguments[1].toBoolean()
+                        data.allowGlobalOverride = change
+                        data.update()
+                        if (change) channel.send(member, "Everyone can now use DJ commands")
+                        else channel.send(member, "Only elevated users can now use DJ commands")
+                    }
+                }
+                "defaultrole" -> {
+                    if (arguments.size == 1) channel.send(member, "You need to specify `none` or type the name of a role")
+                    else {
+                        if (arguments[1].equals("none", true)) {
+                            data.defaultRole = null
+                            data.update()
+                            channel.send(member, "No default role will be given to new members")
+                        } else {
+                            val roles = guild.getRolesByName(arguments[1], true)
+                            if (roles.size == 0) channel.send(member, "No role with that name was found")
+                            else {
+                                val role = roles[0]
+                                data.defaultRole = role.id
+                                data.update()
+                                channel.send(member, "**${role.name}** will be given to new members")
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
