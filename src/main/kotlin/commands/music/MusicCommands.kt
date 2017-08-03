@@ -257,15 +257,6 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
     }
     val channel = member.voiceState.channel
     val musicManager = member.guild.getGuildAudioPlayer(textChannel)
-    val data = member.guild.getData()
-    if (data.musicSettings.singleSongInQueueForMembers && !member.hasOverride(textChannel, true, failQuietly = true)) {
-        musicManager.scheduler.manager.queueAsList.forEach { track ->
-            if (track.author == member.user.id) {
-                textChannel.send(member, "${Emoji.CROSS_MARK} You can only queue **1** song at a time, per the rules set by your administrators")
-                return
-            }
-        }
-    }
     playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {
         override fun loadFailed(exception: FriendlyException) {
             textChannel.send(member, "There was an error loading the track: *${exception.localizedMessage}")

@@ -23,7 +23,8 @@ fun String.toChannel(): TextChannel? {
         val channel = jda.getTextChannelById(this)
         if (channel != null) return channel
     }
-    return null}
+    return null
+}
 
 fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
     if (playingTrack != null && channel.guild.getGuildAudioPlayer(channel).scheduler.manager.current != null) return true
@@ -35,15 +36,20 @@ fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
 }
 
-fun String.toRole(guild: Guild) : Role? {
+fun String.toRole(guild: Guild): Role? {
     try {
         return guild.getRoleById(this)
+    } catch (e: Exception) {
+        return null
     }
-    catch (e: Exception) { return null }
 }
 
 fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false, djCommand: Boolean = false): Boolean {
     if (staff.map { it.id }.contains(id()) || hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this)) || (djCommand && guild.getData().allowGlobalOverride)) return true
+    if (djCommand) {
+        val track = guild.getGuildAudioPlayer(channel).scheduler.manager.current
+        if (track != null && track.author == id()) return true
+    }
     if (!failQuietly) channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
 }
@@ -52,7 +58,7 @@ private fun Member.hasOverride(): Boolean {
     return isOwner || hasPermission(Permission.ADMINISTRATOR) || hasPermission(Permission.MANAGE_CHANNEL)
 }
 
-fun Guild.panelUrl() : String {
+fun Guild.panelUrl(): String {
     return "this doesn't work yet :("
 }
 
@@ -84,36 +90,34 @@ fun String.toUser(): User? {
         try {
             val user = jda.getUserById(this)
             if (user != null) return user
-        }
-        catch (ignored: Exception) {
+        } catch (ignored: Exception) {
         }
     }
     return null
 }
 
-fun getGuildById(id: String) : Guild? {
+fun getGuildById(id: String): Guild? {
     jdas.forEach { jda ->
         try {
             val guild = jda.getGuildById(id)
             if (guild != null) return guild
-        }
-        catch (ignored: Exception) {
+        } catch (ignored: Exception) {
         }
     }
     return null
 }
 
-fun getUserById(id: String) : User? {
+fun getUserById(id: String): User? {
     return id.toUser()
 }
 
-fun guilds() : ArrayList<Guild> {
+fun guilds(): ArrayList<Guild> {
     val guilds = arrayListOf<Guild>()
     jdas.forEach { guilds.addAll(it.guilds) }
     return guilds
 }
 
-fun users() : ArrayList<User> {
+fun users(): ArrayList<User> {
     val users = arrayListOf<User>()
     jdas.forEach { users.addAll(it.users) }
     return users
@@ -141,7 +145,7 @@ fun Message.getFirstRole(arguments: List<String>): Role? {
 }
 
 fun Guild.punishments(): MutableList<Punishment?> {
-        return r.table("punishments").filter(r.hashMap("guildId", id)).run<Any>(conn).queryAsArrayList(Punishment::class.java)
+    return r.table("punishments").filter(r.hashMap("guildId", id)).run<Any>(conn).queryAsArrayList(Punishment::class.java)
 }
 
 fun Member.punishments(): MutableList<Punishment?> {
