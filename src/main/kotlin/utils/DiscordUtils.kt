@@ -291,7 +291,7 @@ fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
     send(member, "${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
 }
 
-class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 0.0) {
+class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0) {
     fun coinflipData(): CoinflipPlayerData {
         val data = CoinflipPlayerData()
         val coinflipGames = r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java)

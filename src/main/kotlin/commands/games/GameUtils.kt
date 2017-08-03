@@ -119,8 +119,8 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
 }
 
 enum class GameType(val readable: String, val description: String, val id: Int) {
-    COINFLIP("Coinflip", "this is a placeholder", 1);//,
-    //BLACKJACK("Blackjack", "this is a placeholder", 2),
+    COINFLIP("Coinflip", "this is a placeholder", 1),
+    BLACKJACK("Blackjack", "this is a placeholder", 2);
     //TRIVIA("Trivia", "this is a placeholder", 3),
     //CONNECT_FOUR("Connect-Four", "this is a placeholder", 4);
 

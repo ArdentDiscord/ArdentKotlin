@@ -20,11 +20,37 @@ import java.util.concurrent.TimeUnit
 
 val invites = ConcurrentHashMap<String, Game>()
 
+class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.BLACKJACK, channel, creator, playerCount, isPublic) {
+    override fun onStart() {
+        val ardent = channel.guild.selfMember
+        val users = players.map { it.toUser()!! }.toList()
+
+    }
+    data class Round(val dealerValue: Int, val userData: List<Pair<String, Int>>) {
+        fun winners(): List<Pair<String, Int>> {
+            val winners = mutableListOf<Pair<String, Int>>()
+            userData.forEach { if (it.second in (dealerValue + 1)..21) winners.add(it) }
+            return winners
+        }
+
+        fun losers(): List<Pair<String, Int>> {
+            val losers = mutableListOf<Pair<String, Int>>()
+            userData.forEach { if (it.second in 1..(dealerValue - 1)) losers.add(it) }
+            return losers
+        }
+
+        fun tied(): List<String> {
+            val tied = mutableListOf<String>()
+            userData.forEach { if (it.second == dealerValue) tied.add(it.first) }
+            return tied
+        }
+    }
+}
+
 class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.COINFLIP, channel, creator, playerCount, isPublic) {
     override fun onStart() {
         val ardent = channel.guild.selfMember
-        val users = mutableListOf<User>()
-        players.forEach { users.add(it.toUser()!!) }
+        val users = players.map { it.toUser()!! }.toList()
         channel.send(ardent, "This is a **5** round game where the person who guesses the side the most times wins.\nIf there's a tie, the top player will flip a coin and if they guess correctly, they win. " +
                 "If not, the second place player will win.")
         val results = mutableListOf<Round>()
@@ -109,7 +135,11 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
         } else {
             winner = scores.keys.toList()[0]
         }
-        channel.send(channel.guild.selfMember, "Congratulations to **${winner!!.toUser()!!.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses")
+        val winnerUser = winner!!.toUser()!!
+        channel.send(channel.guild.selfMember, "Congratulations to **${winnerUser.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses; You win **500** gold")
+        val playerData = winnerUser.getData()
+        playerData.gold += 500
+        playerData.update()
         val gameData = GameDataCoinflip(gameId, creator, startTime!!, winner!!, players.without(winner!!), results)
         cleanup(gameData)
     }
@@ -164,12 +194,23 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                                         waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
                                             playerCount ->
                                             val count = playerCount.content.toIntOrNull() ?: 999
-                                            val game = CoinflipGame(channel, member.user.id, count, isPublic)
+                                            val game = CoinflipGame(channel, member.id(), count, isPublic)
                                             gamesInLobby.add(game)
 
                                         })
                                     }
-
+                                    GameType.BLACKJACK -> {
+                                        channel.send(member, "How many players would you like in this game? You can also type `1` to play solo")
+                                        waiter.waitForMessage(Settings(member.id(), channel.id, guild.id), {
+                                            playerCount ->
+                                            val count = playerCount.content.toIntOrNull() ?: 1
+                                            val game = BlackjackGame(channel, member.id(), count, isPublic)
+                                            if (count > 1) {
+                                                gamesInLobby.add(game)
+                                            }
+                                            else game.startEvent()
+                                        })
+                                    }
                                 }
                                 // TODO("Fill in the other games")
                             })
@@ -212,7 +253,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
             "forcestart" -> {
                 gamesInLobby.forEach { game ->
                     if (game.creator == member.id() && game.channel.guild == guild) {
-                        if (game.players.size == 1) channel.send(member, "You can't force start a game with only **1** person!")
+                        if (game.players.size == 1 && game.type != GameType.BLACKJACK) channel.send(member, "You can't force start a game with only **1** person!")
                         else {
                             game.startEvent()
                         }
