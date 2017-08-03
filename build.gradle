@@ -42,7 +42,7 @@ dependencies {
     compile 'com.vdurmont:emoji-java:3.2.0'
     compile group: 'com.google.code.gson', name: 'gson', version: '2.3.1'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
-    compile 'com.sparkjava:spark-core:2.5.5'
+    compile group: 'com.sparkjava', name: 'spark-core', version: '2.6.0'
     compile 'org.jsoup:jsoup:1.10.2'
     compile 'com.github.vbauer:yandex-translate-api:1.2.4'
     compile 'com.patreon:patreon:0.1.1'

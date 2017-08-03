@@ -22,6 +22,12 @@ val settings = mutableListOf<Setting>()
 
 class Web {
     init {
+        val httpServer = Service.ignite().port(80)
+        httpServer.before { request, response ->
+            val url = request.url()
+            response.redirect("https://${url.split("http://")[1]}")
+        }
+
         settings.add(Setting("/defaultrole", "Default Role", "Remove or set the role given to all new members. Can fail if Ardent doesn't " +
                 "have sufficient permissions to give them the role."))
         settings.add(Setting("/joinmessage", "Join Message", "Set or remove the message displayed when a member joins your server"))
