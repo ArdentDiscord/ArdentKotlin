@@ -46,7 +46,7 @@ class AdministrativeDaemon : Runnable {
 
 fun startAdministrativeDaemon() {
     val administrativeDaemon = AdministrativeDaemon()
-    administrativeExecutor.scheduleWithFixedDelay(administrativeDaemon, 5, 45, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleWithFixedDelay(administrativeDaemon, 1, 45, TimeUnit.SECONDS)
     val ranksDaemon = RanksDaemon()
-    administrativeExecutor.scheduleWithFixedDelay(ranksDaemon, 5, 60, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleWithFixedDelay(ranksDaemon, 1, 60, TimeUnit.SECONDS)
 }

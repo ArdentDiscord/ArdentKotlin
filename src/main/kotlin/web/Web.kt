@@ -9,7 +9,10 @@ import main.r
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.User
+import org.apache.commons.io.IOUtils
 import utils.*
+import java.io.File
+import java.io.FileWriter
 import java.util.concurrent.atomic.AtomicLong
 
 val webCalls = AtomicLong(0)
@@ -36,10 +39,6 @@ class Web {
         get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192") })
         path("/api", {
             before("/*", { _, _ -> webCalls.getAndIncrement() })
-            post("/patreon", { request, _ ->
-                println(request.body())
-                println(request.headers())
-            })
             path("/oauth", {
                 get("/login", { request, response ->
                     val code = request.params("code")

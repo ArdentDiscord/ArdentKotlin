@@ -1,5 +1,7 @@
 package main
 
+import com.patreon.API
+import com.patreon.OAuth
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
 import net.dv8tion.jda.core.AccountType
@@ -24,6 +26,9 @@ import events.JoinRemoveEvents
 import events.VoiceUtils
 import net.dv8tion.jda.core.entities.*
 import org.apache.commons.io.IOUtils
+import org.json.JSONObject
+import org.json.simple.parser.JSONParser
+import org.jsoup.Jsoup
 import utils.*
 import web.retrieveToken
 import java.io.File
@@ -47,7 +52,7 @@ val shards = 2
 
 fun main(args: Array<String>) {
     for (sh in 1..shards) {
-       jdas.add(JDABuilder(AccountType.BOT)
+        jdas.add(JDABuilder(AccountType.BOT)
                 .setCorePoolSize(10)
                 .setGame(Game.of("With a fancy new /help", "https://twitch.tv/ "))
                 .addEventListener(waiter)
@@ -55,12 +60,10 @@ fun main(args: Array<String>) {
                 .addEventListener(JoinRemoveEvents())
                 .addEventListener(VoiceUtils())
                 .setEventManager(AnnotatedEventManager())
-               .useSharding(sh - 1, shards)
+                .useSharding(sh - 1, shards)
                 .setToken(config.getValue("token"))
                 .buildBlocking())
     }
-
-
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
     playerManager.registerSourceManager(SoundCloudAudioSourceManager())
@@ -111,8 +114,8 @@ fun main(args: Array<String>) {
             .addCommand(FixMusic())
             .addCommand(Nono())
             .addCommand(GiveAll())
-    Web()
     startAdministrativeDaemon()
+    Web()
     println("Successfully set up. Ready to receive commands!")
 }
 

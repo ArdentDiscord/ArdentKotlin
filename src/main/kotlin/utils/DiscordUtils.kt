@@ -126,7 +126,7 @@ fun List<String>.toUsers(): String {
 fun Guild.getData(): GuildData {
     val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
     if (guildData != null) return guildData
-    val data = GuildData(id, "/", MusicSettings(true, true), mutableListOf<String>())
+    val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>())
     data.insert("guilds")
     return data
 }
@@ -268,13 +268,13 @@ fun Member.id(): String {
 }
 
 fun Member.isPatron(): Boolean {
-    return true
-    // TODO() return user.donationLevel() != DonationLevel.NONE
+    return user.donationLevel() != DonationLevel.NONE
 }
 
 fun User.donationLevel(): DonationLevel {
     staff.forEach { if (it.id == id) return DonationLevel.EXTREME }
-    return getData().donationLevel
+    val level = asPojo(r.table("patrons").get(id).run(conn), Patron::class.java) ?: return DonationLevel.NONE
+    return level.donationLevel
 }
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
