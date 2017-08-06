@@ -1,0 +1,39 @@
+{{> header.hbs }}
+{{#if showSnackbar}}
+    <a href="#" style="margin: 50px auto 0 auto; width: 75%; display: block;"
+       class="button special small">{{snackbarMessage}}</a>
+{{/if}}
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Manage the Settings of {{guild.name}}</h2>
+        <p><em>Pro Tip: Pledge just a few dollars a month on <a href="/patreon">our Patreon</a> to get access to
+            expanded music features</em></p>
+    </header>
+    <div class="box">
+        <h3>Music</h3>
+        <h5>Should I send some track info when new songs start? <br/><em>TIP: this is sent to the channel where you
+            queued
+            the track</em></h5>
+        <form action="/api/internal/data/{{guild.id}}/announcemusic">
+            <div class="row uniform 50%">
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="disabled" name="state" value="off" {{#unless announceMusic}}checked{{/unless}}>
+                    <label for="disabled">Disabled</label>
+                </div>
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="enabled" name="state" value="on" {{#if announceMusic}}checked{{/if}}>
+                    <label for="enabled">Enabled</label>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt" />
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="box">
+        <h3>Join/Leave Messages</h3>
+    </div>
+</section>
+
+{{> footer.hbs }}

@@ -1,0 +1,39 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Command Help</h2>
+        <p>Click on one of the below categories, represented by buttons, to see its commands</p>
+    </header>
+    <ul class="actions">
+        <li><a href="/commands?c=1" class="button special">Music</a></li>
+        <li><a href="/commands?c=2" class="button alt">Bot Info</a></li>
+        <li><a href="/commands?c=3" class="button special">Server Info</a></li>
+        <li><a href="/commands?c=4" class="button alt">Administrate</a></li>
+        <li><a href="/commands?c=5" class="button special">Fun + Urban</a></li>
+    </ul>
+    {{#if genTable}}
+        <h4>{{category.fancyName}}</h4>
+        <div class="table-wrapper">
+            <table class="alt">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{#each commands}}
+                    <tr>
+                        <td>{{name}}</td>
+                        <td>{{description}}</td>
+                    </tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </div>
+    {{/if}}
+</section>
+
+{{> footer.hbs }}

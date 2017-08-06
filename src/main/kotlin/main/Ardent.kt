@@ -1,42 +1,35 @@
 package main
 
-import com.patreon.API
-import com.patreon.OAuth
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
-import net.dv8tion.jda.core.AccountType
-import net.dv8tion.jda.core.JDA
-import net.dv8tion.jda.core.JDABuilder
-import net.dv8tion.jda.core.hooks.AnnotatedEventManager
+import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
+import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
-import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
-import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import commands.`fun`.*
 import commands.administrate.*
 import commands.games.Games
-import web.Web
 import commands.info.*
-import commands.info.Invite
-import commands.info.Settings
 import commands.music.*
+import commands.music.Queue
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
-import net.dv8tion.jda.core.entities.*
+import net.dv8tion.jda.core.AccountType
+import net.dv8tion.jda.core.JDA
+import net.dv8tion.jda.core.JDABuilder
+import net.dv8tion.jda.core.entities.Game
+import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
-import org.json.JSONObject
-import org.json.simple.parser.JSONParser
-import org.jsoup.Jsoup
-import utils.*
-import web.retrieveToken
+import utils.EventWaiter
+import web.Web
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
-import java.util.HashMap
+import java.util.*
 
-val test = false
+val test = true
 
 var r = RethinkDB.r
 var conn: Connection? = null
@@ -45,7 +38,7 @@ var jdas = mutableListOf<JDA>()
 val waiter = EventWaiter()
 val factory = CommandFactory()
 
-val config = Config("/root/Ardent/config.txt")
+var config: Config = if (test) Config("C:\\Users\\Adam\\Desktop\\config.txt") else Config("/root/Ardent/config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()

@@ -289,6 +289,12 @@ fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
     send(member, "${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
 }
 
+fun getMutualGuildsWith(user: User): MutableList<Guild> {
+    val servers = mutableListOf<Guild>()
+    jdas.forEach { servers.addAll(it.getMutualGuilds(user)) }
+    return servers
+}
+
 class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0) {
     fun coinflipData(): CoinflipPlayerData {
         val data = CoinflipPlayerData()

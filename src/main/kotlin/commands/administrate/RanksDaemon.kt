@@ -48,7 +48,7 @@ class RanksDaemon : Runnable {
                     successfulSearches.add(discordId)
                     val info = asPojo(r.table("patrons").get(discordId).run(conn), Patron::class.java)
                     if (info == null) Patron(discordId, level).insert("patrons")
-                    else if (info.donationLevel != level) r.table("patrons").get(discordId).update(r.hashMap("donationLevel", level.name))
+                    else if (info.donationLevel != level) r.table("patrons").get(discordId).update(r.hashMap("donationLevel", level.name)).runNoReply(conn)
                 }
             }
         }
