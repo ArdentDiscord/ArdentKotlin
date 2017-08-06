@@ -36,7 +36,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.HashMap
 
-val test = true
+val test = false
 
 var r = RethinkDB.r
 var conn: Connection? = null
@@ -45,7 +45,7 @@ var jdas = mutableListOf<JDA>()
 val waiter = EventWaiter()
 val factory = CommandFactory()
 
-val config = Config("C:\\Users\\Adam\\Desktop\\config.txt")
+val config = Config("/root/Ardent/config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()

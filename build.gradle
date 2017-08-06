@@ -35,6 +35,11 @@ repositories {
 }
 
 dependencies {
+    modules {
+        module("javax.servlet:servlet-api") {
+            replacedBy("javax.servlet:javax.servlet-api")
+        }
+    }
     compile 'net.dv8tion:JDA:3.2.0_241'
     compile 'com.sedmelluq:jda-nas:1.0.3'
     compile 'com.sedmelluq:lavaplayer:1.2.42'
@@ -47,7 +52,6 @@ dependencies {
     compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.0'
     compile 'org.jsoup:jsoup:1.10.2'
     compile 'com.github.vbauer:yandex-translate-api:1.2.4'
-    compile group: 'javax.servlet', name: 'jsp-api', version: '2.0'
     compile 'com.patreon:patreon:0.1.1'
     compile files('twitch.jar')
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'

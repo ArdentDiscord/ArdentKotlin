@@ -1,0 +1,43 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Staff</h2>
+    </header>
+    <div class="box">
+        <h3>Administrators</h3>
+        <p>
+            {{#each administrators}}
+                <figure style="display: inline-block; padding-right: 30px;">
+                    <img src="{{effectiveAvatarUrl}}">
+                    <figcaption>{{name}}#{{discriminator}}</figcaption>
+                </figure>
+            {{/each}}
+        </p>
+    </div>
+    <div class="box">
+        <h3>Moderators</h3>
+        <p>
+            {{#each moderators}}
+                <figure style="display: inline-block; padding-right: 30px;">
+                    <img src="{{effectiveAvatarUrl}}">
+                    <figcaption>{{name}}#{{discriminator}}</figcaption>
+                </figure>
+            {{/each}}
+        </p>
+    </div>
+    <div class="box">
+        <h3>Helpers</h3>
+        <p>
+            {{#each helpers}}
+                <figure style="display: inline-block; padding-right: 30px;">
+                    <img src="{{effectiveAvatarUrl}}">
+                    <figcaption>{{name}}#{{discriminator}}</figcaption>
+                </figure>
+            {{/each}}
+        </p>
+    </div>
+</section>
+
+{{> footer.hbs }}

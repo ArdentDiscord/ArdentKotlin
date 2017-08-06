@@ -1,5 +1,7 @@
 package web
 
+import commands.administrate.Staff
+import commands.administrate.filterByRole
 import commands.administrate.staff
 import main.factory
 import main.jdas
@@ -16,7 +18,7 @@ val settings = mutableListOf<Setting>()
 
 val handlebars = HandlebarsTemplateEngine()
 
-val loginRedirect = "http://localhost/api/oauth/login"
+val loginRedirect = "https://ardentbot.com/api/oauth/login"
 
 class Web {
     init {
@@ -36,7 +38,7 @@ class Web {
         settings.add(Setting("/music/announcenewmusic", "Announce Songs at Start", "Choose whether you want to allow "))
 
         staticFiles.location("/public")
-        // secure("/root/Ardent/keystore.p12", "ardent", null, null)
+        secure("/root/Ardent/keystore.p12", "ardent", null, null)
 
         notFound({ request, response ->
             response.redirect("/404")
@@ -84,6 +86,14 @@ class Web {
             map.put("queueLength", internals.queueLength)
             map.put("uptime", internals.uptimeFancy)
             ModelAndView(map, "status.hbs")
+        }, handlebars)
+        get("/staff", { request, response ->
+            val map = hashMapOf<String, Any>()
+            map.put("title", "Staff")
+            map.put("administrators", staff.filterByRole(Staff.StaffRole.ADMINISTRATOR).map { it.id.toUser() })
+            map.put("moderators", staff.filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
+            map.put("helpers", staff.filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
+            ModelAndView(map, "staff.hbs")
         }, handlebars)
         get("/support", { _, response -> response.redirect("https://discord.gg/rfGSxNA") })
         get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=${jdas[0].selfUser.id}&permissions=269574192") })
@@ -143,15 +153,6 @@ class Web {
                         })
                     })
                 })
-
-            })
-            path("/internal", {
-                path("/settings", {
-                    get("/", { request, response ->
-
-                    })
-                })
-
             })
         })
     }

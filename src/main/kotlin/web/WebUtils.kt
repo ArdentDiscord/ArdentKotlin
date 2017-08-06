@@ -75,7 +75,6 @@ fun retrieveToken(code: String): Token? {
             .post()
     try {
         val data = getGson().fromJson(response.text(), Token::class.java)
-        println(data)
         if (data.access_token == null) return null // this is a possibility due to issues with the kotlin compiler
         else return data /* verified non null object */
     } catch (e: JsonSyntaxException) {

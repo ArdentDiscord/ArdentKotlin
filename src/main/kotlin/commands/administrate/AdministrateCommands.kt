@@ -269,13 +269,13 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                                         return
                                     }
                                     channel.send(member, "updated database")
-                                } else channel.send(member, "/nono staff add|remove @User roleName")
+                                } else channel.send(member, "/nono staff add|remove @User roleName dumbo")
                             } else channel.send(member, "/nono staff remove|add @User roleName")
                         }
                         else -> channel.send(member, "You're an idiot")
                     }
                 }
-                return@forEach
+                return
             }
         }
     }
