@@ -16,7 +16,16 @@ import javax.management.ObjectName
 
 
 private val random = Random()
-private val gsons = listOf(GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create())
+private val gsons = listOf(GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create(),
+        GsonBuilder().serializeSpecialFloatingPointValues().create())
 
 fun <E> MutableList<E>.shuffle(): MutableList<E> {
     Collections.shuffle(this)
@@ -49,6 +58,7 @@ fun <T> Any.queryAsArrayList(t: Class<T>): MutableList<T?> {
     val cursor = this as Cursor<HashMap<*, *>>
     val tS = mutableListOf<T?>()
     cursor.forEach { hashMap -> tS.add(asPojo(hashMap, t)) }
+    cursor.close()
     return tS
 }
 

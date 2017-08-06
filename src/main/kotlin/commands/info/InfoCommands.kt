@@ -37,8 +37,8 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
 
 class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val channelInvite = jdas[0].asBot().getInviteUrl(Permission.MESSAGE_MANAGE, Permission.MANAGE_SERVER, Permission.VOICE_CONNECT, Permission.MANAGE_CHANNEL, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY, Permission.MANAGE_ROLES)
-        channel.send(member, "My invite link is $channelInvite - have fun using Ardent!")
+        channel.send(member, "My invite link is https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=https://ardentbot.com/welcome&response_type=code" +
+                " - have fun using Ardent!")
     }
 }
 
