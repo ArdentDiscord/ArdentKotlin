@@ -19,7 +19,7 @@ data class UDResult(val definition: String, val permalink: String, val thumbs_up
 data class EightBallResult(val magic: Magic)
 data class Magic /* The name was not my choice...... */(val question: String, val answer: String, val type: String)
 
-class Punishment(val userId: String, val punisherId: String, val guildId: String, val type: Type, val expiration: Long, val start: Long = System.currentTimeMillis(), val uuid : String = r.uuid().run(conn)) {
+class Punishment(val userId: String, val punisherId: String, val guildId: String, val type: Type, val expiration: Long, val start: Long = System.currentTimeMillis(), val id : String = r.uuid().run(conn)) {
     enum class Type {
         TEMPBAN, MUTE
         ;

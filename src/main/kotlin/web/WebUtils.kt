@@ -70,11 +70,12 @@ fun retrieveToken(code: String): Token? {
             .data("client_id", jdas[0].selfUser.id)
             .data("client_secret", config.getValue("client_secret"))
             .data("grant_type", "authorization_code")
-            .data("redirect_uri", "https://ardentbot.com/onboard")
+            .data("redirect_uri", loginRedirect)
             .data("code", code)
             .post()
     try {
         val data = getGson().fromJson(response.text(), Token::class.java)
+        println(data)
         if (data.access_token == null) return null // this is a possibility due to issues with the kotlin compiler
         else return data /* verified non null object */
     } catch (e: JsonSyntaxException) {

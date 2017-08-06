@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<!--
+	Alpha by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+<head>
+    <title>Ardent | {{title}}</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <!--[if lte IE 8]>
+    <script src="assets/js/ie/html5shiv.js"></script><![endif]-->
+    <link rel="stylesheet" href="assets/css/main.css"/>
+    <!--[if lte IE 8]>
+    <link rel="stylesheet" href="assets/css/ie8.css"/><![endif]-->
+</head>
+<body class="landing">
+<div id="page-wrapper">
+
+    <!-- Header -->
+    <header id="header" class="alt">
+        <h1><a href="/">Ardent</a> | Discord Bot</h1>
+        <nav id="nav">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/status">Status</a></li>
+                <li>
+                    <a href="#" class="icon fa-angle-down">Info</a>
+                    <ul>
+                        <li><a href="/patreon">Patreon</a></li>
+                        <li><a href="/staff">Staff</a></li>
+                    </ul>
+                </li>
+                {{# if validSession}}
+                    <li><a href="manage" class="button">Manage</a></li>
+                {{else}}
+                    <li><a href="login" class="button">Login</a></li>
+                {{/if}}
+            </ul>
+        </nav>
+    </header>

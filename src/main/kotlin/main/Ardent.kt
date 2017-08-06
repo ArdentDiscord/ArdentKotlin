@@ -36,6 +36,8 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.HashMap
 
+val test = true
+
 var r = RethinkDB.r
 var conn: Connection? = null
 
@@ -43,7 +45,7 @@ var jdas = mutableListOf<JDA>()
 val waiter = EventWaiter()
 val factory = CommandFactory()
 
-val config = Config("/root/Ardent/config.txt")
+val config = Config("C:\\Users\\Adam\\Desktop\\config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()
@@ -51,6 +53,7 @@ val managers = hashMapOf<Long, GuildMusicManager>()
 val shards = 2
 
 fun main(args: Array<String>) {
+    Web()
     for (sh in 1..shards) {
         jdas.add(JDABuilder(AccountType.BOT)
                 .setCorePoolSize(10)
@@ -106,7 +109,6 @@ fun main(args: Array<String>) {
             .addCommand(Status())
             .addCommand(Clear())
             .addCommand(Tempban())
-            .addCommand(DefaultRole())
             .addCommand(Automessages())
             .addCommand(Mute())
             .addCommand(Unmute())
@@ -115,7 +117,6 @@ fun main(args: Array<String>) {
             .addCommand(Nono())
             .addCommand(GiveAll())
     startAdministrativeDaemon()
-    Web()
     println("Successfully set up. Ready to receive commands!")
 }
 

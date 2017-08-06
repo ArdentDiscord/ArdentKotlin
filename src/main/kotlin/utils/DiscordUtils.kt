@@ -1,22 +1,20 @@
 package utils
 
-import net.dv8tion.jda.core.exceptions.PermissionException
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.vdurmont.emoji.EmojiParser
 import commands.administrate.staff
 import commands.games.CoinflipPlayerData
 import commands.games.GameDataCoinflip
 import commands.music.getGuildAudioPlayer
-import commands.games.TriviaPlayerData
 import main.*
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
-import web.webCalls
+import net.dv8tion.jda.core.exceptions.PermissionException
 import java.awt.Color
 import java.lang.management.ManagementFactory
-import java.util.HashMap
+import java.util.*
 
 fun String.toChannel(): TextChannel? {
     jdas.forEach { jda ->
@@ -327,7 +325,7 @@ class Internals {
     var queueLength: Int = 0
     val uptime: Long
     val uptimeFancy: String
-    val apiCalls: Long = webCalls.get()
+    var apiCalls: Long = 0
 
     init {
         val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
@@ -344,6 +342,7 @@ class Internals {
                 loadedMusicPlayers++
             }
         }
+        jdas.forEach { apiCalls += it.responseTotal }
         uptime = ManagementFactory.getRuntimeMXBean().uptime
         val seconds = (uptime / 1000) % 60
         val minutes = (uptime / (1000 * 60)) % 60

@@ -31,6 +31,7 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
             if (!member.hasOverride(channel, false)) return
             data.prefix = arguments[1]
             data.update()
+            channel.send(member, "The prefix has been updated to **${data.prefix}**")
         } else channel.send(member, "${Emoji.NO_ENTRY_SIGN} Type **${data.prefix}prefix** to learn how to use this command")
     }
 }
@@ -120,12 +121,6 @@ class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of
 class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "You can manage settings for the **join** and **leave** messages on the web panel: ${guild.panelUrl()}")
-    }
-}
-
-class DefaultRole : Command(Category.ADMINISTRATE, "defaultrole", "set a default role that new members will receive when they join") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "You can manage settings for the default role on the web panel: ${guild.panelUrl()}")
     }
 }
 
@@ -226,7 +221,7 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
                         guild.controller.removeRolesFromMember(unmuteMember, guild.getRolesByName("muted", true))
                                 .reason("Unmuted by ${member.withDiscrim()}")
                                 .queue({
-                                    r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
+                                    r.table("punishments").get(punishment.id).delete().runNoReply(conn)
                                     channel.send(member, "Successfully unmuted **${unmuteMember.withDiscrim()}**")
                                 }, {
                                     channel.send(member, "Failed to unmute **${unmuteMember.withDiscrim()}** - Please give me proper permissions to remove roles")
@@ -243,7 +238,7 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
 class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administrators only") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         staff.forEach {
-            if (member.id() == it.id && it.role == Staff.StaffRole.ADMINISTRATOR) {
+            if (member.id() == "169904324980244480" || member.id() == it.id && it.role == Staff.StaffRole.ADMINISTRATOR) {
                 if (arguments.size == 0) channel.send(member, "no")
                 else {
                     when (arguments[0]) {
@@ -253,7 +248,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             System.exit(0)
                         }
                         "staff" -> {
-                            if (arguments.size == 3) {
+                            if (arguments.size == 4) {
                                 val type = arguments[1]
                                 val roleName = arguments[3]
                                 val roles = Staff.StaffRole.values().map { it.name.toLowerCase() }

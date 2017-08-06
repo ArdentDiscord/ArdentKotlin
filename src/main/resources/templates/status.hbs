@@ -1,0 +1,26 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Status</h2>
+    </header>
+    <div class="box">
+        <h3>Ardent Info</h3>
+        <p>Received this Session: <b>{{messagesReceived}}</b> messages and <b>{{commandsReceived}} commands</b><br/>
+            Servers: <b>{{guilds}}</b><br/>
+            Users: <b>{{users}}</b><br/>
+            Music Activity: <b>{{loadedMusicPlayers}}</b> servers playing music now<br/>
+            {{#if arePeoplePlayingMusic}}Queue Length: <b>{{queueLength}}</b> tracks<br />{{/if}}
+            Uptime: <b>{{uptime}}</b>
+        </p>
+    </div>
+    <div class="box">
+        <h3>Server Status</h3>
+        <p>CPU Usage: <b>{{cpuUsage}}</b>%<br/>
+            Ram used by Ardent: <b>{{usedRam}}</b> of <b>{{totalRam}}</b> available mb used<br/>
+            Discord API Calls: <b>{{apiCalls}}</b></p>
+    </div>
+</section>
+
+{{> footer.hbs }}

@@ -1,13 +1,12 @@
 package commands.administrate
 
-import main.conn
-import main.factory
-import main.r
+import main.*
+import org.jsoup.Jsoup
 import utils.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-private val administrativeExecutor = Executors.newScheduledThreadPool(2)
+val administrativeExecutor = Executors.newScheduledThreadPool(6)
 
 class AdministrativeDaemon : Runnable {
     override fun run() {
@@ -18,9 +17,10 @@ class AdministrativeDaemon : Runnable {
                 val guild = getGuildById(punishment.guildId)
                 val user = getUserById(punishment.userId)
                 if (user == null || guild == null) {
-                    r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
+                    r.table("punishments").get(punishment.id).delete().runNoReply(conn)
                 } else {
                     if (time > punishment.expiration) {
+                        r.table("punishments").get(punishment.id).delete().runNoReply(conn)
                         when (punishment.type) {
                             Punishment.Type.TEMPBAN -> {
                                 guild.controller.unban(user.id).queue()
@@ -36,17 +36,27 @@ class AdministrativeDaemon : Runnable {
                                 })
                             }
                         }
-                        r.table("punishments").get(punishment.uuid).delete().runNoReply(conn)
                     }
                 }
             }
         }
+        val stats = Internals()
+        Jsoup.connect("https://discordbots.org/api/bots/339101087569281045/stats")
+                .header("Authorization", config.getValue("discordbotsorg"))
+                .data("shard_count", jdas.size.toString())
+                .data("server_count", stats.guilds.toString())
+                .post().body().text()
+        Jsoup.connect("https://bots.discord.pw/api/bots/339101087569281045/stats")
+                .header("Authorization", config.getValue("botsdiscordpw"))
+                .data("shard_count", jdas.size.toString())
+                .data("server_count", stats.guilds.toString())
+                .post().body().text()
     }
 }
 
 fun startAdministrativeDaemon() {
     val administrativeDaemon = AdministrativeDaemon()
-    administrativeExecutor.scheduleWithFixedDelay(administrativeDaemon, 1, 45, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleWithFixedDelay(administrativeDaemon, 1, 60, TimeUnit.SECONDS)
     val ranksDaemon = RanksDaemon()
     administrativeExecutor.scheduleWithFixedDelay(ranksDaemon, 1, 60, TimeUnit.SECONDS)
 }

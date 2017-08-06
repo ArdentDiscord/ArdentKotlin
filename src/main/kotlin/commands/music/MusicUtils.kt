@@ -158,6 +158,9 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
         val queue = manager.queueAsList
         val current = manager.current
         managers.remove(guild.idLong)
+        val ch = guild.audioManager.connectedChannel
+        guild.audioManager.closeAudioConnection()
+        ch.connect(guild.selfMember, channel!!)
         val newManager = guild.getGuildAudioPlayer(channel)
         if (current != null) newManager.scheduler.manager.queue(ArdentTrack(current.author, current.channel, current.track.makeClone()))
         queue.forEach { queueMember ->

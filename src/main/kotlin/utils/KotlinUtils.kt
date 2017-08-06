@@ -1,40 +1,36 @@
 package utils
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.rethinkdb.net.Cursor
 import commands.games.CoinflipGame
 import commands.info.formatter
 import main.conn
 import main.r
-import net.dv8tion.jda.core.entities.User
 import org.json.simple.JSONObject
 import java.lang.management.ManagementFactory
 import java.time.Instant
 import java.util.*
-import kotlin.collections.HashMap
-import java.util.LinkedHashMap
-import java.util.function.Supplier
-import java.util.stream.Collectors
 import javax.management.Attribute
 import javax.management.ObjectName
 
 
 private val random = Random()
-private val gsons = listOf(Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson(), Gson())
+private val gsons = listOf(GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create(), GsonBuilder().serializeSpecialFloatingPointValues().create())
 
-fun <E> MutableList<E>.shuffle() : MutableList<E> {
+fun <E> MutableList<E>.shuffle(): MutableList<E> {
     Collections.shuffle(this)
     return this
 }
 
-fun List<String>.stringify() : String {
+fun List<String>.stringify(): String {
     if (size == 0) return "none"
     val builder = StringBuilder()
     forEach { builder.append(it + ", ") }
     return builder.removeSuffix(", ").toString()
 }
 
-fun List<String>.concat() : String {
+fun List<String>.concat(): String {
     val builder = StringBuilder()
     forEach { builder.append("$it ") }
     return builder.removeSuffix(" ").toString()
@@ -56,24 +52,24 @@ fun <T> Any.queryAsArrayList(t: Class<T>): MutableList<T?> {
     return tS
 }
 
-fun Long.readableDate() : String {
+fun Long.readableDate(): String {
     return "${Date.from(Instant.ofEpochMilli(this)).toLocaleString()} EST"
 }
 
-fun Int.format() : String {
+fun Int.format(): String {
     return formatter.format(this)
 }
 
-fun Long.format() : String {
+fun Long.format(): String {
     return formatter.format(this)
 }
 
-fun String.shortenIf(numChars: Int) : String {
+fun String.shortenIf(numChars: Int): String {
     if (length <= numChars) return this
     else return substring(0, numChars)
 }
 
-fun <K> MutableMap<K, Int>.incrementValue(key : K) : Int {
+fun <K> MutableMap<K, Int>.incrementValue(key: K): Int {
     val value = putIfAbsent(key, 0) ?: 0
     replace(key, value + 1)
     return value
@@ -87,7 +83,7 @@ fun GuildData.update() {
     r.table("guilds").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
 }
 
-fun Long.formatMinSec() : String {
+fun Long.formatMinSec(): String {
     val seconds = this % 60
     val minutes = (this % 3600) / 60
     if (minutes.compareTo(0) == 0) return "$seconds seconds"
@@ -98,7 +94,13 @@ fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }
 
-fun MutableList<CoinflipGame.Round>.mapScores() : MutableMap<String, Int> {
+fun Map<*, Number>.sort(descending: Boolean = true): MutableMap<*, Number> {
+    var list = toList().sortedWith(compareBy { it.second.toDouble() })
+    if (descending) list = list.reversed()
+    return list.toMap().toMutableMap()
+}
+
+fun MutableList<CoinflipGame.Round>.mapScores(): MutableMap<String, Int> {
     val scores = hashMapOf<String, Int>()
     forEach { round ->
         round.winners.forEach {
@@ -112,11 +114,11 @@ fun MutableList<CoinflipGame.Round>.mapScores() : MutableMap<String, Int> {
     return scores.toList().sortedWith(compareBy { it.second }).reversed().toMap().toMutableMap()
 }
 
-fun Any.toJson() : String {
+fun Any.toJson(): String {
     return getGson().toJson(this)
 }
 
-fun <T> MutableList<T>.without(t: T) : MutableList<T> {
+fun <T> MutableList<T>.without(t: T): MutableList<T> {
     this.remove(t)
     return this
 }
@@ -140,6 +142,7 @@ fun getProcessCpuLoad(): Double {
     // returns a percentage value with 1 decimal point precision
     return (value * 1000).toInt() / 10.0
 }
+
 /**
  * Credit mfulton26 @ https://stackoverflow.com/questions/34498368/kotlin-convert-large-list-to-sublist-of-set-partition-size
  */

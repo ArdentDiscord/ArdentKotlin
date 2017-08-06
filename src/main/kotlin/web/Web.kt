@@ -1,32 +1,33 @@
 package web
 
 import commands.administrate.staff
-import main.conn
-import spark.*
-import spark.Spark.*
 import main.factory
-import main.r
+import main.jdas
+import main.test
 import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.User
-import org.apache.commons.io.IOUtils
+import spark.ModelAndView
+import spark.Service
+import spark.Spark.*
+import spark.template.handlebars.HandlebarsTemplateEngine
 import utils.*
-import java.io.File
-import java.io.FileWriter
-import java.util.concurrent.atomic.AtomicLong
-
-val webCalls = AtomicLong(0)
-val apiCredentials = hashMapOf<String /* Code given to frontend */, String /* User ID */>()
 
 val settings = mutableListOf<Setting>()
 
+val handlebars = HandlebarsTemplateEngine()
+
+val loginRedirect = "http://localhost/api/oauth/login"
+
 class Web {
     init {
-        val httpServer = Service.ignite().port(80)
-        httpServer.before { request, response ->
-            val url = request.url()
-            response.redirect("https://${url.split("http://")[1]}")
-        }
+        if (!test) {
+            val httpServer = Service.ignite().port(80)
+            httpServer.before { request, response ->
+                val url = request.url()
+                response.redirect("https://${url.split("http://")[1]}")
+            }
+            port(443)
+        } else port(80)
 
         settings.add(Setting("/defaultrole", "Default Role", "Remove or set the role given to all new members. Can fail if Ardent doesn't " +
                 "have sufficient permissions to give them the role."))
@@ -34,40 +35,91 @@ class Web {
         settings.add(Setting("/leavemessage", "Leave Message", "Set or remove the message displayed when a member joins your server"))
         settings.add(Setting("/music/announcenewmusic", "Announce Songs at Start", "Choose whether you want to allow "))
 
-        val credentials = r.table("apiCodes").run<Any>(conn).queryAsArrayList(Credential::class.java)
-        credentials.forEach { if (it != null) apiCredentials.put(it.code, it.id) }
-        port(443)
-        secure("/root/Ardent/keystore.p12", "ardent", null, null)
-        internalServerError({ _, _ ->
-            "Well, you fucked up. Congrats!".toJson()
+        staticFiles.location("/public")
+        // secure("/root/Ardent/keystore.p12", "ardent", null, null)
+
+        notFound({ request, response ->
+            response.redirect("/404")
         })
+
+
+        get("/", { request, response ->
+            val map = hashMapOf<String, Any>()
+            val session = request.session()
+            val user = session.attribute<User>("user")
+            if (user == null) map.put("validSession", false)
+            else {
+                map.put("validSession", true)
+                map.put("user", user)
+            }
+            map.put("title", "Home")
+            ModelAndView(map, "index.hbs")
+        }, handlebars)
+        get("/welcome", { request, response ->
+            val map = hashMapOf<String, Any>()
+            val session = request.session()
+            val user = session.attribute<User>("user")
+            if (user == null) map.put("validSession", false)
+            else {
+                map.put("validSession", true)
+                map.put("user", user)
+            }
+            map.put("title", "Welcome!")
+            ModelAndView(map, "welcome.hbs")
+        }, handlebars)
+        get("/status", { request, response ->
+            val internals = Internals()
+            val map = hashMapOf<String, Any>()
+            map.put("title", "Status")
+            map.put("usedRam", internals.ramUsage.first)
+            map.put("totalRam", internals.ramUsage.second)
+            map.put("cpuUsage", internals.cpuUsage)
+            map.put("apiCalls", internals.apiCalls)
+            map.put("messagesReceived", internals.messagesReceived)
+            map.put("commandsReceived", internals.commandsReceived)
+            map.put("guilds", internals.guilds)
+            map.put("users", internals.users)
+            map.put("loadedMusicPlayers", internals.loadedMusicPlayers)
+            map.put("arePeoplePlayingMusic", internals.loadedMusicPlayers > 0)
+            map.put("queueLength", internals.queueLength)
+            map.put("uptime", internals.uptimeFancy)
+            ModelAndView(map, "status.hbs")
+        }, handlebars)
         get("/support", { _, response -> response.redirect("https://discord.gg/rfGSxNA") })
-        get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192") })
+        get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=${jdas[0].selfUser.id}&permissions=269574192") })
+        get("/login", { request, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") })
+        get("/patreon", { request, response -> response.redirect("https://patreon.com/ardent") })
+        get("/404", { request, response ->
+            val map = hashMapOf<String, Any>()
+            map.put("title", "404 Not Found")
+            ModelAndView(map, "404.hbs")
+        }, handlebars)
         path("/api", {
-            before("/*", { _, _ -> webCalls.getAndIncrement() })
             path("/oauth", {
                 get("/login", { request, response ->
-                    val code = request.params("code")
-                    if (code == null) Failure("Invalid URL").toJson()
-                    response.redirect("https://ardentbot.com/onboard/$code")
-                })
-                post("/login", { request, response ->
-                    if (request.headers("code") == null) Failure("No code provided.").toJson()
-                    else {
-                        val code = request.headers("code")
+                    if (request.queryParams("code") == null) {
+                        response.redirect("/fail", 404)
+                        null
+                    } else {
+                        val code = request.queryParams("code")
                         val token = retrieveToken(code)
-                        if (token == null) Failure("Provided an invalid code.").toJson()
-                        else {
+                        if (token == null) {
+                            response.redirect("/fail", 404)
+                            null
+                        } else {
                             val identification = identityObject(token.access_token)
-                            if (identification == null) Failure("The user didn't allow the Identify scope.").toJson()
-                            else {
-                                apiCredentials.put(code, identification.id)
-                                Credential(code, identification.id).insert("apiCodes")
-                                identification.toJson()
+                            if (identification == null) {
+                                response.redirect("/fail", 404)
+                                null
+                            } else {
+                                val session = request.session()
+                                session.attribute("user", getUserById(identification.id))
+                                response.redirect("/welcome")
+                                null
                             }
                         }
                     }
-                })
+                }, handlebars)
             })
             path("/public", {
                 get("/status", { _, _ -> Internals().toJson() })
