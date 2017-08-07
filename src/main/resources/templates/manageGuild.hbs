@@ -18,7 +18,8 @@
         <form action="/api/internal/data/{{guild.id}}/announcemusic">
             <div class="row uniform 50%">
                 <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="disabled" name="state" value="off" {{#unless announceMusic}}checked{{/unless}}>
+                    <input type="radio" id="disabled" name="state" value="off"
+                           {{#unless announceMusic}}checked{{/unless}}>
                     <label for="disabled">Disabled</label>
                 </div>
                 <div style="margin-top: 10px;" class="3u 6u(narrower)">
@@ -26,13 +27,97 @@
                     <label for="enabled">Enabled</label>
                 </div>
                 <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt" />
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
+        <br/>
+        <h5>Do you want to allow everyone in your server to use music commands such as /stop and /skip? </h5>
+        <form action="/api/internal/data/{{guild.id}}/trusteveryone">
+            <div class="row uniform 50%">
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="no" name="state" value="off" {{#unless trustEveryone}}checked{{/unless}}>
+                    <label for="no">No</label>
+                </div>
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="yes" name="state" value="on" {{#if trustEveryone}}checked{{/if}}>
+                    <label for="yes">Yes</label>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
                 </div>
             </div>
         </form>
     </div>
     <div class="box">
         <h3>Join/Leave Messages</h3>
+        <h5>Set a channel to send these messages to</h5>
+        <form action="/api/internal/data/{{guild.id}}/receiverchannel">
+            <div class="row uniform 50%">
+                <div class="5u">
+                    <div class="select-wrapper">
+                        <select name="channelid" id="channelid">
+                            {{#if hasReceiverChannel}}
+                                <option value="{{receiverChannel.id}}" selected>{{receiverChannel.name}}</option>
+                            {{/if}}
+                            {{#each channels}}
+                                <option value="{{id}}">{{name}}</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
+        <br/>
+        <h5><b>Info & Reset Tools:</b></h5>
+        <p>You can use the following parameters that will be replaced: $usermention (mentions the member involved),
+            $username (writes the username +
+            discriminator of the involved member), $servername (that's pretty obvious), or $membercount (replaced
+            with the amount of members in this server). <b>You can also mention text channels by doing <em>#channelNameHere</em></b></p>
+        <form action="/api/internal/data/{{guild.id}}/removemessages">
+            <div class="row uniform 50%">
+                <div class="3u 12u(narrower)">
+                    <input type="checkbox" id="resetChannel" name="resetChannel">
+                    <label for="resetChannel">Remove Set Channel</label>
+                </div>
+                <div class="3u 12u(narrower)">
+                    <input type="checkbox" id="resetJoinMessage" name="resetJoinMessage">
+                    <label for="resetJoinMessage">Remove Join Message</label>
+                </div>
+                <div class="3u 12u(narrower)">
+                    <input type="checkbox" id="resetLeaveMessage" name="resetLeaveMessage">
+                    <label for="resetLeaveMessage">Remove Leave</label>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Remove" class="alt"/>
+                </div>
+            </div>
+        </form>
+        <h5>Set the Join Message</h5>
+        <form action="/api/internal/data/{{guild.id}}/joinmessage">
+            <div class="row uniform 50%">
+                <div class="8u">
+                    <textarea name="joinMessage" id="joinMessage" rows="2">{{joinMessage}}</textarea>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
+        <h5>Set the Leave Message</h5>
+        <form action="/api/internal/data/{{guild.id}}/leavemessage">
+            <div class="row uniform 50%">
+                <div class="8u">
+                    <textarea name="leaveMessage" id="leaveMessage" rows="2">{{leaveMessage}}</textarea>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
     </div>
 </section>
 

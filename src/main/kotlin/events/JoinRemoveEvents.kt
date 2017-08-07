@@ -67,7 +67,7 @@ class JoinRemoveEvents {
         if (joinMessage != null) {
             val channel: TextChannel? = e.guild.getTextChannelById(joinMessage.second)
             if (channel != null) {
-                if (joinMessage.first /* Message */ != null) {
+                if (joinMessage.first /* Message */ != null && !joinMessage.first!!.isEmpty()) {
                     channel.send(e.guild.owner,
                             joinMessage.first!!.replace("\$username", e.member.withDiscrim())
                                     .replace("\$usermention", e.member.asMention)
@@ -105,7 +105,7 @@ class JoinRemoveEvents {
         if (leaveMessage != null) {
             val channel: TextChannel? = e.guild.getTextChannelById(leaveMessage.second)
             if (channel != null) {
-                if (leaveMessage.first /* Message */ != null) {
+                if (leaveMessage.first /* Message */ != null && !leaveMessage.first!!.isEmpty()) {
                     channel.send(e.guild.owner,
                             leaveMessage.first!!.replace("\$username", "**${e.member.withDiscrim()}**")
                                     .replace("\$usermention", "**${e.member.withDiscrim()}**")

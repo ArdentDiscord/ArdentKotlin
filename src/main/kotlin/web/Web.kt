@@ -8,6 +8,7 @@ import main.factory
 import main.jdas
 import main.test
 import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import spark.ModelAndView
 import spark.Request
@@ -148,7 +149,22 @@ class Web {
                     map.put("title", "Management Center")
                     val data = guild.getData()
                     map.put("announceMusic", data.musicSettings.announceNewMusic)
+                    map.put("trustEveryone", data.allowGlobalOverride)
                     map.put("guild", guild)
+                    val receiverChannel = data.joinMessage?.second?.toChannel()
+                    var channels = guild.textChannels
+                    if (receiverChannel != null) {
+                        channels = channels.toMutableList()
+                        channels.removeIf { it.id == receiverChannel.id }
+                        map.put("hasReceiverChannel", true)
+                        map.put("receiverChannel", receiverChannel)
+                    } else map.put("hasReceiverChannel", false)
+                    if (data.joinMessage?.first == null) map.put("joinMessage", "")
+                    else map.put("joinMessage", data.joinMessage!!.first!!)
+                    if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
+                    else map.put("leaveMessage", data.leaveMessage!!.first!!)
+                    map.put("channels", channels)
+                    map.put("data", data)
                     ModelAndView(map, "manageGuild.hbs")
                 } else {
                     map.put("showSnackbar", true)
@@ -182,7 +198,6 @@ class Web {
                 get("/data/*/*", { request, response ->
                     val session = request.session()
                     val user: User? = session.attribute<User>("user")
-                    val state: String? = request.queryParams("state")
                     val guild = getGuildById(request.splat()[0])
                     if (user == null) {
                         response.redirect("/login")
@@ -195,19 +210,118 @@ class Web {
                         handle(request, map)
                         map.put("showSnackbar", false)
                         if (guild.getMember(user).hasOverride(guild.publicChannel, failQuietly = true)) {
+                            map.put("title", "Management Center")
                             val data = guild.getData()
                             when (request.splat()[1]) {
                                 "announcemusic" -> {
+                                    val state: String? = request.queryParams("state")
                                     when (state) {
                                         "on" -> data.musicSettings.announceNewMusic = true
                                         else -> data.musicSettings.announceNewMusic = false
                                     }
-                                    data.update()
                                     map.replace("showSnackbar", true)
                                     map.put("snackbarMessage", "Successfully updated the Announce Music setting")
                                 }
+                                "trusteveryone" -> {
+                                    val state: String? = request.queryParams("state")
+                                    when (state) {
+                                        "on" -> data.allowGlobalOverride = true
+                                        else -> data.allowGlobalOverride = false
+                                    }
+                                    map.replace("showSnackbar", true)
+                                    map.put("snackbarMessage", "Successfully updated the \"Music Trust Level\" setting")
+                                }
+                                "receiverchannel" -> {
+                                    val channel: TextChannel? = request.queryParams("channelid")?.toChannel()
+                                    map.replace("showSnackbar", true)
+                                    if (channel == null) {
+                                        map.put("snackbarMessage", "Unable to find a Text Channel with that ID... Please retry")
+                                    } else {
+                                        if (data.joinMessage == null) data.joinMessage = Pair(null, channel.id)
+                                        else data.joinMessage = Pair(data.joinMessage!!.first, channel.id)
+                                        if (data.leaveMessage == null) data.leaveMessage = Pair(null, channel.id)
+                                        else data.leaveMessage = Pair(data.leaveMessage!!.first, channel.id)
+                                        map.put("snackbarMessage", "Set the Receiver Channel")
+                                    }
+                                }
+                                "removemessages" -> {
+                                    val resetChannel = request.queryParams("resetChannel") ?: ""
+                                    val resetJoinMessage = request.queryParams("resetJoinMessage") ?: ""
+                                    val resetLeaveMessage = request.queryParams("resetLeaveMessage") ?: ""
+                                    if (resetChannel == "on") {
+                                        if (data.joinMessage != null) data.joinMessage = Pair(data.joinMessage!!.first, null)
+                                        if (data.leaveMessage != null) data.leaveMessage = Pair(data.leaveMessage!!.first, null)
+                                    }
+                                    if (resetJoinMessage == "on") {
+                                        if (data.joinMessage != null) data.joinMessage = Pair(null, data.joinMessage!!.second)
+                                    }
+                                    if (resetLeaveMessage == "on") {
+                                        if (data.leaveMessage != null) data.leaveMessage = Pair(null, data.leaveMessage!!.second)
+                                    }
+                                    map.replace("showSnackbar", true)
+                                    map.put("snackbarMessage", "Your request for removal completed successfully")
+                                }
+                                "joinmessage" -> {
+                                    var joinMessage = request.queryParams("joinMessage")
+                                    if (joinMessage != null) {
+                                        val built = mutableListOf<String>()
+                                        val arguments = joinMessage.split(" ")
+                                        arguments.forEach { it ->
+                                            if (it.startsWith("#")) {
+                                                val lookup = it.removePrefix("#")
+                                                val results = guild.getTextChannelsByName(lookup, true)
+                                                if (results.size > 0) built.add(results[0].asMention)
+                                                else built.add(it)
+                                            }
+                                            else built.add(it)
+                                        }
+                                        joinMessage = built.concat()
+                                        if (data.joinMessage == null) data.joinMessage = Pair(joinMessage, null)
+                                        else data.joinMessage = Pair(joinMessage, data.joinMessage!!.second)
+                                        map.replace("showSnackbar", true)
+                                        map.put("snackbarMessage", "Successfully set the Join Message")
+                                    }
+                                }
+                                "leavemessage" -> {
+                                    var leaveMessage = request.queryParams("leaveMessage")
+                                    if (leaveMessage != null) {
+                                        val built = mutableListOf<String>()
+                                        val arguments = leaveMessage.split(" ")
+                                        arguments.forEach { it ->
+                                            if (it.startsWith("#")) {
+                                                val lookup = it.removePrefix("#")
+                                                val results = guild.getTextChannelsByName(lookup, true)
+                                                if (results.size > 0) built.add(results[0].asMention)
+                                                else built.add(it)
+                                            }
+                                            else built.add(it)
+                                        }
+                                        leaveMessage = built.concat()
+                                        if (data.leaveMessage == null) data.leaveMessage = Pair(leaveMessage, null)
+                                        else data.leaveMessage = Pair(leaveMessage, data.leaveMessage!!.second)
+                                        map.replace("showSnackbar", true)
+                                        map.put("snackbarMessage", "Successfully set the Leave Message")
+                                    }
+                                }
                             }
+                            data.update()
                             map.put("announceMusic", data.musicSettings.announceNewMusic)
+                            map.put("trustEveryone", data.allowGlobalOverride)
+                            map.put("guild", guild)
+                            val receiverChannel = data.joinMessage?.second?.toChannel()
+                            var channels = guild.textChannels
+                            if (receiverChannel != null) {
+                                channels = channels.toMutableList()
+                                channels.removeIf { it.id == receiverChannel.id }
+                                map.put("hasReceiverChannel", true)
+                                map.put("receiverChannel", receiverChannel)
+                            } else map.put("hasReceiverChannel", false)
+                            if (data.joinMessage?.first == null) map.put("joinMessage", "")
+                            else map.put("joinMessage", data.joinMessage!!.first!!)
+                            if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
+                            else map.put("leaveMessage", data.leaveMessage!!.first!!)
+                            map.put("channels", channels)
+                            map.put("data", data)
                             ModelAndView(map, "manageGuild.hbs")
                         } else {
                             map.put("showSnackbar", true)
@@ -269,7 +383,7 @@ class Web {
         })
     }
 
-    private fun  handle(request: Request, map: HashMap<String, Any>) {
+    private fun handle(request: Request, map: HashMap<String, Any>) {
         val session = request.session()
         val user = session.attribute<User>("user")
         if (user == null) map.put("validSession", false)
