@@ -50,6 +50,32 @@
         </form>
     </div>
     <div class="box">
+        <h3>Default Role</h3>
+        <h5>Set the default role that I should give new members, or select none to disable it</h5>
+        <form action="/api/internal/data/{{guild.id}}/defaultrole">
+            <div class="row uniform 50%">
+                <div class="5u">
+                    <div class="select-wrapper">
+                        <select name="defaultRole" id="defaultRole">
+                            {{#each roles}}
+                                <option value="{{id}}">{{name}}</option>
+                            {{/each}}
+                            {{#if hasDefaultRole}}
+                                <option value="{{defaultRole.id}}" selected>{{defaultRole.name}}</option>
+                                <option value="none">None</option>
+                            {{else}}
+                                <option value="none" selected>None</option>
+                            {{/if}}
+                        </select>
+                    </div>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="box">
         <h3>Join/Leave Messages</h3>
         <h5>Set a channel to send these messages to</h5>
         <form action="/api/internal/data/{{guild.id}}/receiverchannel">

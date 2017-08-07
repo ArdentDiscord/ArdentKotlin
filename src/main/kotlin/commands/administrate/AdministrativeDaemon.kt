@@ -41,22 +41,29 @@ class AdministrativeDaemon : Runnable {
             }
         }
         val stats = Internals()
-        Jsoup.connect("https://discordbots.org/api/bots/339101087569281045/stats")
-                .header("Authorization", config.getValue("discordbotsorg"))
-                .data("shard_count", jdas.size.toString())
-                .data("server_count", stats.guilds.toString())
-                .post().body().text()
-        Jsoup.connect("https://bots.discord.pw/api/bots/339101087569281045/stats")
-                .header("Authorization", config.getValue("botsdiscordpw"))
-                .data("shard_count", jdas.size.toString())
-                .data("server_count", stats.guilds.toString())
-                .post().body().text()
+        try {
+            println(Jsoup.connect("https://discordbots.org/api/bots/339101087569281045/stats")
+                    .header("Authorization", config.getValue("discordbotsorg"))
+                    .data("server_count", stats.guilds.toString())
+                    .ignoreHttpErrors(true)
+                    .ignoreContentType(true)
+                    .post().body().text())
+            println(Jsoup.connect("https://bots.discord.pw/api/bots/339101087569281045/stats")
+                    .header("Authorization", config.getValue("botsdiscordpw"))
+                    .data("server_count", stats.guilds.toString())
+                    .ignoreHttpErrors(true)
+                    .ignoreContentType(true)
+                    .post().body().text())
+        }
+        catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
 
 fun startAdministrativeDaemon() {
     val administrativeDaemon = AdministrativeDaemon()
-    administrativeExecutor.scheduleWithFixedDelay(administrativeDaemon, 1, 60, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 6, 30, TimeUnit.SECONDS)
     val ranksDaemon = RanksDaemon()
-    administrativeExecutor.scheduleWithFixedDelay(ranksDaemon, 1, 60, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleAtFixedRate(ranksDaemon, 6, 30, TimeUnit.SECONDS)
 }

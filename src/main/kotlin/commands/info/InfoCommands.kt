@@ -51,7 +51,8 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
 
 class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server", "s") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (arguments.size == 0) {
+        channel.send(member, "Visit our new web panel for an easy way to manage your settings - https://ardentbot.com/manage/${guild.id}")
+        /*if (arguments.size == 0) {
             withHelp("current", "see a list of settings along with their current values")
                     .withHelp("trusteveryone true|false", "choose whether to allow everyone to access advanced DJ commands like /skip, /leave, etc.")
                     .withHelp("defaultrole [role name **OR** type `none` to disable]", "set the default role given to users when they join this server")
@@ -178,7 +179,7 @@ class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the se
                     }
                 }
             }
-        }
+        }*/
     }
 }
 

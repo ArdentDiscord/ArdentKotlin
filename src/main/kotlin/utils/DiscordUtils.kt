@@ -238,7 +238,9 @@ fun sendFailed(user: User, embed: Boolean) {
 }
 
 fun Guild.getPrefix(): String {
-    return this.getData().prefix
+    val prefix = this.getData().prefix
+    if (prefix == null) return "/"
+    else return prefix
 }
 
 enum class DonationLevel(val readable: String, val level: Int) {

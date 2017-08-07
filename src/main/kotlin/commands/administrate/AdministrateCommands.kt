@@ -243,8 +243,8 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                 else {
                     when (arguments[0]) {
                         "shutdown" -> {
-                            jdas.forEach { it.shutdown() }
                             channel.send(member, "Shut down JDA instances, exiting...")
+                            jdas.forEach { it.shutdown() }
                             System.exit(0)
                         }
                         "staff" -> {

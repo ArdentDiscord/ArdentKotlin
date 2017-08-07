@@ -159,6 +159,13 @@ class Web {
                         map.put("hasReceiverChannel", true)
                         map.put("receiverChannel", receiverChannel)
                     } else map.put("hasReceiverChannel", false)
+                    val defaultRole = data.defaultRole?.toRole(guild)
+                    if (defaultRole == null) map.put("hasDefaultRole", false)
+                    else {
+                        map.put("hasDefaultRole", true)
+                        map.put("defaultRole", defaultRole)
+                    }
+                    map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
                     if (data.joinMessage?.first == null) map.put("joinMessage", "")
                     else map.put("joinMessage", data.joinMessage!!.first!!)
                     if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
@@ -272,8 +279,7 @@ class Web {
                                                 val results = guild.getTextChannelsByName(lookup, true)
                                                 if (results.size > 0) built.add(results[0].asMention)
                                                 else built.add(it)
-                                            }
-                                            else built.add(it)
+                                            } else built.add(it)
                                         }
                                         joinMessage = built.concat()
                                         if (data.joinMessage == null) data.joinMessage = Pair(joinMessage, null)
@@ -293,14 +299,25 @@ class Web {
                                                 val results = guild.getTextChannelsByName(lookup, true)
                                                 if (results.size > 0) built.add(results[0].asMention)
                                                 else built.add(it)
-                                            }
-                                            else built.add(it)
+                                            } else built.add(it)
                                         }
                                         leaveMessage = built.concat()
                                         if (data.leaveMessage == null) data.leaveMessage = Pair(leaveMessage, null)
                                         else data.leaveMessage = Pair(leaveMessage, data.leaveMessage!!.second)
                                         map.replace("showSnackbar", true)
                                         map.put("snackbarMessage", "Successfully set the Leave Message")
+                                    }
+                                }
+                                "defaultrole" -> {
+                                    map.replace("showSnackbar", true)
+                                    val roleId = request.queryParams("defaultRole")
+                                    if (!roleId.equals("none", true)) {
+                                        data.defaultRole = roleId
+                                        map.put("snackbarMessage", "Successfully set the Default Role")
+                                    }
+                                    else {
+                                        data.defaultRole = ""
+                                        map.put("snackbarMessage", "Successfully removed the Default Role")
                                     }
                                 }
                             }
@@ -316,6 +333,13 @@ class Web {
                                 map.put("hasReceiverChannel", true)
                                 map.put("receiverChannel", receiverChannel)
                             } else map.put("hasReceiverChannel", false)
+                            val defaultRole = data.defaultRole?.toRole(guild)
+                            if (defaultRole == null) map.put("hasDefaultRole", false)
+                            else {
+                                map.put("hasDefaultRole", true)
+                                map.put("defaultRole", defaultRole)
+                            }
+                            map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
                             if (data.joinMessage?.first == null) map.put("joinMessage", "")
                             else map.put("joinMessage", data.joinMessage!!.first!!)
                             if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
