@@ -8,6 +8,7 @@ import com.mb3364.twitch.api.handlers.StreamResponseHandler
 import com.mb3364.twitch.api.handlers.StreamsResponseHandler
 import com.mb3364.twitch.api.models.Channel
 import com.mb3364.twitch.api.models.Stream
+import commands.administrate.staff
 import events.Category
 import events.Command
 import main.config
@@ -37,8 +38,8 @@ __Please Note__: You are limited to 999999x10, meaning that at maximum you can r
             if (split.size == 2) {
                 val sides = split[0].toIntOrNull()
                 val rolls = split[1].toIntOrNull()
-                if (sides == null || sides <= 1 || sides > 999999) channel.send(member, "${Emoji.HEAVY_MULTIPLICATION_X} You specified an invalid amount of sides. Please retry")
-                else if (rolls == null || rolls <= 0 || rolls > 10) channel.send(member, "${Emoji.HEAVY_MULTIPLICATION_X} You specified an illegal amount of rolls. Please retry")
+                if (sides == null || sides <= 1 || (sides > 999999 && !member.isStaff())) channel.send(member, "${Emoji.HEAVY_MULTIPLICATION_X} You specified an invalid amount of sides. Please retry")
+                else if (rolls == null || rolls <= 0 || (rolls > 10 && !member.isStaff())) channel.send(member, "${Emoji.HEAVY_MULTIPLICATION_X} You specified an illegal amount of rolls. Please retry")
                 else {
                     val embed = embed("Roll Results", member)
                     (1..rolls)

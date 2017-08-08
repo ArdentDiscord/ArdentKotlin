@@ -42,6 +42,14 @@ fun String.toRole(guild: Guild): Role? {
     }
 }
 
+fun Member.isStaff() : Boolean {
+    return user.isStaff()
+}
+
+fun User.isStaff() : Boolean {
+    return staff.map { it.id }.contains(id)
+}
+
 fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false, djCommand: Boolean = false): Boolean {
     if (staff.map { it.id }.contains(id()) || hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this)) || (djCommand && guild.getData().allowGlobalOverride)) return true
     if (djCommand) {

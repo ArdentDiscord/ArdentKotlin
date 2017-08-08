@@ -1,6 +1,5 @@
 package commands.games
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import events.Category
 import events.Command
 import main.factory
@@ -25,43 +24,163 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
     override fun onStart() {
         val ardent = channel.guild.selfMember
         val user = players.map { it.toUser()!! }.toList()[0]
-
-
+        doRound(user)
     }
+
     fun doRound(user: User) {
+        val playerData = user.getData()
+        if (playerData.gold == 0.toDouble()) {
+            playerData.gold += 15
+            playerData.update()
+            channel.send(user, "Because you were broke, the Blackjack Gods took pity on you and gave you **15.0** gold to bet with")
+        }
+        channel.send(user, "How much would you like to bet, ${user.asMention}? You current have a balance of **${playerData.gold}** gold")
+        waiter.waitForMessage(Settings(user.id, channel.id, channel.guild.id), { message ->
+            val bet = message.rawContent.toDoubleOrNull()
+            if (bet == null || bet < 0 || bet > playerData.gold) {
+                channel.send(user, "You specified an invalid amount.. resetting the round")
+                doRound(user)
+            } else {
+                val dealerHand = Hand(true).plus(2)
+                val userHand = Hand().plus(1)
+                display(dealerHand, userHand, "You've been dealt 1 card. The dealer's second card is hidden. The goal is to get as close as possible to **21**." +
+                        " Type `hit` if you'd like to get another card or `stay` to stay at your current amount")
+                wait(bet, dealerHand, userHand, user)
+            }
+        }, { cancel(user) }, silentExpiration = true)
+    }
+
+    fun wait(bet: Double, dealerHand: Hand, userHand: Hand, user: User) {
+        waiter.waitForMessage(Settings(user.id, channel.id), { response ->
+            when (response.content) {
+                "hit" -> {
+                    userHand.plus(1)
+                    if (userHand.value() >= 21) displayRoundScore(bet, dealerHand, userHand, user)
+                    else {
+                        display(dealerHand, userHand, "The dealer's second card is hidden. The goal is to get as close as possible to **21**." +
+                                " Type `hit` if you'd like to get another card or `stay` to stay at your current amount")
+                        wait(bet, dealerHand, userHand, user)
+                    }
+                }
+                "stay" -> {
+                    channel.send(user, "Generating dealer cards...")
+                    while (dealerHand.value() < 17) dealerHand.plus(1)
+                    displayRoundScore(bet, dealerHand, userHand, user)
+                }
+                else -> {
+                    channel.send(user, "You specified an invalid response - please retry")
+                    wait(bet, dealerHand, userHand, user)
+                    return@waitForMessage
+                }
+            }
+
+        }, {
+            channel.send(user, "${user.asMention}, you didn't specify a response! Please try again")
+            wait(bet, dealerHand, userHand, user)
+        }, 15, TimeUnit.SECONDS, silentExpiration = true)
+    }
+
+    fun display(dealerHand: Hand, userHand: Hand, message: String, end: Boolean = false) {
+        val embed = embed("Blackjack | Hand Values", channel.guild.selfMember)
+                .setDescription(message)
+                .addField("Your Hand", "$userHand - value (${userHand.value()})", true)
+                .addBlankField(true)
+        if (dealerHand.cards.size == 2 && !end)  embed.addField("Dealer's Hand", "$dealerHand - value (${dealerHand.cards[0].value.representation} + ?)", true)
+        else embed.addField("Dealer's Hand", "$dealerHand - value (${dealerHand.value()})", true)
+        channel.send(channel.guild.selfMember, embed)
+    }
+
+    fun displayRoundScore(bet: Double, dealerHand: Hand, userHand: Hand, user: User) {
+        val result = if (userHand.value() > 21) Result.LOST
+        else if (dealerHand.value() > 21) Result.WON
+        else if (userHand.value() == dealerHand.value()) Result.TIED
+        else if (userHand.value() > dealerHand.value()) Result.WON
+        else Result.LOST
+        val playerData = user.getData()
+        val message = when (result) {
+            Result.LOST -> {
+                playerData.gold -= bet
+                playerData.update()
+                "Sorry, you lost $bet gold!"
+
+            }
+            Result.WON -> {
+                playerData.gold += bet
+                playerData.update()
+                "Congratulations, you won $bet gold!"
+            }
+            Result.TIED -> "You tied didn't lose the $bet you put in"
+        }
+        roundResults.add(Round(result, userHand, dealerHand))
+        display(dealerHand, userHand, message)
+
+        channel.send(user, "Would you like to go again? Type `yes` to replay or `no` to end the game")
+        waiter.waitForMessage(Settings(user.id, channel.id), { response ->
+            when (response.content) {
+                "yes" -> doRound(user)
+                else -> {
+                    channel.send(user, "Ending the game and inserting data into the database..")
+                    val gameData = GameDataBlackjack(gameId, creator, startTime!!, roundResults)
+                    cleanup(gameData)
+                }
+            }
+        }, {
+            channel.send(user, "Ending the game and inserting data into the database..")
+            val gameData = GameDataBlackjack(gameId, creator, startTime!!, roundResults)
+            cleanup(gameData)
+        }, silentExpiration = true)
 
     }
 
-    class Round(val won: Boolean, val userHand: Hand, val dealerHand: Hand)
-    class Hand(val cards: MutableList<Card>) {
+    enum class Result {
+        WON, LOST, TIED
+    }
+
+    class Round(val won: Result, val userHand: Hand, val dealerHand: Hand)
+    class Hand(val dealer: Boolean = false, val cards: MutableList<Card> = mutableListOf()) {
         val random = Random()
-        fun with(cardAmount: Int) : Hand {
-            cards.add(generate())
-            cards.add(generate())
+        fun plus(cardAmount: Int): Hand {
+            (1..cardAmount).forEach { _ -> cards.add(generate()) }
             return this
         }
-        fun generate() : Card {
+
+        fun generate(): Card {
             val card = Card(Suit.values()[random.nextInt(4)], BlackjackValue.values()[random.nextInt(13)])
             if (cards.contains(card)) return generate()
             else return card
         }
-    }
-    data class Card(val suit: Suit, val value: BlackjackValue) {
+
         override fun toString(): String {
-            return "$suit$value"
+            if (cards.size == 2 && dealer) return "${cards[0]}, ?"
+            else return cards.map { it.toString() }.stringify()
+        }
+
+        fun value(): Int {
+            var value = 0
+            cards.forEach { value += it.value.representation }
+            return value
         }
     }
+
+    data class Card(val suit: Suit, val value: BlackjackValue) {
+        override fun toString(): String {
+            return "$value$suit"
+        }
+    }
+
     enum class Suit {
         HEART, SPADE, CLUB, DIAMOND;
+
         override fun toString(): String {
             return when (this) {
-                HEART -> "❤"
-                SPADE -> "♠"
-                CLUB -> "♧"
-                DIAMOND -> "♦"
+                HEART -> ":hearts:"
+                SPADE -> ":spades:"
+                CLUB -> ":clubs:"
+                DIAMOND -> ":diamonds:"
             }
         }
     }
+
     enum class BlackjackValue(var representation: Int) {
         TWO(2),
         THREE(3),
@@ -78,7 +197,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
         ACE(11);
 
         override fun toString(): String {
-            return when(this) {
+            return when (this) {
                 ACE -> "A"
                 KING -> "K"
                 QUEEN -> "Q"
@@ -180,9 +299,9 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
             winner = scores.keys.toList()[0]
         }
         val winnerUser = winner!!.toUser()!!
-        channel.send(channel.guild.selfMember, "Congratulations to **${winnerUser.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses; You win **500** gold")
+        channel.send(channel.guild.selfMember, "Congratulations to **${winnerUser.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses; You win **150** gold")
         val playerData = winnerUser.getData()
-        playerData.gold += 500
+        playerData.gold += 150
         playerData.update()
         val gameData = GameDataCoinflip(gameId, creator, startTime!!, winner!!, players.without(winner!!), results)
         cleanup(gameData)
