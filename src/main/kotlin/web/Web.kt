@@ -415,18 +415,18 @@ class Web {
             path("/oauth", {
                 get("/login", { request, response ->
                     if (request.queryParams("code") == null) {
-                        response.redirect("/fail", 404)
+                        response.redirect("/welcome")
                         null
                     } else {
                         val code = request.queryParams("code")
                         val token = retrieveToken(code)
                         if (token == null) {
-                            response.redirect("/fail", 404)
+                            response.redirect("/welcome")
                             null
                         } else {
                             val identification = identityObject(token.access_token)
                             if (identification == null) {
-                                response.redirect("/fail", 404)
+                                response.redirect("/welcome")
                                 null
                             } else {
                                 val session = request.session()
@@ -437,6 +437,9 @@ class Web {
                         }
                     }
                 }, handlebars)
+                post("/login", { request, response ->
+                    response.redirect("/welcome")
+                })
             })
             path("/public", {
                 get("/status", { _, _ -> Internals().toJson() })

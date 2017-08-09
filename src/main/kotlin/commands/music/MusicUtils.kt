@@ -155,18 +155,11 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
-        val queue = manager.queueAsList
-        val current = manager.current
-        managers.remove(guild.idLong)
         val ch = guild.audioManager.connectedChannel
         guild.audioManager.closeAudioConnection()
         ch.connect(guild.selfMember, channel!!)
-        val newManager = guild.getGuildAudioPlayer(channel)
-        if (current != null) newManager.scheduler.manager.queue(ArdentTrack(current.author, current.channel, current.track.makeClone()))
-        queue.forEach { queueMember ->
-            newManager.scheduler.manager.queue(ArdentTrack(queueMember.author, queueMember.channel, queueMember.track.makeClone()))
-        }
-        channel?.send(guild.selfMember, "${Emoji.BALLOT_BOX_WITH_CHECK} The player got stuck... resetting now (this is Discord's fault)")
+        guild.getGuildAudioPlayer(channel).scheduler.manager.nextTrack()
+        channel?.send(guild.selfMember, "${Emoji.BALLOT_BOX_WITH_CHECK} The player got stuck... attempting to skip now now (this is Discord's fault)")
 
     }
 
