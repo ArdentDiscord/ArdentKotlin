@@ -8,7 +8,15 @@
         </header>
         {{#each rounds}}
             <div class="box">
-                <h3>Round {{@index}} - <b></b></h3>
+                <div>
+                    <h3 class="alignleft">Round {{@index_1}}</h3>
+                    <h3 class="alignright">Result: {{&won}}</h3>
+                    <div style="clear: both;"></div>
+                    <br/>
+                </div>
+                <p>User's Hand: <b>{{userHand}}</b><br/>
+                    Dealer's Hand: <b>{{dealerHand}}</b></p>
+                <p>User Bet: <b>{{bet}}</b></p>
             </div>
         {{/each}}
     </section>

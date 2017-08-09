@@ -1,0 +1,18 @@
+{{> header.hbs }}
+{{#with game}}
+    <!-- Main -->
+    <section id="main" class="container 75%">
+        <header>
+            <h2>{{user.name}}#{{user.discriminator}}'s game of Coinflip</h2>
+            <p>Game ID: #{{id}} - Started at {{date}}</p>
+        </header>
+        <div class="box">
+            <h3>Overview</h3>
+            <p>Winner: <b>{{winner}}</b> <br/>
+                Losers: <b>{{losers}}</b>
+            </p>
+        </div>
+    </section>
+{{/with}}
+
+{{> footer.hbs }}

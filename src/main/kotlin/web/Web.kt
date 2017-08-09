@@ -4,6 +4,7 @@ import commands.administrate.Staff
 import commands.administrate.filterByRole
 import commands.administrate.staff
 import commands.games.GameDataBlackjack
+import commands.games.GameDataCoinflip
 import events.Category
 import main.*
 import net.dv8tion.jda.core.entities.Guild
@@ -212,6 +213,7 @@ class Web {
                         ModelAndView(map, "404.hbs")
                     } else {
                         val user = game.creator.toUser()!!
+                        map.put("title", "Blackjack Game #$id")
                         map.put("game", game)
                         map.put("user", user)
                         map.put("date", game.startTime.readableDate())
@@ -220,7 +222,23 @@ class Web {
                     }
                 }
                 "coinflip" -> {
-                    null
+                    val id = request.splat()[1].toIntOrNull() ?: 999999999
+                    val game = asPojo(r.table("CoinflipData").get(id).run(conn), GameDataCoinflip::class.java)
+                    if (game == null) {
+                        map.put("showSnackbar", true)
+                        map.put("snackbarMessage", "No game with that id was found!")
+                        map.put("title", "Gamemode not found")
+                        ModelAndView(map, "404.hbs")
+                    } else {
+                        val creator = game.creator.toUser()!!
+                        map.put("title", "Coinflip Game #$id")
+                        map.put("game", game)
+                        map.put("user", creator)
+                        map.put("winner", game.winner.toUser()!!.withDiscrim())
+                        map.put("losers", game.losers.toUsers())
+                        map.put("date", game.startTime.readableDate())
+                        ModelAndView(map, "coinflip.hbs")
+                    }
                 }
                 else -> {
                     map.put("showSnackbar", true)
@@ -269,16 +287,26 @@ class Web {
                                     map.put("snackbarMessage", "Successfully updated the \"Music Trust Level\" setting")
                                 }
                                 "receiverchannel" -> {
-                                    val channel: TextChannel? = request.queryParams("channelid")?.toChannel()
-                                    map.replace("showSnackbar", true)
-                                    if (channel == null) {
-                                        map.put("snackbarMessage", "Unable to find a Text Channel with that ID... Please retry")
-                                    } else {
-                                        if (data.joinMessage == null) data.joinMessage = Pair(null, channel.id)
-                                        else data.joinMessage = Pair(data.joinMessage!!.first, channel.id)
-                                        if (data.leaveMessage == null) data.leaveMessage = Pair(null, channel.id)
-                                        else data.leaveMessage = Pair(data.leaveMessage!!.first, channel.id)
-                                        map.put("snackbarMessage", "Set the Receiver Channel")
+                                    val ch: String? = request.queryParams("channelid")
+                                    if (ch.equals("none", true)) {
+                                        map.put("snackbarMessage", "Removed the Receiver Channel")
+                                        if (data.joinMessage == null) data.joinMessage = Pair(null, null)
+                                        else data.joinMessage = Pair(data.joinMessage!!.first, null)
+                                        if (data.leaveMessage == null) data.leaveMessage = Pair(null, null)
+                                        else data.leaveMessage = Pair(data.leaveMessage!!.first, null)
+                                    }
+                                    else {
+                                        val channel: TextChannel? = ch?.toChannel()
+                                        map.replace("showSnackbar", true)
+                                        if (channel == null) {
+                                            map.put("snackbarMessage", "Unable to find a Text Channel with that ID... Please retry")
+                                        } else {
+                                            if (data.joinMessage == null) data.joinMessage = Pair(null, channel.id)
+                                            else data.joinMessage = Pair(data.joinMessage!!.first, channel.id)
+                                            if (data.leaveMessage == null) data.leaveMessage = Pair(null, channel.id)
+                                            else data.leaveMessage = Pair(data.leaveMessage!!.first, channel.id)
+                                            map.put("snackbarMessage", "Set the Receiver Channel")
+                                        }
                                     }
                                 }
                                 "removemessages" -> {

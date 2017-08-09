@@ -102,20 +102,20 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
             Result.LOST -> {
                 playerData.gold -= bet
                 playerData.update()
-                "Sorry, you lost $bet gold!"
+                "**Sorry, you lost $bet gold!**"
 
             }
             Result.WON -> {
                 playerData.gold += bet
                 playerData.update()
-                "Congratulations, you won $bet gold!"
+                "**Congratulations, you won $bet gold!**"
             }
-            Result.TIED -> "You tied didn't lose the $bet you put in"
+            Result.TIED -> "**You tied didn't lose the $bet you put in**"
         }
-        roundResults.add(Round(result, userHand, dealerHand))
+        roundResults.add(Round(result, userHand.end(), dealerHand.end(), bet))
         display(dealerHand, userHand, message, true)
 
-        channel.send(user, "Would you like to go again? Type `yes` to replay or `no` to end the game")
+        channel.sendMessage("Would you like to go again? Type `yes` to replay or `no` to end the game").queueAfter(2, TimeUnit.SECONDS)
         waiter.waitForMessage(Settings(user.id, channel.id), { response ->
             when (response.content) {
                 "yes" -> doRound(user)
@@ -138,21 +138,26 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
 
         override fun toString(): String {
             return when (this) {
-                BlackjackGame.Result.WON -> "Won"
-                BlackjackGame.Result.LOST -> "Lost"
-                BlackjackGame.Result.TIED -> "Tied"
+                BlackjackGame.Result.WON -> "<font color=\"green\">Won</font>"
+                BlackjackGame.Result.LOST -> "<font color=\"red\">Lost</font>"
+                BlackjackGame.Result.TIED -> "<font color=\"orange\">Tied</font>"
             }
         }
     }
 
-    class Round(val won: Result, val userHand: Hand, val dealerHand: Hand)
-    class Hand(val dealer: Boolean = false, val cards: MutableList<Card> = mutableListOf()) {
+    class Round(val won: Result, val userHand: Hand, val dealerHand: Hand, val bet: Double)
+    class Hand(val dealer: Boolean = false, val cards: MutableList<Card> = mutableListOf(), var end: Boolean = false) {
         val random = Random()
         fun blackjackPlus(cardAmount: Int): Hand {
             (1..cardAmount).forEach { _ ->
                 cards.add(generate())
                 if (value() > 21) cards.forEach { if (it.value == BlackjackValue.ACE) it.value.representation = 1 }
             }
+            return this
+        }
+
+        fun end() : Hand {
+            end = true
             return this
         }
 
@@ -163,7 +168,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
         }
 
         override fun toString(): String {
-            if (cards.size == 2 && dealer) return "${cards[0]}, ?"
+            if (cards.size == 2 && dealer &&!end) return "${cards[0]}, ?"
             else return cards.map { it.toString() }.stringify()
         }
 
@@ -280,7 +285,7 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
         val scores = results.mapScores()
         var winner: String? = null
         val values = scores.values.toIntArray()
-        if (values[0] == values[1]) {
+        if (values.size > 1 && values[0] == values[1]) {
             val tiedPlayers = scores.keys.toList().subList(0, 2)
             val first = tiedPlayers[0].toUser()!!
             val second = tiedPlayers[1].toUser()!!
@@ -311,11 +316,13 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
         } else {
             winner = scores.keys.toList()[0]
         }
-        val winnerUser = winner!!.toUser()!!
-        channel.send(channel.guild.selfMember, "Congratulations to **${winnerUser.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses; You win **150** gold")
-        val playerData = winnerUser.getData()
-        playerData.gold += 150
-        playerData.update()
+        if (users.size > 1) {
+            val winnerUser = winner!!.toUser()!!
+            channel.send(channel.guild.selfMember, "Congratulations to **${winnerUser.withDiscrim()}** for winning with __${scores[winner!!]}__ correct guesses; You win **150** gold")
+            val playerData = winnerUser.getData()
+            playerData.gold += 150
+            playerData.update()
+        }
         val gameData = GameDataCoinflip(gameId, creator, startTime!!, winner!!, players.without(winner!!), results)
         cleanup(gameData)
     }
@@ -421,7 +428,7 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
             "forcestart" -> {
                 gamesInLobby.forEach { game ->
                     if (game.creator == member.id() && game.channel.guild == guild) {
-                        if (game.players.size == 1 && game.type != GameType.BLACKJACK) channel.send(member, "You can't force start a game with only **1** person!")
+                        if (game.players.size == 1 && game.type == GameType.TRIVIA) channel.send(member, "You can't force start a game with only **1** person!")
                         else {
                             game.startEvent()
                         }
