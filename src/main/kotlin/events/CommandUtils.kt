@@ -6,6 +6,7 @@ import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
+import org.apache.commons.lang3.exception.ExceptionUtils
 import utils.*
 import java.awt.Color
 import java.util.concurrent.ExecutorService
@@ -48,7 +49,14 @@ class CommandFactory {
             if (cmd.containsAlias(args[0])) {
                 args.removeAt(0)
                 commandsById.incrementValue(cmd.name)
-                executor.execute { cmd.execute(args, event) }
+                executor.execute {
+                    try {
+                        cmd.execute(args, event)
+                    } catch (e: Throwable) {
+                        event.channel.send(member, "There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +
+                                "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
+                    }
+                }
                 return
             }
         }

@@ -1,0 +1,17 @@
+{{> header.hbs }}
+{{#with game}}
+    <!-- Main -->
+    <section id="main" class="container 75%">
+        <header>
+            <h2>{{user.name}}#{{user.discriminator}}'s game of Blackjack</h2>
+            <p>Game ID: #{{id}} - Started at {{date}}</p>
+        </header>
+        {{#each rounds}}
+            <div class="box">
+                <h3>Round {{@index}} - <b></b></h3>
+            </div>
+        {{/each}}
+    </section>
+{{/with}}
+
+{{> footer.hbs }}

@@ -221,15 +221,14 @@ fun VoiceChannel.connect(member: Member, textChannel: TextChannel) {
     }
     try {
         audioManager.openAudioConnection(this)
-        textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} I successfully joined **$name**!")
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         textChannel.send(member, "${Emoji.CROSS_MARK} I cannot join that voice channel ($name)! Reason: *${e.localizedMessage}*")
     }
 }
 
 fun play(member: Member, guild: Guild, channel: VoiceChannel, musicManager: GuildMusicManager, track: AudioTrack, textChannel: TextChannel) {
-    if (!guild.audioManager.isAttemptingToConnect && !guild.audioManager.isConnected) {
-        channel.connect(member, textChannel)
+    if (!guild.audioManager.isConnected) {
+        guild.audioManager.openAudioConnection(channel)
     }
     musicManager.scheduler.manager.addToQueue(ArdentTrack(member.user.id, textChannel.id, track))
 }
@@ -255,7 +254,10 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
         textChannel.send(member, "${Emoji.CROSS_MARK} You need to be connected to a voice channel")
         return
     }
-    val channel = member.voiceState.channel
+    val guild = textChannel.guild
+    if (!guild.selfMember.voiceState.inVoiceChannel()) {
+        member.voiceState.channel.connect(member, textChannel)
+    }
     val musicManager = member.guild.getGuildAudioPlayer(textChannel)
     playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {
         override fun loadFailed(exception: FriendlyException) {
@@ -270,7 +272,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
             }
             if (radioName == null) textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
             else textChannel.send(member, "${Emoji.MULTIPLE_MUSICAL_NOTES} Starting to play the radio station **$radioName**...")
-            play(member, member.guild, channel, musicManager, track, textChannel)
+            play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
         }
 
         override fun noMatches() {
@@ -281,7 +283,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
         override fun playlistLoaded(playlist: AudioPlaylist) {
             if (!playlist.isSearchResult) {
                 textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding ${playlist.tracks.size} tracks to the queue...")
-                playlist.tracks.forEach { play(member, member.guild, channel, musicManager, it, textChannel) }
+                playlist.tracks.forEach { play(member, member.guild, guild.selfMember.voiceChannel()!!, musicManager, it, textChannel) }
                 return
             }
             val selectFrom = mutableListOf<String>()
@@ -294,7 +296,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
                     .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
             textChannel.selectFromList(member, "Select Song", selectFrom, { response ->
                 val track = playlist.tracks[response]
-                play(member, member.guild, channel, musicManager, track, textChannel)
+                play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
                 textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
             })
 

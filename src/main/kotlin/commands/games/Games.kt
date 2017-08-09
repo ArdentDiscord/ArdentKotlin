@@ -41,8 +41,8 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                 channel.send(user, "You specified an invalid amount.. resetting the round")
                 doRound(user)
             } else {
-                val dealerHand = Hand(true).plus(2)
-                val userHand = Hand().plus(1)
+                val dealerHand = Hand(true).blackjackPlus(2)
+                val userHand = Hand().blackjackPlus(1)
                 display(dealerHand, userHand, "You've been dealt 1 card. The dealer's second card is hidden. The goal is to get as close as possible to **21**." +
                         " Type `hit` if you'd like to get another card or `stay` to stay at your current amount")
                 wait(bet, dealerHand, userHand, user)
@@ -54,7 +54,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
         waiter.waitForMessage(Settings(user.id, channel.id), { response ->
             when (response.content) {
                 "hit" -> {
-                    userHand.plus(1)
+                    userHand.blackjackPlus(1)
                     if (userHand.value() >= 21) displayRoundScore(bet, dealerHand, userHand, user)
                     else {
                         display(dealerHand, userHand, "The dealer's second card is hidden. The goal is to get as close as possible to **21**." +
@@ -64,7 +64,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                 }
                 "stay" -> {
                     channel.send(user, "Generating dealer cards...")
-                    while (dealerHand.value() < 17) dealerHand.plus(1)
+                    while (dealerHand.value() < 17) dealerHand.blackjackPlus(1)
                     displayRoundScore(bet, dealerHand, userHand, user)
                 }
                 else -> {
@@ -75,7 +75,8 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
             }
 
         }, {
-            channel.send(user, "${user.asMention}, you didn't specify a response! Please try again")
+            channel.send(user, "${user.asMention}, you didn't specify a response and lost!")
+            displayRoundScore(bet, dealerHand, userHand.blackjackPlus(5), user)
             wait(bet, dealerHand, userHand, user)
         }, 15, TimeUnit.SECONDS, silentExpiration = true)
     }
@@ -85,7 +86,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                 .setDescription(message)
                 .addField("Your Hand", "$userHand - value (${userHand.value()})", true)
                 .addBlankField(true)
-        if (dealerHand.cards.size == 2 && !end)  embed.addField("Dealer's Hand", "$dealerHand - value (${dealerHand.cards[0].value.representation} + ?)", true)
+        if (dealerHand.cards.size == 2 && !end) embed.addField("Dealer's Hand", "$dealerHand - value (${dealerHand.cards[0].value.representation} + ?)", true)
         else embed.addField("Dealer's Hand", "$dealerHand - value (${dealerHand.value()})", true)
         channel.send(channel.guild.selfMember, embed)
     }
@@ -112,7 +113,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
             Result.TIED -> "You tied didn't lose the $bet you put in"
         }
         roundResults.add(Round(result, userHand, dealerHand))
-        display(dealerHand, userHand, message)
+        display(dealerHand, userHand, message, true)
 
         channel.send(user, "Would you like to go again? Type `yes` to replay or `no` to end the game")
         waiter.waitForMessage(Settings(user.id, channel.id), { response ->
@@ -133,14 +134,25 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
     }
 
     enum class Result {
-        WON, LOST, TIED
+        WON, LOST, TIED;
+
+        override fun toString(): String {
+            return when (this) {
+                BlackjackGame.Result.WON -> "Won"
+                BlackjackGame.Result.LOST -> "Lost"
+                BlackjackGame.Result.TIED -> "Tied"
+            }
+        }
     }
 
     class Round(val won: Result, val userHand: Hand, val dealerHand: Hand)
     class Hand(val dealer: Boolean = false, val cards: MutableList<Card> = mutableListOf()) {
         val random = Random()
-        fun plus(cardAmount: Int): Hand {
-            (1..cardAmount).forEach { _ -> cards.add(generate()) }
+        fun blackjackPlus(cardAmount: Int): Hand {
+            (1..cardAmount).forEach { _ ->
+                cards.add(generate())
+                if (value() > 21) cards.forEach { if (it.value == BlackjackValue.ACE) it.value.representation = 1 }
+            }
             return this
         }
 
@@ -163,6 +175,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
     }
 
     data class Card(val suit: Suit, val value: BlackjackValue) {
+
         override fun toString(): String {
             return "$value$suit"
         }
@@ -173,10 +186,10 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
 
         override fun toString(): String {
             return when (this) {
-                HEART -> ":hearts:"
-                SPADE -> ":spades:"
-                CLUB -> ":clubs:"
-                DIAMOND -> ":diamonds:"
+                HEART -> "♥"
+                SPADE -> "♠"
+                CLUB -> "♣"
+                DIAMOND -> "♦"
             }
         }
     }

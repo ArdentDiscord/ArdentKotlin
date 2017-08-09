@@ -88,7 +88,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
             gameData.insert("${type.readable}Data")
         }
         channel.send(user, "Game Data has been successfully inserted into the database. To view the results and statistics for this match, " +
-                "you can go to https://ardentbot.com/${type.name.toLowerCase()}/$gameId")
+                "you can go to https://ardentbot.com/games/${type.name.toLowerCase()}/$gameId")
         activeGames.remove(this)
     }
 
@@ -126,7 +126,7 @@ enum class GameType(val readable: String, val description: String, val id: Int) 
 
     fun findNextId(): Long {
         val random = Random()
-        val number = random.nextInt(1000000) + 1
+        val number = random.nextInt(999999999) + 1
         if (r.table("${readable}Data").get(number).run<Any?>(conn) == null) return number.toLong()
         else return findNextId()
     }

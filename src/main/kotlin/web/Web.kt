@@ -3,10 +3,9 @@ package web
 import commands.administrate.Staff
 import commands.administrate.filterByRole
 import commands.administrate.staff
+import commands.games.GameDataBlackjack
 import events.Category
-import main.factory
-import main.jdas
-import main.test
+import main.*
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
@@ -199,7 +198,38 @@ class Web {
             map.put("title", "No Permission")
             ModelAndView(map, "fail.hbs")
         }, handlebars)
-
+        get("/games/*/*", { request, response ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            when (request.splat()[0]) {
+                "blackjack" -> {
+                    val id = request.splat()[1].toIntOrNull() ?: 999999999
+                    val game = asPojo(r.table("BlackjackData").get(id).run(conn), GameDataBlackjack::class.java)
+                    if (game == null) {
+                        map.put("showSnackbar", true)
+                        map.put("snackbarMessage", "No game with that id was found!")
+                        map.put("title", "Gamemode not found")
+                        ModelAndView(map, "404.hbs")
+                    } else {
+                        val user = game.creator.toUser()!!
+                        map.put("game", game)
+                        map.put("user", user)
+                        map.put("date", game.startTime.readableDate())
+                        map.put("data", user.getData())
+                        ModelAndView(map, "blackjack.hbs")
+                    }
+                }
+                "coinflip" -> {
+                    null
+                }
+                else -> {
+                    map.put("showSnackbar", true)
+                    map.put("snackbarMessage", "No Gamemode with that title was found!")
+                    map.put("title", "Gamemode not found")
+                    ModelAndView(map, "404.hbs")
+                }
+            }
+        }, handlebars)
         path("/api", {
             path("/internal", {
                 get("/data/*/*", { request, response ->
@@ -314,8 +344,7 @@ class Web {
                                     if (!roleId.equals("none", true)) {
                                         data.defaultRole = roleId
                                         map.put("snackbarMessage", "Successfully set the Default Role")
-                                    }
-                                    else {
+                                    } else {
                                         data.defaultRole = ""
                                         map.put("snackbarMessage", "Successfully removed the Default Role")
                                     }
