@@ -4,6 +4,7 @@ import events.Category
 import events.Command
 import main.conn
 import main.jdas
+import main.managers
 import main.r
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Guild
@@ -13,8 +14,6 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
 import java.awt.Color
-import java.time.Instant
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
@@ -239,12 +238,77 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         staff.forEach {
             if (member.id() == "169904324980244480" || member.id() == it.id && it.role == Staff.StaffRole.ADMINISTRATOR) {
-                if (arguments.size == 0) channel.send(member, "no")
-                else {
+                if (arguments.size == 0) {
+                    withHelp("shutdown", "this is really fucking obvious")
+                            .withHelp("staff add|remove @User role_name", "^")
+                            .withHelp("whitelist", "whitelist your friends (let them have patreon permissions)")
+                            .displayHelp(channel, member)
+                } else {
                     when (arguments[0]) {
+                        "whitelist" -> {
+                            if (arguments.size == 1) {
+                                val embed = embed("Whitelisted members", member, Color.RED)
+                                val whitelisted = member.user.whitelisted()
+                                whitelisted.forEach {
+                                    val user = getUserById(it!!.id)
+                                    if (user == null) r.table("specialPeople").get(it.id).delete().runNoReply(conn)
+                                    else embed.appendDescription("- ${user.name}#${user.discriminator}")
+                                }
+                                if (whitelisted.isEmpty()) embed.appendDescription("None.")
+                                embed.appendDescription("\n\nAdd a user to the whitelist (3 max) by typing /nono whitelist add @User\n\n" +
+                                        "Remove a user from the whitelist by typing /nono whitelist remove @User")
+                                channel.send(member, embed)
+                            } else {
+                                when (arguments[1]) {
+                                    "add" -> {
+                                        if (event.message.mentionedUsers.size == 0) channel.send(member, "gotta mention someone bud")
+                                        else {
+                                            val toWhitelist = event.message.mentionedUsers[0]
+                                            if (toWhitelist.isBot) channel.send(member, "you are an idiot")
+                                            else {
+                                                if (toWhitelist.donationLevel() != DonationLevel.NONE) channel.send(member, "this person already has patreon permissions")
+                                                else {
+                                                    val whitelisted = r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java)
+                                                            .filter { it != null && it.backer == member.id() }
+                                                    if (whitelisted.size == 3) channel.send(member, "You can only whitelist 3 people at a time :(")
+                                                    else {
+                                                        SpecialPerson(toWhitelist.id, member.id()).insert("specialPeople")
+                                                        channel.send(member, "whitelisted ${toWhitelist.asMention}")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    "remove" -> {
+                                        if (event.message.mentionedUsers.size == 0) channel.send(member, "gotta mention someone bud")
+                                        else {
+                                            val toRemove = event.message.mentionedUsers[0]
+                                            if (toRemove.donationLevel() == DonationLevel.NONE) channel.send(member, "this person doesn't have patreon permissions")
+                                            else {
+                                                val whitelisted = r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java)
+                                                        .filter { it != null && it.backer == member.id() && it.id == toRemove.id }
+                                                if (whitelisted.isEmpty()) channel.send(member, "this person isn't whitelisted!")
+                                                else {
+                                                    r.table("specialPeople").get(toRemove.id).delete().runNoReply(conn)
+                                                    channel.send(member, "removed ${toRemove.asMention} from the whitelist")
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else -> channel.send(member, "dumbo, you don't know how this works")
+                                }
+                            }
+                        }
                         "shutdown" -> {
-                            channel.send(member, "Shut down JDA instances, exiting...")
-                            jdas.forEach { it.shutdown() }
+                            channel.send(member, "Shutting down JDA instances...")
+                            managers.forEach { idLong, manager ->
+                                if (manager.player.playingTrack != null) {
+                                    manager.scheduler.manager.getChannel()?.send(guild.selfMember.user, "**Squashing bugs** and **becoming stronger**... I'll be back online in a few seconds, updating!")
+                                }
+                            }
+                            jdas.forEach {
+                                it.shutdown()
+                            }
                             System.exit(0)
                         }
                         "staff" -> {
@@ -302,6 +366,7 @@ class GiveAll : Command(Category.ADMINISTRATE, "giveall", "give all users who do
                                 addedTo++
                             }, {})
                         } catch(ignored: Exception) {
+                            ignored.log()
                         }
                     }
                 }

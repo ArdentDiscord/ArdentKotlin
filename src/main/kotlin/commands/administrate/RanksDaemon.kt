@@ -6,8 +6,9 @@ import main.conn
 import main.r
 import org.json.JSONObject
 import utils.*
+import java.util.concurrent.CopyOnWriteArrayList
 
-val staff = mutableListOf<Staff>()
+val staff = CopyOnWriteArrayList<Staff>()
 
 class RanksDaemon : Runnable {
     val api = API(config.getValue("patreon"))
@@ -16,7 +17,7 @@ class RanksDaemon : Runnable {
             val staffMembers = r.table("staff").run<Any>(conn).queryAsArrayList(Staff::class.java)
             staffMembers.forEach { member ->
                 if (member != null) {
-                    staff.forEach { if (member.id == it.id) return }
+                    staff.forEach { if (member.id == it.id) staff.remove(it) }
                     staff.add(member)
                 }
             }
@@ -30,8 +31,7 @@ class RanksDaemon : Runnable {
                     try {
                         val discordId = current.getJSONObject("attributes").getJSONObject("social_connections").toString().split("{\"user_id\":\"")[1].removeSuffix("\"},\"twitch\":null,\"facebook\":null,\"spotify\":null}")
                         mappedPatreonDiscordIds.put(patreonId, discordId)
-                    }
-                    catch(ignored: Exception) {
+                    } catch(ignored: Throwable) {
                     }
                 }
             }
@@ -62,7 +62,7 @@ class RanksDaemon : Runnable {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            e.log()
         }
     }
 }

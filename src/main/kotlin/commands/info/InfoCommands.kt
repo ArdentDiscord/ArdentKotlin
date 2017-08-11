@@ -259,6 +259,16 @@ class UserInfo : Command(Category.SERVER_INFO, "userinfo", "view cool informatio
     }
 }
 
+class GetId : Command(Category.SERVER_INFO, "getid", "get the id of people in your server by mentioning them") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val mentionedUsers = event.message.mentionedUsers
+        if (mentionedUsers.size == 0) channel.send(member, "You need to mention some people (or bots)!")
+        else {
+            mentionedUsers.forEach { channel.send(member, "**${it.withDiscrim()}**'s ID: ${it.id}") }
+        }
+    }
+}
+
 class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful information about roles in this server", "ri") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val role = event.message.getFirstRole(arguments)
@@ -272,6 +282,12 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
                     .addField("Permissions", role.permissions.map { it.getName() }.concat(), true)
             )
         }
+    }
+}
+
+class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for Ardent's cool website") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "Check out the pages @ https://ardentbot.com ")
     }
 }
 

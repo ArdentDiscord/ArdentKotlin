@@ -20,9 +20,11 @@ import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.Game
+import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
 import utils.EventWaiter
+import utils.logChannel
 import web.Web
 import java.io.File
 import java.io.FileReader
@@ -50,7 +52,7 @@ fun main(args: Array<String>) {
     for (sh in 1..shards) {
         jdas.add(JDABuilder(AccountType.BOT)
                 .setCorePoolSize(10)
-                .setGame(Game.of("With a fancy new /help", "https://twitch.tv/ "))
+                .setGame(Game.of("/help ! <3", "https://twitch.tv/ "))
                 .addEventListener(waiter)
                 .addEventListener(factory)
                 .addEventListener(JoinRemoveEvents())
@@ -59,6 +61,10 @@ fun main(args: Array<String>) {
                 .useSharding(sh - 1, shards)
                 .setToken(config.getValue("token"))
                 .buildBlocking())
+    }
+    jdas.forEach {
+        val logCh: TextChannel? = it.getTextChannelById("345226134532784129")
+        if (logCh != null) logChannel = logCh
     }
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
@@ -109,6 +115,9 @@ fun main(args: Array<String>) {
             .addCommand(FixMusic())
             .addCommand(Nono())
             .addCommand(GiveAll())
+            .addCommand(WebsiteCommand())
+            .addCommand(GetId())
+
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")
 }
@@ -126,6 +135,7 @@ class Config(url: String) {
             }
         } catch (e: IOException) {
             println("Unable to load Config....")
+
             e.printStackTrace()
             System.exit(1)
         }

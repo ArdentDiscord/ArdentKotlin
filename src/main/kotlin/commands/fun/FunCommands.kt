@@ -112,7 +112,7 @@ class Translate : Command(Category.FUN, "translate", "translate text to the prov
             channel.send(member, """Using the translation command is simple. The format for requesting one is as follows:
 **${prefix}translate language_code_here your text goes here**
 
-As follows are the language codes of some languages, but if you don't see the code for the language you want, go to https://ardentbot.com/commands/translate to view a full list.
+As follows are the language codes of some languages, but if you don't see the code for the language you want, go to https://ardentbot.com/translation/languages to view a full list.
 **English**: en, **French**: fr, **Spanish**: es, **Russian**: ru
 
 **Example**: *${prefix}translate en Bonjour tout le monde!* will return *Hello everyone!*""")
@@ -150,8 +150,8 @@ class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is
                                 embed.setColor(Color.GREEN)
                                         .addField("Currently Streaming", "true", true)
                                         .addField("Streaming Game", stream.game, true)
-                                        .addField("Viewers", stream.game, true)
-                                        .addField("Average FPS", stream.game, true)
+                                        .addField("Viewers", stream.viewers.format(), true)
+                                        .addField("Average FPS", stream.averageFps.toString(), true)
                                 embed.setImage(stream.preview.medium)
                             } else {
                                 embed.setColor(Color.RED)

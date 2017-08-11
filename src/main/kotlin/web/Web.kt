@@ -94,6 +94,14 @@ class Web {
             map.put("helpers", staff.filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
             ModelAndView(map, "staff.hbs")
         }, handlebars)
+        get("/patrons", { request, response ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("showSnackbar", false)
+            map.put("title", "Patrons")
+            map.put("patrons", r.table("patrons").run<Any>(conn).queryAsArrayList(Patron::class.java).filter { it != null }.map { it!!.id.toUser() })
+            ModelAndView(map, "patrons.hbs")
+        }, handlebars)
         get("/commands", { request, response ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
@@ -180,7 +188,36 @@ class Web {
                 }
             }
         }, handlebars)
+        get("/administrators", { request, response ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("title", "Administrator Zone")
+            val session = request.session()
+            val user: User? = session.attribute<User>("user")
+            val role: Staff? = session.attribute<Staff>("role")
+            if (user == null) {
+                response.redirect("/login")
+                null
+            } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
+                map.put("showSnackbar", true)
+                map.put("snackbarMessage", "You need to be an administrator to access this page!")
+                ModelAndView(map, "fail.hbs")
 
+            } else {
+                map.put("showSnackbar", false)
+                ModelAndView(map, "administrators.hbs")
+            }
+        }, handlebars)
+        path("/translation", {
+            get("/languages", { request, response ->
+                val map = hashMapOf<String, Any>()
+                handle(request, map)
+                map.put("title", "Language List")
+                map.put("languages_table_one", languages_table_one)
+                map.put("languages_table_two", languages_table_two)
+                ModelAndView(map, "languages.hbs")
+            }, handlebars)
+        })
         get("/support", { _, response -> response.redirect("https://discord.gg/rfGSxNA") })
         get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=$loginRedirect&response_type=code") })
         get("/login", { request, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") })
@@ -250,6 +287,31 @@ class Web {
         }, handlebars)
         path("/api", {
             path("/internal", {
+                path("/administrators", {
+                    get("/remove", { request, response ->
+                        val map = hashMapOf<String, Any>()
+                        handle(request, map)
+                        map.put("title", "Administrator Zone")
+                        val session = request.session()
+                        val user: User? = session.attribute<User>("user")
+                        val role: Staff? = session.attribute<Staff>("role")
+                        if (user == null) {
+                            response.redirect("/login")
+                            null
+                        } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
+                            map.put("showSnackbar", true)
+                            map.put("snackbarMessage", "You need to be an administrator to access this page!")
+                            ModelAndView(map, "fail.hbs")
+
+                        } else {
+                            val id = request.queryParamOrDefault("id", "3")
+                            val whitelisted = user.whitelisted().map { it!!.id }
+                            if (whitelisted.contains(id)) r.table("specialPeople").get(id).delete().runNoReply(conn)
+                            response.redirect("/administrators")
+                            null
+                        }
+                    })
+                })
                 get("/data/*/*", { request, response ->
                     val session = request.session()
                     val user: User? = session.attribute<User>("user")
@@ -294,8 +356,7 @@ class Web {
                                         else data.joinMessage = Pair(data.joinMessage!!.first, null)
                                         if (data.leaveMessage == null) data.leaveMessage = Pair(null, null)
                                         else data.leaveMessage = Pair(data.leaveMessage!!.first, null)
-                                    }
-                                    else {
+                                    } else {
                                         val channel: TextChannel? = ch?.toChannel()
                                         map.replace("showSnackbar", true)
                                         if (channel == null) {
@@ -425,15 +486,14 @@ class Web {
                             null
                         } else {
                             val identification = identityObject(token.access_token)
-                            if (identification == null) {
-                                response.redirect("/welcome")
-                                null
-                            } else {
+                            if (identification != null) {
                                 val session = request.session()
+                                val role = asPojo(r.table("staff").get(identification.id).run(conn), Staff::class.java)
+                                if (role != null) session.attribute("role", role)
                                 session.attribute("user", getUserById(identification.id))
-                                response.redirect("/welcome")
-                                null
                             }
+                            response.redirect("/welcome")
+                            null
                         }
                     }
                 }, handlebars)
@@ -475,6 +535,19 @@ class Web {
             map.put("validSession", true)
             map.put("user", user)
         }
+        val role = session.attribute<Staff>("role")
+        if (role == null) {
+            map.put("isStaff", false)
+            map.put("isAdmin", false)
+            map.put("hasWhitelists", false)
+        } else {
+            val whitelisted = user.whitelisted()
+            map.put("hasWhitelists", whitelisted.isNotEmpty())
+            map.put("whitelisted", whitelisted.filter { it != null }.map { it!!.id.toUser()!! })
+            map.put("isAdmin", role.role == Staff.StaffRole.ADMINISTRATOR)
+            map.put("isStaff", true)
+            map.put("role", role.role)
+        }
     }
 }
 
@@ -482,6 +555,8 @@ fun createUserModel(id: String): Any {
     val user: User = getUserById(id) ?: return Failure("invalid user requested").toJson()
     return UserModel(id, user.name, user.discriminator, user.effectiveAvatarUrl)
 }
+
+data class LangModel(val name: String, val code: String)
 
 data class UserModel(val id: String, val username: String, val discrim: String, val avatar: String)
 

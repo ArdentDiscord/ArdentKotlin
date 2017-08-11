@@ -40,6 +40,7 @@ class CommandFactory {
 
         when (args[0]) {
             "ardent" -> args.removeAt(0)
+            "/" -> args[0] = args[0].removePrefix("/")
             else -> {
                 if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "") else return
             }
@@ -53,6 +54,7 @@ class CommandFactory {
                     try {
                         cmd.execute(args, event)
                     } catch (e: Throwable) {
+                        e.log()
                         event.channel.send(member, "There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +
                                 "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
                     }

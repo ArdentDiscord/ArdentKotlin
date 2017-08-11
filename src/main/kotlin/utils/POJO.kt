@@ -5,6 +5,7 @@ import main.conn
 import main.r
 
 data class Patron(var id: String, var donationLevel: DonationLevel)
+data class SpecialPerson(var id: String, var backer: String)
 
 class GuildData(val id: String, var prefix: String, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole : String? = null, var allowGlobalOverride: Boolean = false)
 

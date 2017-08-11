@@ -5,6 +5,7 @@ import main.config
 import main.jdas
 import org.jsoup.Jsoup
 import utils.getGson
+import utils.log
 
 val dapi = "https://discordapp.com/api"
 
@@ -79,6 +80,7 @@ fun retrieveToken(code: String): Token? {
         if (data.access_token == null) return null // this is a possibility due to issues with the kotlin compiler
         else return data /* verified non null object */
     } catch (e: JsonSyntaxException) {
+        e.log()
         return null
     }
 }

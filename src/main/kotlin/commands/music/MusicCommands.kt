@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import events.Category
 import events.Command
+import main.conn
 import main.managers
 import main.playerManager
 import net.dv8tion.jda.core.entities.*
@@ -215,10 +216,6 @@ class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks 
 fun VoiceChannel.connect(member: Member, textChannel: TextChannel) {
     val guild = member.guild
     val audioManager = guild.audioManager
-    if (audioManager.isConnected) {
-        textChannel.send(member, "${Emoji.CROSS_MARK} I'm already connected to a voice channel")
-        return
-    }
     try {
         audioManager.openAudioConnection(this)
     } catch (e: Throwable) {
@@ -239,7 +236,8 @@ fun Member.checkSameChannel(textChannel: TextChannel): Boolean {
         return false
     }
     if (guild.selfMember.voiceState.channel == null) {
-        textChannel.send(this, "${Emoji.CROSS_MARK} I need to be connected to a voice channel")
+        guild.audioManager.closeAudioConnection()
+        voiceState.channel.connect(this, textChannel)
         return false
     }
     if (guild.selfMember.voiceState.channel != voiceState.channel) {
@@ -283,7 +281,12 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
         override fun playlistLoaded(playlist: AudioPlaylist) {
             if (!playlist.isSearchResult) {
                 textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding ${playlist.tracks.size} tracks to the queue...")
-                playlist.tracks.forEach { play(member, member.guild, guild.selfMember.voiceChannel()!!, musicManager, it, textChannel) }
+                try {
+                    playlist.tracks.forEach { play(member, member.guild, member.voiceChannel()!!, musicManager, it, textChannel) }
+                }
+                catch (e: Exception) {
+                    textChannel.send(member, "Failed to play tracks: **Error:** ${e.localizedMessage}")
+                }
                 return
             }
             val selectFrom = mutableListOf<String>()

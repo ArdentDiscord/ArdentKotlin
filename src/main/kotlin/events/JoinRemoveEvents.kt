@@ -65,7 +65,7 @@ class JoinRemoveEvents {
         val data = e.guild.getData()
         val joinMessage = data.joinMessage
         if (joinMessage != null) {
-            val channel: TextChannel? = e.guild.getTextChannelById(joinMessage.second)
+            val channel: TextChannel? = e.guild.getTextChannelById(joinMessage.second ?: "1")
             if (channel != null) {
                 if (joinMessage.first /* Message */ != null && !joinMessage.first!!.isEmpty()) {
                     channel.send(e.guild.owner,
@@ -92,7 +92,7 @@ class JoinRemoveEvents {
                                             "owner or administrators to let them know.")
                                 })
                             })
-                } catch(ignored: Exception) {
+                } catch(e: Exception) {
                 }
             }
         }
@@ -103,7 +103,7 @@ class JoinRemoveEvents {
         val data = e.guild.getData()
         val leaveMessage = data.leaveMessage
         if (leaveMessage != null) {
-            val channel: TextChannel? = e.guild.getTextChannelById(leaveMessage.second)
+            val channel: TextChannel? = e.guild.getTextChannelById(leaveMessage.second ?: "1")
             if (channel != null) {
                 if (leaveMessage.first /* Message */ != null && !leaveMessage.first!!.isEmpty()) {
                     channel.send(e.guild.owner,

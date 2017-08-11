@@ -42,11 +42,11 @@ fun String.toRole(guild: Guild): Role? {
     }
 }
 
-fun Member.isStaff() : Boolean {
+fun Member.isStaff(): Boolean {
     return user.isStaff()
 }
 
-fun User.isStaff() : Boolean {
+fun User.isStaff(): Boolean {
     return staff.map { it.id }.contains(id)
 }
 
@@ -136,9 +136,11 @@ fun List<String>.toUsers(): String {
 fun Guild.getData(): GuildData {
     val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
     if (guildData != null) return guildData
-    val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>())
-    data.insert("guilds")
-    return data
+    else {
+        val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>())
+        data.insert("guilds")
+        return data
+    }
 }
 
 fun Message.getFirstRole(arguments: List<String>): Role? {
@@ -180,6 +182,10 @@ fun MessageChannel.sendReceive(member: Member, message: String): Message? {
         sendFailed(member.user, false)
     }
     return null
+}
+
+fun User.whitelisted(): List<SpecialPerson?> {
+    return r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java).filter { it != null && it.backer == id }
 }
 
 fun TextChannel.send(member: Member, embedBuilder: EmbedBuilder) {
@@ -240,6 +246,7 @@ fun sendFailed(user: User, embed: Boolean) {
                 privateChannel.sendMessage("I don't have permission to send embeds in this channel!").queue()
             }
         } catch (e: Throwable) {
+            e.log()
             e.printStackTrace()
         }
     }
@@ -285,8 +292,9 @@ fun Member.isPatron(): Boolean {
 
 fun User.donationLevel(): DonationLevel {
     staff.forEach { if (it.id == id) return DonationLevel.EXTREME }
-    val level = asPojo(r.table("patrons").get(id).run(conn), Patron::class.java) ?: return DonationLevel.NONE
-    return level.donationLevel
+    val special = asPojo(r.table("specialPeople").get(id).run(conn), SpecialPerson::class.java)
+    if (special != null) return DonationLevel.EXTREME
+    return asPojo(r.table("patrons").get(id).run(conn), Patron::class.java)?.donationLevel ?: DonationLevel.NONE
 }
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {

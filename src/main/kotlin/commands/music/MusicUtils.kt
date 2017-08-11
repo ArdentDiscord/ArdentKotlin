@@ -173,8 +173,8 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
         manager.nextTrack()
         try {
             manager.getChannel()?.sendMessage("I wasn't able to play that track, skipping... **Reason: **${exception.localizedMessage}")?.queue()
-        } catch (ex: Exception) {
-            ex.printStackTrace()
+        } catch (e: Exception) {
+            e.log()
         }
     }
 }

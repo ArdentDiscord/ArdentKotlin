@@ -7,6 +7,8 @@ import commands.games.CoinflipGame
 import commands.info.formatter
 import main.conn
 import main.r
+import net.dv8tion.jda.core.entities.TextChannel
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject
 import java.lang.management.ManagementFactory
 import java.time.Instant
@@ -14,6 +16,7 @@ import java.util.*
 import javax.management.Attribute
 import javax.management.ObjectName
 
+var logChannel: TextChannel? = null
 
 private val random = Random()
 private val gsons = listOf(GsonBuilder().serializeSpecialFloatingPointValues().create(),
@@ -26,6 +29,10 @@ private val gsons = listOf(GsonBuilder().serializeSpecialFloatingPointValues().c
         GsonBuilder().serializeSpecialFloatingPointValues().create(),
         GsonBuilder().serializeSpecialFloatingPointValues().create(),
         GsonBuilder().serializeSpecialFloatingPointValues().create())
+
+fun Throwable.log() {
+    logChannel!!.sendMessage("```${ExceptionUtils.getStackTrace(this)}```").queue()
+}
 
 fun <E> MutableList<E>.shuffle(): MutableList<E> {
     Collections.shuffle(this)

@@ -1,0 +1,52 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Language List</h2>
+        <p>Use <b>/translate <em>language_code</em> your_text_here</b> to translate between the detected language and
+            the target</p>
+    </header>
+    <br/>
+    <h4>{{category.fancyName}}</h4>
+    <div class="table-wrapper">
+        <div class="6u" style="float: left;">
+            <table class="alt">
+                <thead>
+                <tr>
+                    <th>Language Name</th>
+                    <th>Code</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{#each languages_table_one}}
+                    <tr>
+                        <td>{{name}}</td>
+                        <td>{{code}}</td>
+                    </tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </div>
+        <div class="6u" style="float:left;">
+            <table class="alt">
+                <thead>
+                <tr>
+                    <th>Language Name</th>
+                    <th>Code</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{#each languages_table_two}}
+                    <tr>
+                        <td>{{name}}</td>
+                        <td>{{code}}</td>
+                    </tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+{{> footer.hbs }}

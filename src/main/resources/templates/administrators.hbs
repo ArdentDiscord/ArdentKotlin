@@ -1,0 +1,48 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Admin Zone</h2>
+    </header>
+    <div class="box">
+        <h3>Manage your 3 whitelists</h3>
+        <p>This gives the highest patron role's permissions to the people you designate.<br/>
+            Add people to the whitelist using <b>/nono whitelist</b><p>
+        {{#if hasWhitelists}}
+            <p>hi</p>
+            <div class="table-wrapper">
+                <div class="6u">
+                    <table class="alt">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Remove</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#each whitelisted}}
+                            <tr>
+                                <td>{{name}}#{{discriminator}}</td>
+                                <td><a href="/api/internal/administrators/remove?id={{id}}"><img height="16" width="16"
+                                        src="/images/x_button.png"></a></td>
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        {{/if}}
+        {{#each patrons}}
+            <figure style="display: inline-block; padding-right: 30px;">
+                <img height="128" width="128" src="{{effectiveAvatarUrl}}">
+                <figcaption>{{name}}#{{discriminator}}</figcaption>
+            </figure>
+        {{/each}}
+        </p>
+    </div>
+
+</section>
+
+{{> footer.hbs }}
