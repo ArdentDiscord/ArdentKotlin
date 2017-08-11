@@ -259,6 +259,12 @@ class UserInfo : Command(Category.SERVER_INFO, "userinfo", "view cool informatio
     }
 }
 
+class Support : Command(Category.BOT_INFO, "support", "need help? something not working?") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "Need help? Something not working? Join our support server @ https://discord.gg/rfGSxNA")
+    }
+}
+
 class GetId : Command(Category.SERVER_INFO, "getid", "get the id of people in your server by mentioning them") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers

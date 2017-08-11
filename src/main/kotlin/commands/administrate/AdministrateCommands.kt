@@ -268,8 +268,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                                             else {
                                                 if (toWhitelist.donationLevel() != DonationLevel.NONE) channel.send(member, "this person already has patreon permissions")
                                                 else {
-                                                    val whitelisted = r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java)
-                                                            .filter { it != null && it.backer == member.id() }
+                                                    val whitelisted = member.user.whitelisted()
                                                     if (whitelisted.size == 3) channel.send(member, "You can only whitelist 3 people at a time :(")
                                                     else {
                                                         SpecialPerson(toWhitelist.id, member.id()).insert("specialPeople")

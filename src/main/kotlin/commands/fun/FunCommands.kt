@@ -122,7 +122,7 @@ As follows are the language codes of some languages, but if you don't see the co
                 arguments.removeAt(0)
                 channel.send(member, api.translationApi().translate(arguments.concat(), Language.of(code)).text()!!)
             } catch (e: Exception) {
-                channel.send(member, "You need to include a valid language code! Please visit https://ardentbot.com/commands/translate for a guide")
+                channel.send(member, "You need to include a valid language code! Please visit https://ardentbot.com/translation/languages for a guide")
             }
         }
     }

@@ -31,7 +31,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = true
+val test = false
 
 var r = RethinkDB.r
 var conn: Connection? = null
@@ -117,6 +117,7 @@ fun main(args: Array<String>) {
             .addCommand(GiveAll())
             .addCommand(WebsiteCommand())
             .addCommand(GetId())
+            .addCommand(Support())
 
     startAdministrativeDaemon()
     println("Successfully set up. Ready to receive commands!")

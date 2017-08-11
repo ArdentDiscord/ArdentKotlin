@@ -29,7 +29,12 @@ class Web {
             val httpServer = Service.ignite().port(80)
             httpServer.before { request, response ->
                 val url = request.url()
-                response.redirect("https://${url.split("http://")[1]}")
+                try {
+                    response.redirect("https://${url.split("http://")[1]}")
+                }
+                catch (e: Exception) {
+                    response.redirect("https://ardentbot.com")
+                }
             }
             port(443)
             secure("/root/Ardent/keystore.p12", "ardent", null, null)
