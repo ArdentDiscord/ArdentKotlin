@@ -31,8 +31,7 @@ class Web {
                 val url = request.url()
                 try {
                     response.redirect("https://${url.split("http://")[1]}")
-                }
-                catch (e: Exception) {
+                } catch (e: Exception) {
                     response.redirect("https://ardentbot.com")
                 }
             }
@@ -292,6 +291,43 @@ class Web {
         }, handlebars)
         path("/api", {
             path("/internal", {
+                get("/useraction/*", { request, response ->
+                    val map = hashMapOf<String, Any>()
+                    handle(request, map)
+                    if (request.splat().isEmpty()) {
+                        ModelAndView(map, "404")
+                    } else {
+                        val session = request.session()
+                        val user: User? = session.attribute<User>("user")
+                        if (user == null) {
+                            response.redirect("/login")
+                            null
+                        } else {
+                            val actionUser = getUserById(request.splat()[0])
+                            if (actionUser == null || request.queryParams("action") == null) {
+                                map.put("showSnackbar", true)
+                                map.put("snackbarMessage", "No user with that ID, or no action, was found!")
+                                ModelAndView(map, "404.hbs")
+                            }
+                            else {
+                               when (request.queryParams("action")) {
+                                   "addWhitelisted" -> {
+
+                                   }
+                                   "removeWhitelisted" -> {
+
+                                   }
+                                   else -> {
+                                       map.put("showSnackbar", true)
+                                       map.put("snackbarMessage", "No registered action was found!")
+                                       ModelAndView(map, "404.hbs")
+                                   }
+                               }
+                            }
+                        }
+
+                    }
+                }, handlebars)
                 path("/administrators", {
                     get("/remove", { request, response ->
                         val map = hashMapOf<String, Any>()

@@ -86,7 +86,12 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
         val track = queue.poll()
         if (track != null) {
             val set: Boolean = track.track.position != 0.toLong()
-            player.startTrack(track.track, false)
+            try {
+                player.startTrack(track.track, false)
+            }
+            catch (e: Exception) {
+                player.startTrack(track.track.makeClone(), false)
+            }
             if (set) player.playingTrack.position = track.track.position
             current = track
         } else {

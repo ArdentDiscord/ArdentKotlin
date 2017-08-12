@@ -24,22 +24,15 @@
                             <tr>
                                 <td>{{name}}#{{discriminator}}</td>
                                 <td><a href="/api/internal/administrators/remove?id={{id}}"><img height="16" width="16"
-                                        src="/images/x_button.png"></a></td>
+                                                                                                 src="/images/x_button.png"></a>
+                                </td>
                             </tr>
                         {{/each}}
                         </tbody>
                     </table>
                 </div>
             </div>
-
         {{/if}}
-        {{#each patrons}}
-            <figure style="display: inline-block; padding-right: 30px;">
-                <img height="128" width="128" src="{{effectiveAvatarUrl}}">
-                <figcaption>{{name}}#{{discriminator}}</figcaption>
-            </figure>
-        {{/each}}
-        </p>
     </div>
 
 </section>

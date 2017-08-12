@@ -237,20 +237,7 @@ fun sendEmbed(embedBuilder: EmbedBuilder, channel: TextChannel, user: User, vara
     return MessageBuilder().build()
 }
 
-fun sendFailed(user: User, embed: Boolean) {
-    user.openPrivateChannel().queue { privateChannel ->
-        try {
-            if (!embed) {
-                privateChannel.sendMessage("I don't have permission to send embeds in this channel!").queue()
-            } else {
-                privateChannel.sendMessage("I don't have permission to send embeds in this channel!").queue()
-            }
-        } catch (e: Throwable) {
-            e.log()
-            e.printStackTrace()
-        }
-    }
-}
+@Deprecated("useless") fun sendFailed(user: User, embed: Boolean) {}
 
 fun Guild.getPrefix(): String {
     val prefix = this.getData().prefix
