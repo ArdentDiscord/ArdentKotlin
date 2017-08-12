@@ -113,8 +113,8 @@ fun getGuildById(id: String): Guild? {
     return null
 }
 
-fun getUserById(id: String): User? {
-    return id.toUser()
+fun getUserById(id: String?): User? {
+    return id?.toUser()
 }
 
 fun guilds(): ArrayList<Guild> {

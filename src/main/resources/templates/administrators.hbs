@@ -6,9 +6,24 @@
         <h2>Admin Zone</h2>
     </header>
     <div class="box">
-        <h3>Manage your 3 whitelists</h3>
-        <p>This gives the highest patron role's permissions to the people you designate.<br/>
-            Add people to the whitelist using <b>/nono whitelist</b><p>
+        <h3>Manage your 3 whitelists (gives highest patron permissions)</h3>
+        <h5><b>Add someone by Discord ID</b><br/>
+            If you don't know how to get a Discord ID, type <b>/getid @UserToGetIdFor</b> in one of your servers!</h5>
+        <div class="12u">
+            <form action="/api/internal/useraction">
+                <input name="action" value="addWhitelisted" hidden>
+                <input name="redirect" value="administrators" hidden>
+                <div class="row uniform 50%">
+                    <div class="4u 12u(mobilep)">
+                        <input type="text" name="id" id="id" value="" placeholder="Enter Discord ID.."/>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Update" class="alt"/>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <h5><b>Remove Whitelists</b></h5>
         {{#if hasWhitelists}}
             <div class="table-wrapper">
                 <div class="6u">

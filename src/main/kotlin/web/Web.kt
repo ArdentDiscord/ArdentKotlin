@@ -291,41 +291,77 @@ class Web {
         }, handlebars)
         path("/api", {
             path("/internal", {
-                get("/useraction/*", { request, response ->
+                get("/useraction", { request, response ->
                     val map = hashMapOf<String, Any>()
                     handle(request, map)
-                    if (request.splat().isEmpty()) {
-                        ModelAndView(map, "404")
-                    } else {
                         val session = request.session()
                         val user: User? = session.attribute<User>("user")
                         if (user == null) {
                             response.redirect("/login")
                             null
                         } else {
-                            val actionUser = getUserById(request.splat()[0])
+                            val actionUser = getUserById(request.queryParams("id"))
                             if (actionUser == null || request.queryParams("action") == null) {
                                 map.put("showSnackbar", true)
                                 map.put("snackbarMessage", "No user with that ID, or no action, was found!")
                                 ModelAndView(map, "404.hbs")
+                            } else {
+                                when (request.queryParams("action")) {
+                                    "addWhitelisted" -> {
+                                        val role = session.attribute<Staff>("role")
+                                        if (role == null) ModelAndView(map, "fail.hbs")
+                                        else {
+                                            if (role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                                map.put("showSnackbar", true)
+                                                map.put("snackbarMessage", "You don't have permission to do this!")
+                                                ModelAndView(map, "fail.hbs")
+                                            } else {
+                                                if (user.whitelisted().size >= 3) {
+                                                    map.put("showSnackbar", true)
+                                                    map.put("snackbarMessage", "You can't have more than 3 whitelists at a time!")
+                                                    ModelAndView(map, "fail.hbs")
+                                                } else {
+                                                    SpecialPerson(actionUser.id, user.id).insert("specialPeople")
+                                                    val redirect = request.queryParams("redirect")
+                                                    if (redirect == null) response.redirect("/")
+                                                    else response.redirect("/$redirect")
+                                                    null
+                                                }
+                                            }
+                                        }
+                                    }
+                                    "removeWhitelisted" -> {
+                                        val role = session.attribute<Staff>("role")
+                                        if (role == null) ModelAndView(map, "fail.hbs")
+                                        else {
+                                            if (role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                                map.put("showSnackbar", true)
+                                                map.put("snackbarMessage", "You don't have permission to do this!")
+                                                ModelAndView(map, "fail.hbs")
+                                            } else {
+                                                val whitelists = user.whitelisted().map { it!!.id }
+                                                val isWhitelisted = whitelists.contains(actionUser.id)
+                                                if (!isWhitelisted) {
+                                                    map.put("showSnackbar", true)
+                                                    map.put("snackbarMessage", "You haven't whitelisted this user!")
+                                                    ModelAndView(map, "fail.hbs")
+                                                } else {
+                                                    r.table("specialPeople").get(actionUser.id).delete().runNoReply(conn)
+                                                    val redirect = request.queryParams("redirect")
+                                                    if (redirect == null) response.redirect("/")
+                                                    else response.redirect("/$redirect")
+                                                    null
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else -> {
+                                        map.put("showSnackbar", true)
+                                        map.put("snackbarMessage", "No registered action was found!")
+                                        ModelAndView(map, "404.hbs")
+                                    }
+                                }
                             }
-                            else {
-                               when (request.queryParams("action")) {
-                                   "addWhitelisted" -> {
-
-                                   }
-                                   "removeWhitelisted" -> {
-
-                                   }
-                                   else -> {
-                                       map.put("showSnackbar", true)
-                                       map.put("snackbarMessage", "No registered action was found!")
-                                       ModelAndView(map, "404.hbs")
-                                   }
-                               }
-                            }
-                        }
-
                     }
                 }, handlebars)
                 path("/administrators", {
