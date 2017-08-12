@@ -171,36 +171,9 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
             val number = unparsedTime.toLongOrNull()
             if (number == null) channel.send(member, "You specified an invalid number. Type ${guild.getPrefix()}mute for help with this command")
             else {
-                val mutedRoles = guild.getRolesByName("muted", true)
-                if (mutedRoles.size == 0) {
-                    channel.send(member, "There isn't a `Muted` role in this server! I'll try to create one automatically, but this is necessary.")
-                    guild.controller.createRole().setColor(Color.PINK).setMentionable(true).setName("Muted").queue({ role ->
-                        val succeeded = mutableListOf<TextChannel>()
-                        val failed = mutableListOf<TextChannel>()
-                        guild.textChannels.forEach { ch -> ch.createPermissionOverride(role).setDeny(Permission.MESSAGE_WRITE).queue({}, {}) }
-                        if (succeeded.size == 0) {
-                            guild.publicChannel.sendMessage("Success! You will need to manually disable this role's ability to send messages in your channels, but the role was successfully created").queue()
-                        } else if (failed.size == 0) {
-                            guild.publicChannel.sendMessage("Successfully created role. Try `/help` to see our commands!").queue()
-                        } else {
-                            guild.publicChannel.sendMessage("I set Permission Overrides for the following channels: ${succeeded.map { it.name }.stringify()}. " +
-                                    "You will need to set them manually for other channels. Try `/help` to get started with Ardent!")
-                            mutedRoles.add(role)
-                        }
-                    }, {
-                        guild.publicChannel.sendMessage("Failed to create role due to lack of permission, and therefore failed to mute." +
-                                " Keep in mind that you will not be able to use `/mute` without a **Muted** role").queue()
-                    })
-                }
-                if (mutedRoles.size == 1) {
-                    guild.controller.addRolesToMember(muteMember, mutedRoles[0]).reason("Muted by ${member.withDiscrim()}").queue({
-                        val unmuteTime = System.currentTimeMillis() + (unit.toMillis(number))
-                        Punishment(muteMember.id(), member.id(), guild.id, Punishment.Type.MUTE, unmuteTime).insert("punishments")
-                        channel.send(member, "Successfully muted **${muteMember.withDiscrim()}** until ${unmuteTime.readableDate()}")
-                    }, {
-                        channel.send(member, "Failed to add the `Muted` role to **${muteMember.withDiscrim()}**. Please update my permissions and retry1")
-                    })
-                }
+                val unmuteTime = System.currentTimeMillis() + (unit.toMillis(number))
+                Punishment(muteMember.id(), member.id(), guild.id, Punishment.Type.MUTE, unmuteTime).insert("punishments")
+                channel.send(member, "Successfully muted **${muteMember.withDiscrim()}** until ${unmuteTime.readableDate()}")
             }
         }
     }

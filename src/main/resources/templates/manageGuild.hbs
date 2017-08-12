@@ -32,6 +32,24 @@
             </div>
         </form>
         <br/>
+        <h5>When the queue ends, should I automatically play related songs (similar to Youtube's autoplay)</h5>
+        <form action="/api/internal/data/{{guild.id}}/autoplaymusic">
+            <div class="row uniform 50%">
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="autoplayOff" name="state" value="off"
+                           {{#unless autoplayMusic}}checked{{/unless}}>
+                    <label for="autoplayOff">Disabled</label>
+                </div>
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="autoplayOn" name="state" value="on" {{#if autoplayMusic}}checked{{/if}}>
+                    <label for="autoplayOn">Enabled</label>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
+        <br/>
         <h5>Do you want to allow everyone in your server to use music commands such as /stop and /skip? </h5>
         <form action="/api/internal/data/{{guild.id}}/trusteveryone">
             <div class="row uniform 50%">

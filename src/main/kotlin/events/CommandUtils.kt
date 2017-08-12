@@ -33,33 +33,45 @@ class CommandFactory {
     @SubscribeEvent
     fun onMessageEvent(event: MessageReceivedEvent) {
         if (event.author.isBot) return
-        messagesReceived.getAndIncrement()
-        val member = event.member
-        val args = event.message.rawContent.split(" ").toMutableList()
-        val prefix = event.guild.getPrefix()
-
-        when (args[0]) {
-            "ardent" -> args.removeAt(0)
-            "/" -> args[0] = args[0].removePrefix("/")
-            else -> {
-                if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "") else return
+        var cont = true
+        event.guild.punishments().forEach { punishment ->
+            if (punishment != null && punishment.id == event.author.id) {
+                try {
+                    event.message.delete().reason("This user is muted").queue()
+                    cont = false
+                } catch (ignored: Exception) {
+                }
             }
         }
+        messagesReceived.getAndIncrement()
+        if (cont) {
+            val member = event.member
+            val args = event.message.rawContent.split(" ").toMutableList()
+            val prefix = event.guild.getPrefix()
 
-        commands.forEach { cmd ->
-            if (cmd.containsAlias(args[0])) {
-                args.removeAt(0)
-                commandsById.incrementValue(cmd.name)
-                executor.execute {
-                    try {
-                        cmd.execute(args, event)
-                    } catch (e: Throwable) {
-                        e.log()
-                        event.channel.send(member, "There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +
-                                "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
-                    }
+            when (args[0]) {
+                "ardent" -> args.removeAt(0)
+                "/" -> args[0] = args[0].removePrefix("/")
+                else -> {
+                    if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "") else return
                 }
-                return
+            }
+
+            commands.forEach { cmd ->
+                if (cmd.containsAlias(args[0])) {
+                    args.removeAt(0)
+                    commandsById.incrementValue(cmd.name)
+                    executor.execute {
+                        try {
+                            cmd.execute(args, event)
+                        } catch (e: Throwable) {
+                            e.log()
+                            event.channel.send(member, "There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +
+                                    "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
+                        }
+                    }
+                    return
+                }
             }
         }
     }

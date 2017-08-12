@@ -10,7 +10,7 @@ data class SpecialPerson(var id: String, var backer: String)
 class GuildData(val id: String, var prefix: String, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole : String? = null, var allowGlobalOverride: Boolean = false)
 
 class MusicSettings(var announceNewMusic: Boolean = false, var singleSongInQueueForMembers: Boolean = false, var membersCanMoveBot: Boolean = true,
-                    var membersCanSkipSongs: Boolean = false)
+                    var membersCanSkipSongs: Boolean = false, var autoQueueSongs: Boolean = false)
 
 data class UDSearch(val tags: List<String>, val result_type: String, val list: List<UDResult>, val sounds: List<String>)
 

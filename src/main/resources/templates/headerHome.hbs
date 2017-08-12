@@ -29,29 +29,5 @@
 </head>
 <body class="landing">
 <div id="page-wrapper">
-
-    <!-- Header -->
     <header id="header" class="alt">
-        <h1><a href="/">Ardent</a> | Discord Bot</h1>
-        <nav id="nav">
-            <ul>
-                <li><a href="/">Home</a></li>
-                <li><a href="/status">Status</a></li>
-                <li><a href="/commands">Commands</a></li>
-                <li><a href="/invite">Invite</a></li>
-                <li>
-                    <a href="#" class="icon fa-angle-down">Info</a>
-                    <ul>
-                        <li><a href="/staff">Staff</a></li>
-                        <li><a href="/patrons">Our Supporters</a></li>
-                        <li><a href="/patreon">Patreon</a></li>
-                    </ul>
-                </li>
-                {{# if validSession}}
-                    <li><a href="manage" class="button">Manage</a></li>
-                {{else}}
-                    <li><a href="login" class="button">Login</a></li>
-                {{/if}}
-            </ul>
-        </nav>
-    </header>
+        {{> menu.hbs}}

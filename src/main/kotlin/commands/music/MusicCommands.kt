@@ -86,7 +86,7 @@ class Skip : Command(Category.MUSIC, "skip", "skips the currently playing track"
         val manager = guild.getGuildAudioPlayer(channel)
         if (!manager.player.currentlyPlaying(channel)) return
         val track = manager.scheduler.manager.current!!
-        manager.scheduler.manager.nextTrack()
+        manager.player.playingTrack.position = manager.player.playingTrack.duration - 1
         channel.send(member, "Skipped current track: **${track.track.info.title}** by *${track.track.info.author}* ${track.track.getCurrentTime()} - added by **${track.author.toUser()?.withDiscrim()}**")
     }
 }
@@ -247,7 +247,7 @@ fun Member.checkSameChannel(textChannel: TextChannel): Boolean {
     return true
 }
 
-fun String.load(member: Member, textChannel: TextChannel, message: Message, search: Boolean = false, radioName: String? = null) {
+fun String.load(member: Member, textChannel: TextChannel, message: Message?, search: Boolean = false, radioName: String? = null, autoplay: Boolean = false) {
     if (member.voiceState.channel == null) {
         textChannel.send(member, "${Emoji.CROSS_MARK} You need to be connected to a voice channel")
         return
@@ -274,8 +274,13 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
         }
 
         override fun noMatches() {
-            if (search) textChannel.send(member, "I was unable to find a track with that name. Please try again with a different query")
-            else ("ytsearch: ${this@load}").load(member, textChannel, message, true)
+            if (search) {
+                if (autoplay) {
+                    textChannel.send(member, "I was unable to find a related song...")
+                }
+                else textChannel.send(member, "I was unable to find a track with that name. Please try again with a different query")
+            }
+            else ("ytsearch: ${this@load}").load(member, textChannel, message, true, autoplay = autoplay)
         }
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
@@ -289,20 +294,36 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message, sear
                 }
                 return
             }
-            val selectFrom = mutableListOf<String>()
-            val num: Int
-            if (playlist.tracks.size >= 7) num = 7
-            else num = playlist.tracks.size
-            (1..num)
-                    .map { playlist.tracks[it - 1] }
-                    .map { it.info }
-                    .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
-            textChannel.selectFromList(member, "Select Song", selectFrom, { response ->
-                val track = playlist.tracks[response]
-                play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
-                textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
-            })
-
+            if (autoplay) {
+                if (playlist.tracks.size > 0) {
+                    var cont = true
+                    var current = 0
+                    while (cont) {
+                        val track = playlist.tracks[current]
+                        if (track.duration < 20 * 1000 * 60) {
+                            cont = false
+                            play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
+                            textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue... **[Ardent Autoplay]**")
+                        }
+                        current++
+                    }
+                }
+            }
+            else {
+                val selectFrom = mutableListOf<String>()
+                val num: Int
+                if (playlist.tracks.size >= 7) num = 7
+                else num = playlist.tracks.size
+                (1..num)
+                        .map { playlist.tracks[it - 1] }
+                        .map { it.info }
+                        .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
+                textChannel.selectFromList(member, "Select Song", selectFrom, { response ->
+                    val track = playlist.tracks[response]
+                    play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
+                    textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
+                })
+            }
         }
     })
 }

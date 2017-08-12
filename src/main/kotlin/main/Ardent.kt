@@ -7,6 +7,7 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
+import com.wrapper.spotify.Api
 import commands.`fun`.*
 import commands.administrate.*
 import commands.games.Games
@@ -44,6 +45,9 @@ var config: Config = if (test) Config("C:\\Users\\Adam\\Desktop\\config.txt") el
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()
+
+val spotifyApi = Api.builder().clientId("79d455af5aea45c094c5cea04d167ac1").clientSecret(config.getValue("spotifySecret"))
+        .redirectURI("https://ardentbot.com").build()
 
 val shards = 2
 

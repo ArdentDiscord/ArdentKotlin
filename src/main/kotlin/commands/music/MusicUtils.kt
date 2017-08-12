@@ -1,26 +1,23 @@
 package commands.music
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
-import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
-import net.dv8tion.jda.core.audio.AudioSendHandler
-import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
-import net.dv8tion.jda.core.entities.User
-import net.dv8tion.jda.core.entities.MessageChannel
-import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import java.util.concurrent.LinkedBlockingQueue
-import java.time.Instant
-import net.dv8tion.jda.core.entities.TextChannel
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
-import jdk.nashorn.internal.objects.NativeDate
+import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
+import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
 import main.managers
 import main.playerManager
+import main.spotifyApi
+import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.entities.User
 import utils.*
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
-
 
 class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHandler {
     private var lastFrame: AudioFrame? = null
@@ -88,8 +85,7 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
             val set: Boolean = track.track.position != 0.toLong()
             try {
                 player.startTrack(track.track, false)
-            }
-            catch (e: Exception) {
+            } catch (e: Exception) {
                 player.startTrack(track.track.makeClone(), false)
             }
             if (set) player.playingTrack.position = track.track.position
@@ -154,9 +150,22 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     }
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
-        if (endReason.mayStartNext) {
-            manager.nextTrack()
-        }
+        if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs) {
+            val songSearch = spotifyApi.searchTracks(track.info.title.replace("\\p{P}", "").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
+            try {
+                val get = songSearch.get()
+                if (get.items.size == 0) {
+                    channel?.send(guild.selfMember, "Couldn't find this song in the Spotify database, no autoplay available.")
+                    return
+                }
+                val songId = get.items[0].id
+                spotifyApi.getRecommendations().tracks(mutableListOf(songId)).build().get()[0].name.load(guild.selfMember,
+                        channel ?: guild.publicChannel, null, false, autoplay = true)
+            } catch(e: Exception) {
+                println(e.printStackTrace())
+                channel?.send(guild.selfMember, "Unable to autoplay... track lookup failed")
+            }
+        } else manager.nextTrack()
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
