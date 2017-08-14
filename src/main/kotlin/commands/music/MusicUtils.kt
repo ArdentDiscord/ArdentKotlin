@@ -88,7 +88,7 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
             } catch (e: Exception) {
                 player.startTrack(track.track.makeClone(), false)
             }
-            if (set) player.playingTrack.position = track.track.position
+            if (set && player.playingTrack != null) player.playingTrack.position = track.track.position
             current = track
         } else {
             player.startTrack(null, false)
@@ -151,7 +151,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
         if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs) {
-            val songSearch = spotifyApi.searchTracks(track.info.title.replace("\\p{P}", "").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
+            val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
             try {
                 val get = songSearch.get()
                 if (get.items.size == 0) {
@@ -166,6 +166,16 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                 channel?.send(guild.selfMember, "Unable to autoplay... track lookup failed")
             }
         } else manager.nextTrack()
+    }
+
+    fun String.rmCharacters(characterSymbol: String): String {
+        if (characterSymbol.contains("[]")) {
+            return this.replace("\\s*\\[[^\\]]*\\]\\s*".toRegex(), " ")
+        } else if (characterSymbol.contains("{}")) {
+            return this.replace("\\s*\\{[^\\}]*\\}\\s*".toRegex(), " ")
+        } else {
+            return this.replace("\\s*\\([^\\)]*\\)\\s*".toRegex(), " ")
+        }
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {

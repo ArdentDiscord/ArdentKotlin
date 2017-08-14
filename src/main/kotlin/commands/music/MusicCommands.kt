@@ -200,6 +200,17 @@ class FixMusic : Command(Category.MUSIC, "fixmusic", "fix your music player if s
     }
 }
 
+class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (member.hasOverride(channel, true, djCommand = true)) {
+            if (!member.checkSameChannel(channel)) return
+            guild.getGuildAudioPlayer(channel).scheduler.manager.resetQueue()
+            channel.send(member, "Cleared the queue ${Emoji.BALLOT_BOX_WITH_CHECK}")
+        }
+
+    }
+}
+
 class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks from the mentioned user or users", "rf") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true)) return
