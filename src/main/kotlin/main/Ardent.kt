@@ -32,7 +32,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = false
+val test = true
 
 var r = RethinkDB.r
 var conn: Connection? = null

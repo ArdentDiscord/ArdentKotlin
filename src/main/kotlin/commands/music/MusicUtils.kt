@@ -161,10 +161,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                 val songId = get.items[0].id
                 spotifyApi.getRecommendations().tracks(mutableListOf(songId)).build().get()[0].name.load(guild.selfMember,
                         channel ?: guild.publicChannel, null, false, autoplay = true)
-            } catch(e: Exception) {
-                println(e.printStackTrace())
-                channel?.send(guild.selfMember, "Unable to autoplay... track lookup failed")
-            }
+            } catch(e: Exception) {}
         } else manager.nextTrack()
     }
 

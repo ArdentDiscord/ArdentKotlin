@@ -1,11 +1,17 @@
 package web
 
 import com.google.gson.JsonSyntaxException
+import com.rethinkdb.gen.ast.Uuid
 import main.config
+import main.conn
 import main.jdas
+import main.r
+import net.dv8tion.jda.core.entities.User
 import org.jsoup.Jsoup
 import utils.getGson
 import utils.log
+import utils.readableDate
+import utils.toUser
 
 val dapi = "https://discordapp.com/api"
 
@@ -82,5 +88,21 @@ fun retrieveToken(code: String): Token? {
     } catch (e: JsonSyntaxException) {
         e.log()
         return null
+    }
+}
+
+data class SupportTicket(val user: User, val open: Boolean, val userResponses: MutableList<SupportMessage>, val administratorResponses: MutableList<SupportMessage>)
+data class SupportMessage(val writer: User, val content: String, val date: String, val id: Uuid)
+
+data class SupportTicketModel(val id: Uuid = r.uuid().run(conn), val user: String, val open: Boolean, val userResponses: MutableList<SupportMessageModel> = mutableListOf(),
+                              val administratorResponses: MutableList<SupportMessageModel> = mutableListOf()) {
+    fun toSupportTicket(): SupportTicket {
+        return SupportTicket(user.toUser()!!, open, userResponses.map { it.toSupportMessage() }.toMutableList(), administratorResponses.map { it.toSupportMessage() }.toMutableList())
+    }
+}
+
+data class SupportMessageModel(val writer: String, val content: String, val date: Long, val id: Uuid = r.uuid().run(conn)) {
+    fun toSupportMessage(): SupportMessage {
+        return SupportMessage(writer.toUser()!!, content, date.readableDate(), id)
     }
 }
