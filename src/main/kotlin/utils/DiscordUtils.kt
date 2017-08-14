@@ -51,7 +51,8 @@ fun User.isStaff(): Boolean {
 }
 
 fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false, djCommand: Boolean = false): Boolean {
-    if (staff.map { it.id }.contains(id()) || hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this)) || (djCommand && guild.getData().allowGlobalOverride)) return true
+    val data = guild.getData()
+    if (staff.map { it.id }.contains(id()) || data.advancedPermissions.contains(id()) || hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this)) || (djCommand && data.allowGlobalOverride)) return true
     if (djCommand) {
         val track = guild.getGuildAudioPlayer(channel).scheduler.manager.current
         if (track != null && track.author == id()) return true

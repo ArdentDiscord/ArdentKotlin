@@ -158,33 +158,7 @@ class Web {
                 handle(request, map)
                 map.put("showSnackbar", false)
                 if (guild.getMember(user).hasOverride(guild.publicChannel, failQuietly = true)) {
-                    map.put("title", "Management Center")
-                    val data = guild.getData()
-                    map.put("announceMusic", data.musicSettings.announceNewMusic)
-                    map.put("trustEveryone", data.allowGlobalOverride)
-                    map.put("guild", guild)
-                    val receiverChannel = data.joinMessage?.second?.toChannel()
-                    var channels = guild.textChannels
-                    if (receiverChannel != null) {
-                        channels = channels.toMutableList()
-                        channels.removeIf { it.id == receiverChannel.id }
-                        map.put("hasReceiverChannel", true)
-                        map.put("receiverChannel", receiverChannel)
-                    } else map.put("hasReceiverChannel", false)
-                    val defaultRole = data.defaultRole?.toRole(guild)
-                    if (defaultRole == null) map.put("hasDefaultRole", false)
-                    else {
-                        map.put("hasDefaultRole", true)
-                        map.put("defaultRole", defaultRole)
-                    }
-                    map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
-                    if (data.joinMessage?.first == null) map.put("joinMessage", "")
-                    else map.put("joinMessage", data.joinMessage!!.first!!)
-                    if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
-                    else map.put("leaveMessage", data.leaveMessage!!.first!!)
-                    map.put("channels", channels)
-                    map.put("autoplayMusic", data.musicSettings.autoQueueSongs)
-                    map.put("data", data)
+                    manage(request, map, guild)
                     ModelAndView(map, "manageGuild.hbs")
                 } else {
                     map.put("showSnackbar", true)
@@ -300,7 +274,7 @@ class Web {
         }, handlebars)
         path("/api", {
             path("/internal", {
-                get("/useraction", { request, response ->
+                get("/useraction/*", { request, response ->
                     val map = hashMapOf<String, Any>()
                     handle(request, map)
                     val session = request.session()
@@ -312,7 +286,7 @@ class Web {
                         val actionUser = getUserById(request.queryParams("id"))
                         if (actionUser == null || request.queryParams("action") == null) {
                             map.put("showSnackbar", true)
-                            map.put("snackbarMessage", "No user with that ID, or no action, was found!")
+                            map.put("snackbarMessage", "No user with that ID or action was found!")
                             ModelAndView(map, "404.hbs")
                         } else {
                             when (request.queryParams("action")) {
@@ -361,6 +335,48 @@ class Web {
                                                 else response.redirect("/$redirect")
                                                 null
                                             }
+                                        }
+                                    }
+                                }
+                                "advancedPermissions" -> {
+                                    if (request.splat().isEmpty() || getGuildById(request.splat()[0]) == null) {
+                                        map.put("showSnackbar", true)
+                                        map.put("snackbarMessage", "No server was provided!")
+                                        ModelAndView(map, "fail.hbs")
+                                    }
+                                    else {
+                                        val guild = getGuildById(request.splat()[0])!!
+                                        if (guild.getMember(user).hasOverride(guild.publicChannel, failQuietly = true)) {
+                                            when (request.queryParams("type")) {
+                                                "add" -> {
+                                                    val data = guild.getData()
+                                                    if (!data.advancedPermissions.contains(actionUser.id)) {
+                                                        data.advancedPermissions.add(actionUser.id)
+                                                        data.update()
+                                                    }
+                                                    response.redirect("/manage/${guild.id}")
+                                                    null
+                                                }
+                                                "remove" -> {
+                                                    val data = guild.getData()
+                                                    if (data.advancedPermissions.contains(actionUser.id)) {
+                                                        data.advancedPermissions.remove(actionUser.id)
+                                                        data.update()
+                                                    }
+                                                    response.redirect("/manage/${guild.id}")
+                                                    null
+                                                }
+                                                else -> {
+                                                    map.put("showSnackbar", true)
+                                                    map.put("snackbarMessage", "No registered action was found!")
+                                                    ModelAndView(map, "404.hbs")
+                                                }
+                                            }
+                                        }
+                                        else {
+                                            map.put("showSnackbar", true)
+                                            map.put("snackbarMessage", "You don't have permission to perform this action!")
+                                            ModelAndView(map, "fail.hbs")
                                         }
                                     }
                                 }
@@ -543,31 +559,7 @@ class Web {
                                 }
                             }
                             data.update()
-                            map.put("announceMusic", data.musicSettings.announceNewMusic)
-                            map.put("trustEveryone", data.allowGlobalOverride)
-                            map.put("guild", guild)
-                            map.put("autoplayMusic", data.musicSettings.autoQueueSongs)
-                            val receiverChannel = data.joinMessage?.second?.toChannel()
-                            var channels = guild.textChannels
-                            if (receiverChannel != null) {
-                                channels = channels.toMutableList()
-                                channels.removeIf { it.id == receiverChannel.id }
-                                map.put("hasReceiverChannel", true)
-                                map.put("receiverChannel", receiverChannel)
-                            } else map.put("hasReceiverChannel", false)
-                            val defaultRole = data.defaultRole?.toRole(guild)
-                            if (defaultRole == null) map.put("hasDefaultRole", false)
-                            else {
-                                map.put("hasDefaultRole", true)
-                                map.put("defaultRole", defaultRole)
-                            }
-                            map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
-                            if (data.joinMessage?.first == null) map.put("joinMessage", "")
-                            else map.put("joinMessage", data.joinMessage!!.first!!)
-                            if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
-                            else map.put("leaveMessage", data.leaveMessage!!.first!!)
-                            map.put("channels", channels)
-                            map.put("data", data)
+                            manage(request, map, guild)
                             ModelAndView(map, "manageGuild.hbs")
                         } else {
                             map.put("showSnackbar", true)
@@ -631,7 +623,38 @@ class Web {
         })
     }
 
-    private fun handle(request: Request, map: HashMap<String, Any>) {
+    fun manage(request: Request, map: HashMap<String, Any>, guild: Guild) {
+        map.put("title", "Management Center")
+        val data = guild.getData()
+        map.put("announceMusic", data.musicSettings.announceNewMusic)
+        map.put("trustEveryone", data.allowGlobalOverride)
+        map.put("guild", guild)
+        val receiverChannel = data.joinMessage?.second?.toChannel()
+        var channels = guild.textChannels
+        if (receiverChannel != null) {
+            channels = channels.toMutableList()
+            channels.removeIf { it.id == receiverChannel.id }
+            map.put("hasReceiverChannel", true)
+            map.put("receiverChannel", receiverChannel)
+        } else map.put("hasReceiverChannel", false)
+        val defaultRole = data.defaultRole?.toRole(guild)
+        if (defaultRole == null) map.put("hasDefaultRole", false)
+        else {
+            map.put("hasDefaultRole", true)
+            map.put("defaultRole", defaultRole)
+        }
+        map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
+        map.put("advancedPermissions", data.advancedPermissions.map { it.toUser()!! })
+        if (data.joinMessage?.first == null) map.put("joinMessage", "")
+        else map.put("joinMessage", data.joinMessage!!.first!!)
+        if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
+        else map.put("leaveMessage", data.leaveMessage!!.first!!)
+        map.put("channels", channels)
+        map.put("autoplayMusic", data.musicSettings.autoQueueSongs)
+        map.put("data", data)
+    }
+
+    fun handle(request: Request, map: HashMap<String, Any>) {
         val session = request.session()
         val user = session.attribute<User>("user")
         if (user == null) map.put("validSession", false)
