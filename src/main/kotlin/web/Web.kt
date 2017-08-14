@@ -12,6 +12,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import spark.ModelAndView
 import spark.Request
+import spark.Response
 import spark.Service
 import spark.Spark.*
 import spark.template.handlebars.HandlebarsTemplateEngine
@@ -170,22 +171,12 @@ class Web {
         get("/administrators", { request, response ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
+            map.put("announcements", getAnnouncements())
             map.put("title", "Administrator Zone")
-            val session = request.session()
-            val user: User? = session.attribute<User>("user")
-            val role: Staff? = session.attribute<Staff>("role")
-            if (user == null) {
-                response.redirect("/login")
-                null
-            } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
-                map.put("showSnackbar", true)
-                map.put("snackbarMessage", "You need to be an administrator to access this page!")
-                ModelAndView(map, "fail.hbs")
-
-            } else {
+            if (isAdministrator(request, response)) {
                 map.put("showSnackbar", false)
                 ModelAndView(map, "administrators.hbs")
-            }
+            } else null
         }, handlebars)
         path("/translation", {
             get("/languages", { request, response ->
@@ -222,6 +213,14 @@ class Web {
             map.put("showSnackbar", false)
             map.put("title", "No Permission")
             ModelAndView(map, "fail.hbs")
+        }, handlebars)
+        get("/announcements", { request, response ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("showSnackbar", false)
+            map.put("title", "Announcements")
+            map.put("announcements", getAnnouncements())
+            ModelAndView(map, "announcements.hbs")
         }, handlebars)
         get("/games/*/*", { request, response ->
             val map = hashMapOf<String, Any>()
@@ -343,8 +342,7 @@ class Web {
                                         map.put("showSnackbar", true)
                                         map.put("snackbarMessage", "No server was provided!")
                                         ModelAndView(map, "fail.hbs")
-                                    }
-                                    else {
+                                    } else {
                                         val guild = getGuildById(request.splat()[0])!!
                                         if (guild.getMember(user).hasOverride(guild.publicChannel, failQuietly = true)) {
                                             when (request.queryParams("type")) {
@@ -372,8 +370,7 @@ class Web {
                                                     ModelAndView(map, "404.hbs")
                                                 }
                                             }
-                                        }
-                                        else {
+                                        } else {
                                             map.put("showSnackbar", true)
                                             map.put("snackbarMessage", "You don't have permission to perform this action!")
                                             ModelAndView(map, "fail.hbs")
@@ -390,6 +387,31 @@ class Web {
                     }
                 }, handlebars)
                 path("/administrators", {
+                    get("/announcements/*", { request, response ->
+                        val map = hashMapOf<String, Any>()
+                        handle(request, map)
+                        map.put("title", "Administrator Zone")
+                        if (isAdministrator(request, response)) {
+                            if (request.splat().size == 1) {
+                                val content = request.queryParams("content")
+                                if (content == null) response.redirect("/404")
+                                else {
+                                    when (request.splat()[0]) {
+                                        "add" -> {
+                                            AnnouncementModel(System.currentTimeMillis(), request.session().attribute<User>("user").id, content).insert("announcements")
+                                            response.redirect("/administrators")
+                                        }
+                                        "remove" -> {
+                                            val dateLong = content.toLongOrNull() ?: 0
+                                            r.table("announcements").get(dateLong).delete().runNoReply(conn)
+                                            response.redirect("/administrators")
+                                        }
+                                        else -> response.redirect("/fail")
+                                    }
+                                }
+                            } else response.redirect("/fail")
+                        }
+                    })
                     get("/remove", { request, response ->
                         val map = hashMapOf<String, Any>()
                         handle(request, map)
@@ -621,6 +643,20 @@ class Web {
                 })
             })
         })
+    }
+
+    fun isAdministrator(request: Request, response: Response): Boolean {
+        val session = request.session()
+        val user: User? = session.attribute<User>("user")
+        val role: Staff? = session.attribute<Staff>("role")
+        if (user == null) {
+            response.redirect("/login")
+            return false
+        } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
+            response.redirect("/fail")
+            return false
+        }
+        return true
     }
 
     fun manage(request: Request, map: HashMap<String, Any>, guild: Guild) {

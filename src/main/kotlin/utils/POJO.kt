@@ -3,10 +3,16 @@ package utils
 import com.rethinkdb.gen.ast.Uuid
 import main.conn
 import main.r
+import net.dv8tion.jda.core.entities.User
 
 data class Patron(var id: String, var donationLevel: DonationLevel)
 data class SpecialPerson(var id: String, var backer: String)
-
+data class Announcement(val date: String, val dateLong: Long, val writer: User, val content: String)
+data class AnnouncementModel(var date: Long, var writer: String, var content: String) {
+    fun toAnnouncement(): Announcement {
+        return Announcement(date.readableDate(), date, writer.toUser()!!, content)
+    }
+}
 class GuildData(val id: String, var prefix: String, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole : String? = null, var allowGlobalOverride: Boolean = false)
 
 class MusicSettings(var announceNewMusic: Boolean = false, var singleSongInQueueForMembers: Boolean = false, var membersCanMoveBot: Boolean = true,

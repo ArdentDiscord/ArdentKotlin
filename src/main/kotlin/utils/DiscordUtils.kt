@@ -50,6 +50,10 @@ fun User.isStaff(): Boolean {
     return staff.map { it.id }.contains(id)
 }
 
+fun getAnnouncements() : MutableList<Announcement> {
+    return r.table("announcements").run<Any>(conn).queryAsArrayList(AnnouncementModel::class.java).map { it!!.toAnnouncement() }.toMutableList()
+}
+
 fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, failQuietly: Boolean = false, djCommand: Boolean = false): Boolean {
     val data = guild.getData()
     if (staff.map { it.id }.contains(id()) || data.advancedPermissions.contains(id()) || hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this)) || (djCommand && data.allowGlobalOverride)) return true
