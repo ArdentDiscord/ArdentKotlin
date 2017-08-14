@@ -16,7 +16,8 @@ import utils.*
 
 class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a list of provided options. this is a **patron-only** feature", "pr") {
     val stations = hashMapOf(Pair("977hits", "http://19353.live.streamtheworld.com/977_HITS_SC"),
-            Pair("Jamendo Lounge", "http://streaming.radionomy.com/JamendoLounge?lang=en-US%2cen%3bq%3d0.8"))
+            Pair("Jamendo Lounge", "http://streaming.radionomy.com/JamendoLounge?lang=en-US%2cen%3bq%3d0.8"),
+            Pair("Radio Rock Mix", "http://streaming.hotmixradio.fr/hotmixradio-rock-128.mp3?lang=en-US%2cen%3bq%3d0.8%2cru%3bq%3d0.6"))
 
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
