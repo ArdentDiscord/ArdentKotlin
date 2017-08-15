@@ -173,6 +173,9 @@ class Web {
             handle(request, map)
             map.put("announcements", getAnnouncements())
             map.put("title", "Administrator Zone")
+            val openTickets = getOpenTickets()
+            map.put("noOpenTickets", openTickets.isEmpty())
+            map.put("openTickets", openTickets)
             if (isAdministrator(request, response)) {
                 map.put("showSnackbar", false)
                 ModelAndView(map, "administrators.hbs")
@@ -268,6 +271,145 @@ class Web {
                     map.put("snackbarMessage", "No Gamemode with that title was found!")
                     map.put("title", "Gamemode not found")
                     ModelAndView(map, "404.hbs")
+                }
+            }
+        }, handlebars)
+        get("/tickets", { request, response ->
+            response.redirect("/tickets/")
+        })
+        get("/tickets/*", { request, response ->
+            val session = request.session()
+            val user: User? = session.attribute<User>("user")
+            val role: Staff? = session.attribute<Staff>("role")
+            if (user == null) {
+                response.redirect("/login")
+                null
+            } else {
+                val map = hashMapOf<String, Any>()
+                map.put("title", "Tickets")
+                handle(request, map)
+                val splats = request.splat()
+                if (splats.isEmpty()) {
+                    val tickets = user.getTickets()
+                    val openTickets = tickets.filter { it.open }
+                    val closedTickets = tickets.filter { !it.open }
+                    map.put("hasOpenTickets", openTickets.isNotEmpty())
+                    map.put("hasClosedTickets", closedTickets.isNotEmpty())
+                    map.put("openTickets", openTickets)
+                    map.put("closedTickets", closedTickets)
+                    ModelAndView(map, "ticketsHome.hbs")
+                } else {
+                    when (splats[0]) {
+                        "new" -> ModelAndView(map, "newTicket.hbs")
+                        "api" -> {
+                            val action = request.queryParams("action")
+                            if (action == null) {
+                                response.redirect("/404")
+                                null
+                            } else {
+                                when (action) {
+                                    "create" -> {
+                                        val title = request.queryParams("title")
+                                        val description = request.queryParams("description")
+                                        if (title == null || description == null) {
+                                            response.redirect("/tickets")
+                                        } else {
+                                            val ticket = SupportTicketModel(user.id, title, true).add(description)
+                                            ticket.insert("supportTickets")
+                                            response.redirect("/tickets/${ticket.id}")
+                                            "322066335008030720".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
+                                                    "https://ardentbot.com/tickets/${ticket.id} - please respond! <@&260841692142239744>").queue()
+                                        }
+                                        null
+                                    }
+                                    "addMessage" -> {
+                                        val message = request.queryParams("message")
+                                        val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
+                                                SupportTicketModel::class.java)
+                                        if (message != null && ticket != null && ticket.user == user.id || map["isAdmin"] as Boolean) {
+                                            if (ticket!!.user == user.id) {
+                                                ticket.userResponses.add(SupportMessageModel(user.id, true, message, System.currentTimeMillis()))
+                                                "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **replied** to their support ticket @ " +
+                                                        "https://ardentbot.com/tickets/${ticket.id} - go respond <@&260841692142239744> !").queue()
+                                            } else {
+                                                ticket.administratorResponses.add(SupportMessageModel(user.id, false, message, System.currentTimeMillis()))
+                                                "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}**, an **administrator**, has replied to the " +
+                                                        "support ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
+                                                ticket.user.toUser()!!.openPrivateChannel().queue({ privateChannel ->
+                                                    privateChannel.sendMessage("**Ardent Support**: __${user.withDiscrim()}__ has replied to you support ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
+                                                })
+                                            }
+                                            r.table("supportTickets").get(ticket.id).update(r.json(ticket.toJson())).runNoReply(conn)
+                                            response.redirect("/tickets/${ticket.id}")
+
+                                        } else {
+                                            response.redirect("/fail")
+                                        }
+                                        null
+                                    }
+                                    "close" -> {
+                                        val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
+                                                SupportTicketModel::class.java)
+                                        if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
+                                            r.table("supportTickets").get(ticket.id).update(r.hashMap("open", false)).runNoReply(conn)
+                                            response.redirect("/tickets/${ticket.id}?announce=Successfully+closed+your+ticket")
+                                            "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **closed** a support ticket at " +
+                                                    "https://ardentbot.com/tickets/${ticket.id}. No further action is necessary").queue()
+                                        } else {
+                                            response.redirect("/fail")
+                                        }
+                                        null
+                                    }
+                                    "reopen" -> {
+                                        val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
+                                                SupportTicketModel::class.java)
+                                        if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
+                                            r.table("supportTickets").get(ticket.id).update(r.hashMap("open", true)).runNoReply(conn)
+                                            "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **re-opened** a support ticket at " +
+                                                    "https://ardentbot.com/tickets/${ticket.id} - please respond! <@&260841692142239744>").queue()
+                                            response.redirect("/tickets/${ticket.id}?announce=Successfully+reopened+your+ticket")
+                                        } else {
+                                            response.redirect("/fail")
+                                        }
+                                        null
+                                    }
+                                    else -> {
+                                        response.redirect("/404")
+                                        null
+                                    }
+                                }
+                            }
+                        }
+                        else -> {
+                            val ticketId = splats[0]
+                            if (ticketId == null) {
+                                response.redirect("/404")
+                                null
+                            } else {
+                                val ticketModel = asPojo(r.table("supportTickets").get(ticketId).run(conn), SupportTicketModel::class.java)
+                                if (ticketModel == null) {
+                                    response.redirect("/404")
+                                    null
+                                } else {
+                                    val ticket = ticketModel.toSupportTicket()
+                                    if (ticket.user.id == user.id || map["isAdmin"] as Boolean) {
+                                        map.put("noResponses", ticket.messages.isEmpty())
+                                        map.put("oneMessage", ticket.messages.size == 1)
+                                        map.put("ticket", ticket)
+                                        map.put("messages", ticket.messages)
+                                        if (request.queryParams("announce") != null) {
+                                            map.replace("showSnackbar", true)
+                                            map.put("snackbarMessage", request.queryParams("announce"))
+                                        }
+                                        ModelAndView(map, "viewTicket.hbs")
+                                    } else {
+                                        response.redirect("/fail")
+                                        null
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }, handlebars)
@@ -398,7 +540,12 @@ class Web {
                                 else {
                                     when (request.splat()[0]) {
                                         "add" -> {
-                                            AnnouncementModel(System.currentTimeMillis(), request.session().attribute<User>("user").id, content).insert("announcements")
+                                            val user = request.session().attribute<User>("user")
+                                            val announcement = AnnouncementModel(System.currentTimeMillis(), user.id, content)
+                                            announcement.insert("announcements")
+                                            "272411413031419904".toChannel()!!.sendMessage("**New Announcement** from __${user.withDiscrim()}__\n" +
+                                                    "${announcement.content}\n" +
+                                                    "*View Announcements @ https://ardentbot.com/announcements*").queue()
                                             response.redirect("/administrators")
                                         }
                                         "remove" -> {
@@ -644,75 +791,76 @@ class Web {
             })
         })
     }
+}
 
-    fun isAdministrator(request: Request, response: Response): Boolean {
-        val session = request.session()
-        val user: User? = session.attribute<User>("user")
-        val role: Staff? = session.attribute<Staff>("role")
-        if (user == null) {
-            response.redirect("/login")
-            return false
-        } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
-            response.redirect("/fail")
-            return false
-        }
-        return true
+fun isAdministrator(request: Request, response: Response): Boolean {
+    val session = request.session()
+    val user: User? = session.attribute<User>("user")
+    val role: Staff? = session.attribute<Staff>("role")
+    if (user == null) {
+        response.redirect("/login")
+        return false
+    } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
+        response.redirect("/fail")
+        return false
     }
+    return true
+}
 
-    fun manage(request: Request, map: HashMap<String, Any>, guild: Guild) {
-        map.put("title", "Management Center")
-        val data = guild.getData()
-        map.put("announceMusic", data.musicSettings.announceNewMusic)
-        map.put("trustEveryone", data.allowGlobalOverride)
-        map.put("guild", guild)
-        val receiverChannel = data.joinMessage?.second?.toChannel()
-        var channels = guild.textChannels
-        if (receiverChannel != null) {
-            channels = channels.toMutableList()
-            channels.removeIf { it.id == receiverChannel.id }
-            map.put("hasReceiverChannel", true)
-            map.put("receiverChannel", receiverChannel)
-        } else map.put("hasReceiverChannel", false)
-        val defaultRole = data.defaultRole?.toRole(guild)
-        if (defaultRole == null) map.put("hasDefaultRole", false)
-        else {
-            map.put("hasDefaultRole", true)
-            map.put("defaultRole", defaultRole)
-        }
-        map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
-        map.put("advancedPermissions", data.advancedPermissions.map { it.toUser()!! })
-        if (data.joinMessage?.first == null) map.put("joinMessage", "")
-        else map.put("joinMessage", data.joinMessage!!.first!!)
-        if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
-        else map.put("leaveMessage", data.leaveMessage!!.first!!)
-        map.put("channels", channels)
-        map.put("autoplayMusic", data.musicSettings.autoQueueSongs)
-        map.put("data", data)
+fun manage(request: Request, map: HashMap<String, Any>, guild: Guild) {
+    map.put("title", "Management Center")
+    val data = guild.getData()
+    map.put("announceMusic", data.musicSettings.announceNewMusic)
+    map.put("trustEveryone", data.allowGlobalOverride)
+    map.put("guild", guild)
+    val receiverChannel = data.joinMessage?.second?.toChannel()
+    var channels = guild.textChannels
+    if (receiverChannel != null) {
+        channels = channels.toMutableList()
+        channels.removeIf { it.id == receiverChannel.id }
+        map.put("hasReceiverChannel", true)
+        map.put("receiverChannel", receiverChannel)
+    } else map.put("hasReceiverChannel", false)
+    val defaultRole = data.defaultRole?.toRole(guild)
+    if (defaultRole == null) map.put("hasDefaultRole", false)
+    else {
+        map.put("hasDefaultRole", true)
+        map.put("defaultRole", defaultRole)
     }
+    map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
+    map.put("advancedPermissions", data.advancedPermissions.map { it.toUser()!! })
+    if (data.joinMessage?.first == null) map.put("joinMessage", "")
+    else map.put("joinMessage", data.joinMessage!!.first!!)
+    if (data.leaveMessage?.first == null) map.put("leaveMessage", "")
+    else map.put("leaveMessage", data.leaveMessage!!.first!!)
+    map.put("channels", channels)
+    map.put("autoplayMusic", data.musicSettings.autoQueueSongs)
+    map.put("data", data)
+}
 
-    fun handle(request: Request, map: HashMap<String, Any>) {
-        val session = request.session()
-        val user = session.attribute<User>("user")
-        if (user == null) map.put("validSession", false)
-        else {
-            map.put("validSession", true)
-            map.put("user", user)
-        }
-        val role = session.attribute<Staff>("role")
-        if (role == null) {
-            map.put("isStaff", false)
-            map.put("isAdmin", false)
-            map.put("hasWhitelists", false)
-        } else {
-            val whitelisted = user.whitelisted()
-            map.put("hasWhitelists", whitelisted.isNotEmpty())
-            map.put("whitelisted", whitelisted.filter { it != null }.map { it!!.id.toUser()!! })
-            map.put("isAdmin", role.role == Staff.StaffRole.ADMINISTRATOR)
-            map.put("isStaff", true)
-            map.put("role", role.role)
-        }
+fun handle(request: Request, map: HashMap<String, Any>) {
+    val session = request.session()
+    val user = session.attribute<User>("user")
+    if (user == null) map.put("validSession", false)
+    else {
+        map.put("validSession", true)
+        map.put("user", user)
+    }
+    val role = session.attribute<Staff>("role")
+    if (role == null) {
+        map.put("isStaff", false)
+        map.put("isAdmin", false)
+        map.put("hasWhitelists", false)
+    } else {
+        val whitelisted = user.whitelisted()
+        map.put("hasWhitelists", whitelisted.isNotEmpty())
+        map.put("whitelisted", whitelisted.filter { it != null }.map { it!!.id.toUser()!! })
+        map.put("isAdmin", role.role == Staff.StaffRole.ADMINISTRATOR)
+        map.put("isStaff", true)
+        map.put("role", role.role)
     }
 }
+
 
 fun createUserModel(id: String): Any {
     val user: User = getUserById(id) ?: return Failure("invalid user requested").toJson()

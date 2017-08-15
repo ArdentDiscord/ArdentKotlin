@@ -65,7 +65,7 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
 
     fun getChannel(): TextChannel? {
         if (textChannel == null) return null
-        return textChannel!!.getChannel()
+        return textChannel!!.toChannel()
     }
 
     fun setChannel(channel: TextChannel?) {

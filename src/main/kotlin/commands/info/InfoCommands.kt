@@ -282,8 +282,9 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
         else {
             channel.send(member, embed("Info about ${role.name}", member)
                     .setThumbnail(guild.iconUrl)
-                    .addField("# of people with role", guild.members.filter { it.roles.contains(role) }.count().toString(), true)
-                    .addField("Creation Date", role.creationTime.toLocalDateTime().toString(), true)
+                    .addField("# with role", guild.members.filter { it.roles.contains(role) }.count().toString() + " members", true)
+                    .addField("Role ID", role.id, true)
+                    .addField("Creation Date", (role.creationTime.toEpochSecond() / 1000).readableDate(), true)
                     .addField("Hex Color", "#${Integer.toHexString(role.color.rgb).substring(2).toUpperCase()}", true)
                     .addField("Permissions", role.permissions.map { it.getName() }.concat(), true)
             )

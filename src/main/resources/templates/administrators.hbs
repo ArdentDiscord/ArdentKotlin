@@ -6,6 +6,23 @@
         <h2>Admin Zone</h2>
     </header>
     <div class="box">
+        <h3>Open Support Tickets</h3>
+        {{#if noOpenTickets}}
+            <p>Good job team! There aren't any open tickets</p>
+        {{else}}
+            {{#each openTickets}}
+                <div class="box">
+                    <h3><a href="/tickets/{{id}}">{{title}}</a> - {{user.name}}#{{user.discriminator}}</h3>
+                    <p>Created {{date}} | Status: {{#if adminRe}}
+                        <span style="color: green">Administrator Responded</span>
+                    {{else}}
+                        <span style="color: red">Waiting for Response</span>
+                    {{/if}}</p>
+                </div>
+            {{/each}}
+        {{/if}}
+    </div>
+    <div class="box">
         <h3>Announce something</h3>
         <form action="/api/internal/administrators/announcements/add">
             <div class="row uniform 50%">
@@ -79,10 +96,6 @@
                 </div>
             </div>
         {{/if}}
-    </div>
-    <div class="box">
-        <h3>Announce something</h3>
-
     </div>
 </section>
 

@@ -73,14 +73,6 @@ fun Guild.panelUrl(): String {
     return "this doesn't work yet :("
 }
 
-fun String.getChannel(): TextChannel? {
-    jdas.forEach { jda ->
-        val channel = jda.getTextChannelById(this)
-        if (channel != null) return channel
-    }
-    return null
-}
-
 fun Member.withDiscrim(): String {
     return this.user.withDiscrim()
 }

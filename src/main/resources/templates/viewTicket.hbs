@@ -1,0 +1,53 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>{{ticket.title}}</h2>
+        <p>Status: {{#if ticket.open}}<span style="color: red">Open</span>{{else}}<span style="color: green">Closed</span>{{/if}} | Created {{ticket.date}}</p>
+    </header>
+    {{#if noResponses}}
+        <div class="box">
+            <h3>You broke the system -.- go add a message</h3>
+        </div>
+    {{else}}
+        {{#each messages}}
+            <div class="box" style="{{#if userMessage}}margin-right: 30%{{else}}margin-left: 30%{{/if}};">
+                <h3>{{content}}</h3>
+                <h5>{{#if userMessage}}<b>You</b>{{else}}<b>{{writer.name}}{{/if}}</b> | {{date}}</h5>
+            </div>
+        {{/each}}
+        {{#if oneMessage}}
+            <h3>Currently waiting for an administrator to respond, they've been notified!</h3>
+        {{/if}}
+    {{/if}}
+    <br/>
+    {{#if ticket.open}}
+        <div class="alignright">
+            <ul class="actions">
+                <li><a href="/tickets/api?id={{ticket.id}}&action=close" class="button alt icon fa-check">Close Ticket</a></li>
+            </ul>
+        </div>
+        <div style="clear: both;"></div>
+        <form action="/tickets/api">
+            <input name="id" value="{{ticket.id}}" hidden>
+            <input name="action" value="addMessage" hidden>
+            <p style="width: 75%">Respond to this ticket
+                <textarea name="message" id="message" rows="4"
+                          placeholder="Write your message here.."></textarea>
+            </p>
+            <input type="submit" value="Respond" class="alt"/>
+        </form>
+    {{else}}
+        <div class="alignright">
+            <ul class="actions">
+                <li><a href="/tickets/api?id={{ticket.id}}&action=reopen" class="button special icon fa-search">Reopen
+                    Ticket</a></li>
+            </ul>
+        </div>
+        <div style="clear: both;"></div>
+        <div style="clear: both;"></div>
+    {{/if}}
+</section>
+
+{{> footer.hbs }}

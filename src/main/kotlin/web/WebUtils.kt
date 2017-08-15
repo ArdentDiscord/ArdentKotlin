@@ -1,17 +1,14 @@
 package web
 
 import com.google.gson.JsonSyntaxException
-import com.rethinkdb.gen.ast.Uuid
 import main.config
 import main.conn
 import main.jdas
 import main.r
 import net.dv8tion.jda.core.entities.User
 import org.jsoup.Jsoup
-import utils.getGson
-import utils.log
-import utils.readableDate
-import utils.toUser
+import utils.*
+import java.util.*
 
 val dapi = "https://discordapp.com/api"
 
@@ -91,18 +88,49 @@ fun retrieveToken(code: String): Token? {
     }
 }
 
-data class SupportTicket(val user: User, val open: Boolean, val userResponses: MutableList<SupportMessage>, val administratorResponses: MutableList<SupportMessage>)
-data class SupportMessage(val writer: User, val content: String, val date: String, val id: Uuid)
+fun getTickets(): List<SupportTicket> {
+    return r.table("supportTickets").run<Any>(conn).queryAsArrayList(SupportTicketModel::class.java).map { it!!.toSupportTicket() }
+}
 
-data class SupportTicketModel(val id: Uuid = r.uuid().run(conn), val user: String, val open: Boolean, val userResponses: MutableList<SupportMessageModel> = mutableListOf(),
-                              val administratorResponses: MutableList<SupportMessageModel> = mutableListOf()) {
-    fun toSupportTicket(): SupportTicket {
-        return SupportTicket(user.toUser()!!, open, userResponses.map { it.toSupportMessage() }.toMutableList(), administratorResponses.map { it.toSupportMessage() }.toMutableList())
+fun getOpenTickets(): List<SupportTicket> {
+    return r.table("supportTickets").filter(r.hashMap("open", true)).run<Any>(conn).queryAsArrayList(SupportTicketModel::class.java).map { it!!.toSupportTicket() }
+}
+fun User.getTickets(): List<SupportTicket> {
+    return r.table("supportTickets").filter(r.hashMap("user", id)).run<Any>(conn).queryAsArrayList(SupportTicketModel::class.java).map { it!!.toSupportTicket() }
+}
+
+data class SupportTicket(val user: User, val title: String, val open: Boolean, val messages: List<SupportMessage>, val adminRe: Boolean, val id: String, val date: String)
+data class SupportMessage(val writer: User, val userMessage: Boolean, val content: String, val date: String, val id: String) {
+    init {
+        println(this)
     }
 }
 
-data class SupportMessageModel(val writer: String, val content: String, val date: Long, val id: Uuid = r.uuid().run(conn)) {
+data class SupportTicketModel(val user: String, val title: String, val open: Boolean, val userResponses: MutableList<SupportMessageModel> = mutableListOf(),
+                              val administratorResponses: MutableList<SupportMessageModel> = mutableListOf(), val id: String = r.uuid().run<String>(conn), val date: Long = System.currentTimeMillis()) {
+    fun toSupportTicket(): SupportTicket {
+        val messages = mutableListOf<SupportMessageModel>()
+        userResponses.toCollection(messages)
+        administratorResponses.toCollection(messages)
+        Collections.sort(messages) { o1, o2 ->
+            when {
+                o1.date < o2.date -> -1
+                o1.date > o2.date -> 1
+                else -> 0
+            }
+        }
+        return SupportTicket(user.toUser()!!, title, open, messages.map { it.toSupportMessage() }, administratorResponses.size > 0, id, date.readableDate())
+    }
+
+    fun add(originalMessage: String): SupportTicketModel {
+        userResponses.add(SupportMessageModel(user, true, originalMessage, System.currentTimeMillis()))
+        return this
+    }
+}
+
+data class SupportMessageModel(val writer: String, val userMessage: Boolean, val content: String, val date: Long, val id: String = r.uuid().run(conn)) {
     fun toSupportMessage(): SupportMessage {
-        return SupportMessage(writer.toUser()!!, content, date.readableDate(), id)
+        val writerUser = writer.toUser()!!
+        return SupportMessage(writerUser, userMessage, content, date.readableDate(), id)
     }
 }

@@ -1,0 +1,41 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Ardent Support</h2>
+        <p>Something not working? <b>Fill out a support ticket <a href="/tickets/new">here</a></b></p>
+    </header>
+    <h2>Open Tickets</h2>
+    {{#if hasOpenTickets}}
+        {{#each openTickets}}
+            <div class="box">
+                <h3><a href="/tickets/{{id}}">{{title}}</a></h3>
+                <p>Created {{date}} | Status: {{#if adminRe}}
+                    <span style="color: green">Administrator Responded</span>
+                {{else}}
+                    <span style="color: red">Waiting for Response</span>
+                {{/if}}</p>
+            </div>
+        {{/each}}
+    {{else}}
+        <div class="box">
+            <h3>You don't have any open tickets, silly!</h3>
+        </div>
+    {{/if}}
+    <h2>Closed Tickets</h2>
+    {{#if hasClosedTickets}}
+        {{#each closedTickets}}
+            <div class="box">
+                <h3><a href="/tickets/{{id}}">{{title}}</a></h3>
+                <p>Created {{date}}
+            </div>
+        {{/each}}
+    {{else}}
+        <div class="box">
+            <h3>You don't have any closed tickets, silly!</h3>
+        </div>
+    {{/if}}
+</section>
+
+{{> footer.hbs }}

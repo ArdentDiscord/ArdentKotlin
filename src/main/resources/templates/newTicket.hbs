@@ -1,0 +1,26 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Ardent Support</h2>
+        <p>Go to <a href="/announcements">here</a> to view recent announcements - your issue might be addressed there
+        </p>
+    </header>
+    <div class="box">
+        <h3>Create a new ticket</h3>
+        <form action="/tickets/api">
+            <input name="action" value="create" hidden>
+            <p style="width: 50%;">Title
+                <input type="text" name="title" id="title" value="" placeholder="Type title here..."/>
+            </p>
+            <p style="width: 75%">Description of the problem
+                <textarea name="description" id="description" rows="4"
+                          placeholder="Write a detailed explanation of the problem here.."></textarea>
+            </p>
+            <input type="submit" value="Open Ticket" class="alt"/>
+        </form>
+    </div>
+</section>
+
+{{> footer.hbs }}
