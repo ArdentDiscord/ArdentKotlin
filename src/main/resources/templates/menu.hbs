@@ -4,9 +4,6 @@
         <li><a href="/">Home</a></li>
         <li><a href="/status">Status</a></li>
         <li><a href="/commands">Commands</a></li>
-        {{# if validSession}}
-            <li><a href="/tickets/">Support Tickets</a></li>
-        {{/if}}
         <li>
             <a href="#" class="icon fa-angle-down">Info</a>
             <ul>
@@ -24,6 +21,8 @@
         <li><a href="/invite">Invite</a></li>
         {{# if validSession}}
             <li><a href="/manage" class="button">Manage</a></li>
+            <li><a href="/tickets/" class="button">Support</a></li>
+            <li><a href="/logout" class="button">Log Out</a></li>
         {{else}}
             <li><a href="/login" class="button">Login</a></li>
         {{/if}}

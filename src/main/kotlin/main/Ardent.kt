@@ -10,10 +10,15 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.wrapper.spotify.Api
 import commands.`fun`.*
 import commands.administrate.*
+import commands.games.BetCommand
+import commands.games.BlackjackCommand
+import commands.games.CoinflipCommand
 import commands.games.Games
 import commands.info.*
 import commands.music.*
 import commands.music.Queue
+import commands.rpg.TopMoney
+import commands.rpg.TopMoneyServer
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
@@ -123,6 +128,12 @@ fun main(args: Array<String>) {
             .addCommand(GetId())
             .addCommand(Support())
             .addCommand(ClearQueue())
+            .addCommand(CoinflipCommand())
+            .addCommand(BlackjackCommand())
+            .addCommand(BetCommand())
+            // .addCommand(TriviaCommand()) I promise I'll eventually do this
+            .addCommand(TopMoney())
+            .addCommand(TopMoneyServer())
 
     startAdministrativeDaemon()
     println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")

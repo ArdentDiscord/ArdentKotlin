@@ -14,7 +14,7 @@
         {{#each messages}}
             <div class="box" style="{{#if userMessage}}margin-right: 30%{{else}}margin-left: 30%{{/if}};">
                 <h3>{{content}}</h3>
-                <h5>{{#if userMessage}}<b>You</b>{{else}}<b>{{writer.name}}{{/if}}</b> | {{date}}</h5>
+                <h5><b>{{writer.name}}</b> | {{date}}</h5>
             </div>
         {{/each}}
         {{#if oneMessage}}

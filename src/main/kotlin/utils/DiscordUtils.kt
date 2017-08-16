@@ -30,6 +30,21 @@ fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
     return false
 }
 
+fun Member.data(): PlayerData {
+    return user.getData()
+}
+
+fun Guild.playerDatas(): MutableList<PlayerData> {
+    val data = mutableListOf<PlayerData>()
+    val ids = members.map { it.id() }
+    r.table("playerData").run<Any>(conn).queryAsArrayList(PlayerData::class.java).forEach {
+        if (it != null) {
+            if (ids.contains(it.id)) data.add(it)
+        }
+    }
+    return data
+}
+
 fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
 }
@@ -50,7 +65,7 @@ fun User.isStaff(): Boolean {
     return staff.map { it.id }.contains(id)
 }
 
-fun getAnnouncements() : MutableList<Announcement> {
+fun getAnnouncements(): MutableList<Announcement> {
     return r.table("announcements").run<Any>(conn).queryAsArrayList(AnnouncementModel::class.java).map { it!!.toAnnouncement() }.toMutableList()
 }
 

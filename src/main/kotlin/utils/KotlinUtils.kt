@@ -77,6 +77,11 @@ fun Int.format(): String {
     return formatter.format(this)
 }
 
+
+fun Double.format(): String {
+    return formatter.format(this)
+}
+
 fun Long.format(): String {
     return formatter.format(this)
 }

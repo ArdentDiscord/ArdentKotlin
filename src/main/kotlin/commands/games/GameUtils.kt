@@ -71,7 +71,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
 
     fun cancel(user: User) {
         gamesInLobby.remove(this)
-        channel.send(user, "**${user.withDiscrim()}** decided to cancel this game (likely due to no response) or the lobby was open for over 5 minutes ;(")
+        channel.send(user, "**${user.withDiscrim()}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(")
         scheduledExecutor.shutdownNow()
     }
 
@@ -117,7 +117,9 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
 enum class GameType(val readable: String, val description: String, val id: Int) {
     COINFLIP("Coinflip", "this is a placeholder", 1),
     BLACKJACK("Blackjack", "this is a placeholder", 2),
-    TRIVIA("Trivia", "this is a placeholder", 3);
+    TRIVIA("Trivia", "this is a placeholder", 3),
+    BETTING("Betting", "this is a placeholder", 4)
+    ;
     //CONNECT_FOUR("Connect-Four", "this is a placeholder", 4);
 
     override fun toString(): String {
@@ -161,6 +163,8 @@ abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: 
         return wins + losses
     }
 }
+
+class GameDataBetting(gameId: Long, creator: String, startTime: Long, val rounds: List<BetGame.Round>) : GameData(gameId, creator, startTime)
 
 class GameDataBlackjack(gameId: Long, creator: String, startTime: Long, val rounds: List<BlackjackGame.Round>) : GameData(gameId, creator, startTime)
 

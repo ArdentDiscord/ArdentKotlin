@@ -22,7 +22,6 @@ val invites = ConcurrentHashMap<String, Game>()
 class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.BLACKJACK, channel, creator, playerCount, isPublic) {
     val roundResults = mutableListOf<Round>()
     override fun onStart() {
-        val ardent = channel.guild.selfMember
         val user = players.map { it.toUser()!! }.toList()[0]
         doRound(user)
     }
@@ -36,8 +35,8 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
         }
         channel.send(user, "How much would you like to bet, ${user.asMention}? You current have a balance of **${playerData.gold}** gold")
         waiter.waitForMessage(Settings(user.id, channel.id, channel.guild.id), { message ->
-            val bet = message.rawContent.toDoubleOrNull()
-            if (bet == null || bet < 0 || bet > playerData.gold) {
+            val bet = message.rawContent.toIntOrNull()
+            if (bet == null || bet <= 0 || bet > playerData.gold) {
                 channel.send(user, "You specified an invalid amount.. resetting the round")
                 doRound(user)
             } else {
@@ -45,7 +44,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                 val userHand = Hand().blackjackPlus(1)
                 display(dealerHand, userHand, "You've been dealt 1 card. The dealer's second card is hidden. The goal is to get as close as possible to **21**." +
                         " Type `hit` if you'd like to get another card or `stay` to stay at your current amount")
-                wait(bet, dealerHand, userHand, user)
+                wait(bet.toDouble(), dealerHand, userHand, user)
             }
         }, { cancel(user) }, silentExpiration = true)
     }
@@ -110,7 +109,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                 playerData.update()
                 "**Congratulations, you won $bet gold!**"
             }
-            Result.TIED -> "**You tied didn't lose the $bet you put in**"
+            Result.TIED -> "**You tied and didn't lose the $bet you bet!**"
         }
         roundResults.add(Round(result, userHand.end(), dealerHand.end(), bet))
         display(dealerHand, userHand, message, true)
@@ -156,7 +155,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
             return this
         }
 
-        fun end() : Hand {
+        fun end(): Hand {
             end = true
             return this
         }
@@ -168,7 +167,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
         }
 
         override fun toString(): String {
-            if (cards.size == 2 && dealer &&!end) return "${cards[0]}, ?"
+            if (cards.size == 2 && dealer && !end) return "${cards[0]}, ?"
             else return cards.map { it.toString() }.stringify()
         }
 
@@ -340,6 +339,130 @@ class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPu
     class Round(val winners: MutableList<String> = mutableListOf(), val losers: MutableList<String> = mutableListOf())
 }
 
+class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, channel, creator, 1, false) {
+    val rounds = mutableListOf<Round>()
+    override fun onStart() {
+        doRound(creator.toUser()!!)
+    }
+
+    fun doRound(user: User) {
+        val data = user.getData()
+        channel.send(user, "How much would you like to bet? You current have **${data.gold} gold**. Type the amount below. You can also bet a **percentage** of your net worth, e.g. *40%*")
+        waiter.waitForMessage(Settings(creator, channel.id, channel.guild.id), { message ->
+            val content = message.content
+            if (content.equals("cancel", true)) {
+                channel.send(user, "Cancelling game...")
+                cancel(user)
+            } else {
+                val bet = if (content.contains("%")) content.removeSuffix("%").toDoubleOrNull()?.div(100)?.times(data.gold)?.toInt() else content.toIntOrNull()
+                if (bet != null) {
+                    if (bet > data.gold || bet <= 0) {
+                        channel.send(user, "You specified an invalid bet amount! Please retry or type `cancel` to cancel the game")
+                        doRound(user)
+                    } else {
+                        channel.selectFromList(channel.guild.getMember(user), "What color will the next card I draw be?", mutableListOf("Black", "Red"), { selection ->
+                            val suit = BlackjackGame.Hand(false, end = false).generate().suit
+                            val won = when (suit) {
+                                BlackjackGame.Suit.HEART, BlackjackGame.Suit.DIAMOND -> selection == 1
+                                else -> selection == 0
+                            }
+                            if (won) {
+                                data.gold += bet
+                                channel.send(user, "Congrats, you won - the suit was $suit! I've added **$bet gold** to your profile - new balance: **${data.gold.format()} gold**")
+                            } else {
+                                data.gold -= bet
+                                channel.send(user, "Sorry, you lost - the suit was $suit :( I've removed **$bet gold** from your profile - new balance: **${data.gold.format()} gold**")
+                            }
+                            data.update()
+                            rounds.add(Round(won, bet.toDouble(), suit))
+                            channel.send(user, "Would you like to go again? Type `yes` if so or `no` to end the game")
+                            waiter.waitForMessage(Settings(creator, channel.id, channel.guild.id), { continueGameMessage ->
+                                if (continueGameMessage.rawContent.startsWith("ye", true)) doRound(user)
+                                else {
+                                    channel.send(user, "Ending the game and inserting data into the database..")
+                                    val gameData = GameDataBetting(gameId, creator, startTime!!, rounds)
+                                    cleanup(gameData)
+                                }
+                            }, {
+                                channel.send(user, "Ending the game and inserting data into the database..")
+                                val gameData = GameDataBetting(gameId, creator, startTime!!, rounds)
+                                cleanup(gameData)
+                            })
+
+                        }, failure = {
+                            if (rounds.size == 0) {
+                                channel.send(user, "Invalid response... Cancelling game now")
+                                cancel(user)
+                            }
+                            else {
+                                channel.send(user, "Invalid response... ending the game and inserting data into the database..")
+                                val gameData = GameDataBetting(gameId, creator, startTime!!, rounds)
+                                cleanup(gameData)
+                            }
+                        })
+                    }
+                } else {
+                    if (rounds.size == 0) {
+                        channel.send(user, "Invalid bet amount... Cancelling game now")
+                        cancel(user)
+                    }
+                    else {
+                        channel.send(user, "Invalid bet amount... ending the game and inserting data into the database..")
+                        val gameData = GameDataBetting(gameId, creator, startTime!!, rounds)
+                        cleanup(gameData)
+                    }                }
+            }
+        }, { cancel(user) })
+    }
+    data class Round(val won: Boolean, val betAmount: Double, val suit: BlackjackGame.Suit)
+}
+
+class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "Make sure to try out **${guild.getPrefix()}minigames** to see all available minigames subcommands")
+        if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
+        else BetGame(channel, member.id()).startEvent()
+    }
+}
+
+
+class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of blackjack") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "Make sure to try out **${guild.getPrefix()}minigames** to see all available minigames subcommands")
+        if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
+        else if (guild.hasGameType(GameType.BLACKJACK) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+            channel.send(member, "There can only be one blackjack game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
+                    "https://ardentbot.com/patreon to start more than one game per type at a time**")
+        } else {
+            channel.send(member, "This is a solo game; it'll start in a second!")
+            BlackjackGame(channel, member.id(), 1, false).startEvent()
+        }
+    }
+}
+
+class CoinflipCommand : Command(Category.GAMES, "coinflip", "start games of coinflip (it's fun we promise)") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "Make sure to try out **${guild.getPrefix()}minigames** to see all available minigames subcommands")
+        if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
+        else if (guild.hasGameType(GameType.COINFLIP) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+            channel.send(member, "There can only be one coinflip game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
+                    "https://ardentbot.com/patreon to start more than one game per type at a time**")
+        } else {
+            channel.selectFromList(member, "Would you like this game of ${GameType.COINFLIP.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), {
+                public ->
+                val isPublic = public == 0
+                channel.send(member, "How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
+                waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
+                    playerCount ->
+                    val count = playerCount.content.toIntOrNull() ?: 999
+                    val game = CoinflipGame(channel, member.id(), count, isPublic)
+                    gamesInLobby.add(game)
+
+                })
+            })
+        }
+    }
+}
 
 class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play against friends or compete for the leaderboards in these addicting games") {
     val inviteManager: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
@@ -349,50 +472,16 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                     .withHelp("invite @User", "allows the creator of the game to invite players in the server where it was started")
                     .withHelp("decline invite", "decline a pending invite")
                     .withHelp("join #game_id", "join a public game by its id or a game that you were invited to")
-                    .withHelp("create", "start a game")
                     .withHelp("forcestart", "force start a game")
                     .withHelp("cancel", "cancel the game while it's in setup (for creators)")
                     .withHelp("leave", "leave a game or its lobby (this could trigger your resignation from the game if it has already started)")
+                    .withHelp("/bet", "start a betting game")
+                    .withHelp("/blackjack", "start a blackjack game")
+                    .withHelp("/coinflip", "start a coinflip game")
                     .displayHelp(channel, member)
             return
         }
         when (arguments[0]) {
-            "create" -> {
-                if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
-                else {
-                    channel.selectFromList(member, "Which type of game would you like to create?", GameType.values().map { it.readable }.toMutableList(), {
-                        selected ->
-                        val gameType = GameType.values()[selected]
-                        if (guild.hasGameType(gameType) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
-                            channel.send(member, "There can only be one of this type of game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
-                                    "https://ardentbot.com/support_us to start more than one game per type at a time**")
-                        } else {
-                            when (gameType) {
-                                GameType.COINFLIP -> {
-                                    channel.selectFromList(member, "Would you like this game of ${gameType.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), {
-                                        public ->
-                                        val isPublic = public == 0
-                                        channel.send(member, "How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
-                                        waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), {
-                                            playerCount ->
-                                            val count = playerCount.content.toIntOrNull() ?: 999
-                                            val game = CoinflipGame(channel, member.id(), count, isPublic)
-                                            gamesInLobby.add(game)
-
-                                        })
-                                    })
-                                }
-                                GameType.BLACKJACK -> {
-                                    channel.send(member, "This is a solo game; it'll start in a second!")
-                                    BlackjackGame(channel, member.id(), 1, false).startEvent()
-                                }
-                            }
-                            // TODO("Fill in the other games")
-
-                        }
-                    })
-                }
-            }
             "list" -> {
                 val embed = embed("Games in Lobby", member)
                 val builder = StringBuilder()

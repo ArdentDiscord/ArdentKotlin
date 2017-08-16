@@ -3,6 +3,7 @@ package web
 import commands.administrate.Staff
 import commands.administrate.filterByRole
 import commands.administrate.staff
+import commands.games.GameDataBetting
 import commands.games.GameDataBlackjack
 import commands.games.GameDataCoinflip
 import events.Category
@@ -168,6 +169,10 @@ class Web {
                 }
             }
         }, handlebars)
+        get("/logout", { request, response ->
+            request.session().invalidate()
+            response.redirect("/")
+        })
         get("/administrators", { request, response ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
@@ -266,6 +271,23 @@ class Web {
                         ModelAndView(map, "coinflip.hbs")
                     }
                 }
+                "betting" -> {
+                    val id = request.splat()[1].toIntOrNull() ?: 999999999
+                    val game = asPojo(r.table("BettingData").get(id).run(conn), GameDataBetting::class.java)
+                    if (game == null) {
+                        map.put("showSnackbar", true)
+                        map.put("snackbarMessage", "No game with that id was found!")
+                        map.put("title", "Gamemode not found")
+                        ModelAndView(map, "404.hbs")
+                    } else {
+                        val creator = game.creator.toUser()!!
+                        map.put("title", "Betting Game #$id")
+                        map.put("game", game)
+                        map.put("user", creator)
+                        map.put("date", game.startTime.readableDate())
+                        ModelAndView(map, "betting.hbs")
+                    }
+                }
                 else -> {
                     map.put("showSnackbar", true)
                     map.put("snackbarMessage", "No Gamemode with that title was found!")
@@ -318,7 +340,7 @@ class Web {
                                             ticket.insert("supportTickets")
                                             response.redirect("/tickets/${ticket.id}")
                                             "322066335008030720".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
-                                                    "https://ardentbot.com/tickets/${ticket.id} - please respond! <@&260841692142239744>").queue()
+                                                    "https://ardentbot.com/tickets/${ticket.id}").queue()
                                         }
                                         null
                                     }
@@ -330,13 +352,13 @@ class Web {
                                             if (ticket!!.user == user.id) {
                                                 ticket.userResponses.add(SupportMessageModel(user.id, true, message, System.currentTimeMillis()))
                                                 "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **replied** to their support ticket @ " +
-                                                        "https://ardentbot.com/tickets/${ticket.id} - go respond <@&260841692142239744> !").queue()
+                                                        "https://ardentbot.com/tickets/${ticket.id}").queue()
                                             } else {
                                                 ticket.administratorResponses.add(SupportMessageModel(user.id, false, message, System.currentTimeMillis()))
                                                 "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}**, an **administrator**, has replied to the " +
                                                         "support ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
                                                 ticket.user.toUser()!!.openPrivateChannel().queue({ privateChannel ->
-                                                    privateChannel.sendMessage("**Ardent Support**: __${user.withDiscrim()}__ has replied to you support ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
+                                                    privateChannel.sendMessage("**Ardent Support**: __${user.withDiscrim()}__ has replied to your ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
                                                 })
                                             }
                                             r.table("supportTickets").get(ticket.id).update(r.json(ticket.toJson())).runNoReply(conn)
@@ -366,7 +388,7 @@ class Web {
                                         if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
                                             r.table("supportTickets").get(ticket.id).update(r.hashMap("open", true)).runNoReply(conn)
                                             "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **re-opened** a support ticket at " +
-                                                    "https://ardentbot.com/tickets/${ticket.id} - please respond! <@&260841692142239744>").queue()
+                                                    "https://ardentbot.com/tickets/${ticket.id}").queue()
                                             response.redirect("/tickets/${ticket.id}?announce=Successfully+reopened+your+ticket")
                                         } else {
                                             response.redirect("/fail")

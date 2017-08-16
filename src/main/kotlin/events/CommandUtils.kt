@@ -63,6 +63,9 @@ class CommandFactory {
                     commandsById.incrementValue(cmd.name)
                     executor.execute {
                         try {
+                            val data = member.data()
+                            data.gold += 2
+                            data.update()
                             cmd.execute(args, event)
                         } catch (e: Throwable) {
                             e.log()
@@ -126,6 +129,7 @@ fun String.toCategory(): Category {
         "Server Administration" -> return Category.ADMINISTRATE
         "Games" -> return Category.GAMES
         "Fun & Urban Dictionary" -> return Category.FUN
+        "RPG & Betting" -> return Category.RPG
         else -> return Category.BOT_INFO
     }
 }
@@ -136,7 +140,8 @@ enum class Category(val fancyName: String, val description: String) {
     BOT_INFO("Bot Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
     SERVER_INFO("Server Information", "Check current information about different aspects of your server"),
     ADMINISTRATE("Server Administration", "Administrate your server: this category includes commands like warnings and mutes"),
-    FUN("Fun & Urban Dictionary", "Bored? Not interested in the games? We have a lot of commands for you to check out here!")
+    FUN("Fun & Urban Dictionary", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
+    RPG("RPG & Betting", "Need a gambling fix? Want to marry someone? Use this category!")
     ;
 
     override fun toString(): String {

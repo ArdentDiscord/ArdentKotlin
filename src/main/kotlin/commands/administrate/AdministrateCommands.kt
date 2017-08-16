@@ -60,8 +60,12 @@ class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the cha
             else {
                 number++
                 channel.history.retrievePast(number).queue { messages ->
-                    channel.deleteMessages(messages).queue {
-                        channel.send(member, "Successfully cleared **$number** messages")
+                    try {
+                        channel.deleteMessages(messages).queue {
+                            channel.send(member, "Successfully cleared **$number** messages")
+                        }
+                    } catch(e: Exception) {
+                        channel.send(member, "Unable to clear messages - ${e.localizedMessage}")
                     }
                 }
             }
@@ -317,7 +321,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
     }
 }
 
-class GiveAll : Command(Category.ADMINISTRATE, "giveall", "give all users who don't have any role, the role you specify") {
+class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who don't have any role, the role you specify", "giveall") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             channel.send(member, "You need to type the name of the role that you'd like to give to all members who currently have no roles in this server!")
@@ -338,7 +342,6 @@ class GiveAll : Command(Category.ADMINISTRATE, "giveall", "give all users who do
                                 addedTo++
                             }, {})
                         } catch(ignored: Exception) {
-                            ignored.log()
                         }
                     }
                 }

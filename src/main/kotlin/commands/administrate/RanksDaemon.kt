@@ -61,6 +61,11 @@ class RanksDaemon : Runnable {
                     if (!successfulSearches.contains(patron.id)) r.table("patrons").get(patron.id).delete().runNoReply(conn)
                 }
             }
+            r.table("playerData").run<Any>(conn).queryAsArrayList(PlayerData::class.java).forEach {
+                if (it != null) {
+                    if (it.id.toUser() == null) r.table("playerData").get(it.id).delete().runNoReply(conn)
+                }
+            }
         } catch (e: Exception) {
             e.log()
         }
