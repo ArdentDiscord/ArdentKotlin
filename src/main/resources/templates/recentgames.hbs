@@ -1,0 +1,19 @@
+{{> header.hbs }}
+
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>Ardent Game Engine</h2>
+        <p>Invite Ardent and play games by clicking <a href="/invite">here</a>!</p>
+    </header>
+    <h2>Recently finished games</h2>
+    {{#each recentGames}}
+        <div class="box">
+            <h3><a href="{{url}}">{{user}}'s {{type}} game</a></h3>
+            <p>Ended at {{endTime}}</p>
+        </div>
+    {{/each}}
+
+</section>
+
+{{> footer.hbs }}

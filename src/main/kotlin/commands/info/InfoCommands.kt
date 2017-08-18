@@ -5,16 +5,17 @@ import events.Command
 import events.toCategory
 import main.factory
 import main.waiter
+import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
-import net.dv8tion.jda.core.OnlineStatus
+import utils.Settings
+import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
-import java.text.DecimalFormat
 
 
 val formatter = DecimalFormat("#,###")
@@ -42,137 +43,16 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
     }
 }
 
+
+class WebPanel : Command(Category.ADMINISTRATE, "webpanel", "administrate the settings for your server", "panel") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        channel.send(member, "Visit our new web panel for an easy way to manage your settings - https://ardentbot.com/manage/${guild.id}")
+    }
+}
+
 class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server", "s") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "Visit our new web panel for an easy way to manage your settings - https://ardentbot.com/manage/${guild.id}")
-        /*if (arguments.size == 0) {
-            withHelp("current", "see a list of settings along with their current values")
-                    .withHelp("trusteveryone true|false", "choose whether to allow everyone to access advanced DJ commands like /skip, /leave, etc.")
-                    .withHelp("defaultrole [role name **OR** type `none` to disable]", "set the default role given to users when they join this server")
-                    .withHelp("messageparam", "see a list of special parameters you can add to your join or leave message")
-                    .withHelp("joinmessage [message **or** `none` to remove]", "set or remove the join message")
-                    .withHelp("leavemessage [message **or** `none` to remove]", "set or remove the leave message")
-                    .withHelp("messagechannel [channel name **or** `none` to remove]", "set or remove the channel to send join/leave messages to")
-                    .withHelp("announcemusic true|false", "set whether you want me to send an info message whenever a new song starts playing")
-                    .displayHelp(channel, member)
-        } else {
-            if (!member.hasOverride(channel)) return
-            val data = guild.getData()
-            when (arguments[0]) {
-                "current" -> {
-                    channel.send(member, embed("Settings for ${guild.name}", member)
-                            .addField("Can everyone use DJ commands?", data.allowGlobalOverride.toString(), false)
-                            .addField("Default Role", data.defaultRole?.toRole(guild)?.name ?: "None", false)
-                            .addField("Join Message", data.joinMessage?.first ?: "None", false)
-                            .addField("Leave Message", data.leaveMessage?.first ?: "None", false)
-                            .addField("Channel for Join/Leave Message", data.joinMessage?.second?.toChannel()?.asMention ?: "None", false)
-                            .addField("Add more than 1 song at a time for normal users", (!data.musicSettings.singleSongInQueueForMembers).toString(), false)
-                            .addField("Announce Start of New Songs", data.musicSettings.announceNewMusic.toString(), false)
-                    )
-                }
-                "messageparam" -> {
-                    channel.send(member, "You can use the following parameters:\n" +
-                            "- \$usermention: replaced with a mention of the user leaving/joining\n" +
-                            "- \$username: replaced with username#discriminator of the user\n" +
-                            "- \$servername: replaced with the server name\n" +
-                            "- \$membercount: replaced with the current member count of this server")
-                }
-                "joinmessage" -> {
-                    if (arguments.size == 1) channel.send(member, "You need to include a message or `none` to remove the current message")
-                    else {
-                        arguments.removeAt(0)
-                        val message = arguments.concat()
-                        if (message.equals("none", true)) {
-                            data.joinMessage = Pair(null, data.joinMessage?.second)
-                            channel.send(member, "Removed the set **join message**")
-                        }
-                        else {
-                            data.joinMessage = Pair(message, data.joinMessage?.second)
-                            channel.send(member, "Set the join message. Make sure you've set a **receiver channel** where I should send the messages to.")
-                        }
-                    }
-                    data.update()
-                }
-                "leavemessage" -> {
-                    if (arguments.size == 1) channel.send(member, "You need to include a message or `none` to remove the current message")
-                    else {
-                        arguments.removeAt(0)
-                        val message = arguments.concat()
-                        if (message.equals("none", true)) {
-                            data.leaveMessage = Pair(null, data.leaveMessage?.second)
-                            channel.send(member, "Removed the set **leave message**")
-                        }
-                        else {
-                            data.leaveMessage = Pair(message, data.leaveMessage?.second)
-                            channel.send(member, "Set the leave message. Make sure you've set a **receiver channel** where I should send the messages to.")
-                        }
-                    }
-                    data.update()
-                }
-                "messagechannel" -> {
-                    if (arguments.size == 1) channel.send(member, "You need to include a channel name or `none` to remove the current channel")
-                    else {
-                        arguments.removeAt(0)
-                        val message = arguments.concat()
-                        if (message.equals("none", true)) {
-                            data.joinMessage = Pair(data.joinMessage?.first, null)
-                            data.leaveMessage = Pair(data.leaveMessage?.first, null)
-                            channel.send(member, "Removed the set **receiver channel**")
-                        }
-                        else {
-                            val results = guild.getTextChannelsByName(message, true)
-                            if (results.size == 0) channel.send(member, "No channel matched that name! Please check your spelling and try again")
-                            else {
-                                val setChannel = results[0]
-                                data.joinMessage = Pair(data.joinMessage?.first, setChannel.id)
-                                data.leaveMessage = Pair(data.leaveMessage?.first, setChannel.id)
-                                channel.send(member, "Set the **receiver channel** as ${setChannel.asMention}")
-                            }
-                        }
-                    }
-                    data.update()
-                }
-                "announcemusic" -> {
-                    if (arguments.size == 1) channel.send(member, "You need to specify true or false!")
-                    else {
-                        val change = arguments[1].toBoolean()
-                        data.musicSettings.announceNewMusic = change
-                        data.update()
-                        if (change) channel.send(member, "I will now **announce** the start of songs")
-                        else channel.send(member, "I **won't** announce the start of songs")
-                    }
-                }
-                "trusteveryone" -> {
-                    if (arguments.size == 1) channel.send(member, "You need to specify true or false!")
-                    else {
-                        val change = arguments[1].toBoolean()
-                        data.allowGlobalOverride = change
-                        data.update()
-                        if (change) channel.send(member, "Everyone can now use DJ commands")
-                        else channel.send(member, "Only elevated users can now use DJ commands")
-                    }
-                }
-                "defaultrole" -> {
-                    if (arguments.size == 1) channel.send(member, "You need to specify `none` or type the name of a role")
-                    else {
-                        if (arguments[1].equals("none", true)) {
-                            data.defaultRole = null
-                            data.update()
-                            channel.send(member, "No default role will be given to new members")
-                        } else {
-                            val roles = guild.getRolesByName(arguments[1], true)
-                            if (roles.size == 0) channel.send(member, "No role with that name was found")
-                            else {
-                                val role = roles[0]
-                                data.defaultRole = role.id
-                                data.update()
-                                channel.send(member, "**${role.name}** will be given to new members")
-                            }
-                        }
-                    }
-                }
-            }
-        }*/
     }
 }
 
@@ -187,12 +67,92 @@ class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
     }
 }
 
+class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you wish to receive", "iamrole") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val data = guild.getData()
+        if (arguments.size == 0) {
+            val embed = embed("Iam List", member)
+            val builder = StringBuilder().append("This is the **autoroles** list for *${guild.name}* - to add or delete them, type **/webpanel**\n")
+            if (data.iamList.size == 0) builder.append("You don't have any autoroles :(")
+            else {
+                data.iamList.forEach {
+                    val role = it.roleId.toRole(guild)
+                    if (role != null) builder.append("${Emoji.SMALL_ORANGE_DIAMOND} Typing **${it.name}** will give you the **${role.name}** role\n")
+                    else {
+                        data.iamList.remove(it)
+                    }
+                }
+                data.update()
+                builder.append("\n**Give yourself one of these roles by typing _/iam NAME_**")
+            }
+            channel.send(member, embed.setDescription(builder.toString()))
+            return
+        }
+        val name = arguments.concat()
+        var found = false
+        data.iamList.forEach {
+            if (it.name.equals(name, true)) {
+                val role = it.roleId.toRole(guild)
+                if (role == null) {
+                    data.iamList.remove(it)
+                    data.update()
+                }
+                else {
+                    guild.controller.addRolesToMember(member, role).reason("Ardent Autoroles").queue({
+                        channel.send(member, "Successfully gave you the **${role.name}** role!")
+                    }, {
+                        channel.send(member, "Failed to give you the *${role.name}* role - **please ask an administrator of this server to allow me " +
+                                "to give you roles!**")
+                    })
+                }
+                found = true
+                return@forEach
+            }
+        }
+        if (!found) channel.send(member, "An autorole with that name wasn't found. Please type **${data.prefix}iam** to get a full list")
+    }
+}
+
+class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role from you that you've been given via /iam", "iamrole") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val data = guild.getData()
+        if (arguments.size == 0) {
+            channel.send(member, "Please type **${data.prefix}iam** to get a full list of available autoroles")
+            return
+        }
+        val name = arguments.concat()
+        var found = false
+        data.iamList.forEach {
+            if (it.name.equals(name, true)) {
+                val role = it.roleId.toRole(guild)
+                if (role == null) {
+                    data.iamList.remove(it)
+                    data.update()
+                }
+                else {
+                    if (member.roles.contains(role)) {
+                        guild.controller.removeRolesFromMember(member, role).reason("Ardent Autoroles - Removal").queue({
+                            channel.send(member, "Successfully removed the **${role.name}** role!")
+                        }, {
+                            channel.send(member, "Failed to remove *${role.name}* - **please ask an administrator of this server to allow me " +
+                                    "to manage roles!**")
+                        })
+                    }
+                    else channel.send(member, "You can't remove a role you don't have! :thinking:")
+                }
+                found = true
+                return@forEach
+            }
+        }
+        if (!found) channel.send(member, "An autorole with that name wasn't found. Please type **${data.prefix}iam** to get a full list")
+
+    }
+}
 
 class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val categories = Category.values().map { it.toString() }.toMutableList()
-        channel.selectFromList(member, "Which category of commands would you like help in?", categories, {
-            number ->
+        channel.selectFromList(member, "Which category of commands would you like help in?", categories, { number ->
             val category = categories[number].toCategory()
             val categoryCommands = factory.commands.filter { it.category == category }.toMutableList().shuffle()
             val embed = embed("${category.fancyName} Commands", member)

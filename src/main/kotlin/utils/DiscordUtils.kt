@@ -16,6 +16,8 @@ import java.awt.Color
 import java.lang.management.ManagementFactory
 import java.util.*
 
+class SanitizedGame(val user: String, val endTime: String, val type: String, val url: String)
+
 fun String.toChannel(): TextChannel? {
     jdas.forEach { jda ->
         val channel = jda.getTextChannelById(this)
@@ -147,11 +149,11 @@ fun List<String>.toUsers(): String {
 
 fun Guild.getData(): GuildData {
     val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
-    if (guildData != null) return guildData
+    return if (guildData != null) guildData
     else {
         val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>())
         data.insert("guilds")
-        return data
+        data
     }
 }
 

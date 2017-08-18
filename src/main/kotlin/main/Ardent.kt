@@ -30,6 +30,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
 import utils.EventWaiter
+import utils.Iam
 import utils.logChannel
 import web.Web
 import java.io.File
@@ -37,9 +38,9 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = false
+val test = true
 
-var r = RethinkDB.r
+var r: RethinkDB = RethinkDB.r
 var conn: Connection? = null
 
 var jdas = mutableListOf<JDA>()
@@ -128,6 +129,9 @@ fun main(args: Array<String>) {
             .addCommand(GetId())
             .addCommand(Support())
             .addCommand(ClearQueue())
+            .addCommand(WebPanel())
+            .addCommand(IamCommand())
+            .addCommand(IamnotCommand())
             .addCommand(CoinflipCommand())
             .addCommand(BlackjackCommand())
             .addCommand(BetCommand())

@@ -94,6 +94,62 @@
         </form>
     </div>
     <div class="box">
+        <h3>Iam (Automatic Role Distribution)</h3>
+        <p>Users can use <b>/iam</b> or <b>/iamnot</b> to give themselves or take away an autorole you set, respectively
+        </p>
+        <h5>Add an autorole</h5>
+        <form action="/api/internal/data/{{guild.id}}/addautorole">
+            <div class="row uniform 50%">
+                <p style="width: 50%;">Name of autorole
+                    <input type="text" name="name" id="name" value="" placeholder="Type name here..."/>
+                </p>
+                <div class="5u">
+                    <div class="select-wrapper">
+                        <p>Role to give
+                            <select name="role" id="role">
+                                {{#each roles}}
+                                    <option value="{{id}}">{{name}}</option>
+                                {{/each}}
+                            </select>
+                        </p>
+                    </div>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
+        {{#if hasIams}}
+            <h5><b>Remove Whitelists</b></h5>
+            <div class="table-wrapper">
+                <div class="6u">
+                    <table class="alt">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role Given</th>
+                            <th>Remove</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#each iams}}
+                            <tr>
+                                <td>{{first}}</td>
+                                <td>{{second.name}}</td>
+                                <td><a href="/api/internal/data/{{guild.id}}/removeautorole?role={{second.id}}"><img
+                                        height="16" width="16"
+                                        src="/images/x_button.png"></a>
+                                </td>
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {{/if}}
+
+    </div>
+    <div class="box">
         <h3>Join/Leave Messages</h3>
         <h5>Set a channel to send these messages to</h5>
         <form action="/api/internal/data/{{guild.id}}/receiverchannel">
@@ -122,7 +178,8 @@
         <p>You can use the following parameters that will be replaced: $usermention (mentions the member involved),
             $username (writes the username +
             discriminator of the involved member), $servername (that's pretty obvious), or $membercount (replaced
-            with the amount of members in this server). <b>You can also mention text channels by doing <em>#channelNameHere</em></b></p>
+            with the amount of members in this server). <b>You can also mention text channels by doing <em>#channelNameHere</em></b>
+        </p>
         <h5>Set the Join Message</h5>
         <form action="/api/internal/data/{{guild.id}}/joinmessage">
             <div class="row uniform 50%">

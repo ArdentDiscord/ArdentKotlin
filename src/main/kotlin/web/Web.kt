@@ -3,12 +3,11 @@ package web
 import commands.administrate.Staff
 import commands.administrate.filterByRole
 import commands.administrate.staff
-import commands.games.GameDataBetting
-import commands.games.GameDataBlackjack
-import commands.games.GameDataCoinflip
+import commands.games.*
 import events.Category
 import main.*
 import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import spark.ModelAndView
@@ -229,6 +228,22 @@ class Web {
             map.put("title", "Announcements")
             map.put("announcements", getAnnouncements())
             ModelAndView(map, "announcements.hbs")
+        }, handlebars)
+        get("/games/recent", { request, response ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("title", "Recent Games")
+            val games = mutableListOf<Pair<GameType, GameData>>()
+            r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java).forEach { games.add(Pair(GameType.COINFLIP, it!!)) }
+            r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { games.add(Pair(GameType.BLACKJACK, it!!)) }
+            r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { games.add(Pair(GameType.BETTING, it!!)) }
+            games.sortByDescending { it.second.endTime }
+            games.removeIf { it.second.creator.toUser() == null }
+            map.put("recentGames", games.map {
+                SanitizedGame(it.second.creator.toUser()!!.withDiscrim(), it.second.endTime.readableDate(), it.first.readable, "https://ardentbot.com/games/${it.first.readable.toLowerCase()}/${it.second.id}")
+            }.subList(0, 30))
+            ModelAndView(map, "recentgames.hbs")
+
         }, handlebars)
         get("/games/*/*", { request, response ->
             val map = hashMapOf<String, Any>()
@@ -623,6 +638,33 @@ class Web {
                             map.put("title", "Management Center")
                             val data = guild.getData()
                             when (request.splat()[1]) {
+                                "addautorole" -> {
+                                    map.replace("showSnackbar", true)
+                                    val title = request.queryParams("name")
+                                    val role = guild.getRoleById(request.queryParams("role") ?: "1")
+                                    if (title == null || role == null) {
+                                        map.put("snackbarMessage", "One of the given parameters was null")
+                                    } else {
+                                        if (data.iamList.firstOrNull({ it.roleId == role.id }) != null) {
+                                            map.put("snackbarMessage", "This role already has an autorole set to it!")
+                                        } else {
+                                            data.iamList.add(Iam(title, role.id))
+                                            map.put("snackbarMessage", "Successfully added autorole!")
+                                        }
+                                    }
+                                }
+                                "removeautorole" -> {
+                                    map.replace("showSnackbar", true)
+                                    val role = request.queryParams("role")
+                                    if (role == null) map.put("snackbarMessage", "The role provided wasn't found")
+                                    else {
+                                        val iterator = data.iamList.iterator()
+                                        while (iterator.hasNext()) {
+                                            if (iterator.next().roleId == role) iterator.remove()
+                                        }
+                                        map.put("snackbarMessage", "Removed autorole if it was found in our database")
+                                    }
+                                }
                                 "autoplaymusic" -> {
                                     val state: String? = request.queryParams("state")
                                     val snackbarKey: String
@@ -849,6 +891,13 @@ fun manage(request: Request, map: HashMap<String, Any>, guild: Guild) {
         map.put("hasDefaultRole", true)
         map.put("defaultRole", defaultRole)
     }
+    map.put("hasIams", data.iamList.size > 0)
+    val iams = mutableListOf<Pair<String, Role>>()
+    data.iamList.forEach {
+        val role = guild.getRoleById(it.roleId)
+        if (role != null) iams.add(Pair(it.name, role))
+    }
+    map.put("iams", iams)
     map.put("roles", guild.roles.toMutableList().without(guild.publicRole))
     map.put("advancedPermissions", data.advancedPermissions.map { it.toUser()!! })
     if (data.joinMessage?.first == null) map.put("joinMessage", "")

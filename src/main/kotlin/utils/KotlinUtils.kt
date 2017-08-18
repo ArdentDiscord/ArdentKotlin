@@ -16,6 +16,8 @@ import java.util.*
 import javax.management.Attribute
 import javax.management.ObjectName
 
+class Pair2(val first1: Any?, val second1: Any?)
+
 var logChannel: TextChannel? = null
 
 private val random = Random()

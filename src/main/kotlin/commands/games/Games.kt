@@ -76,7 +76,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
         }, {
             channel.send(user, "${user.asMention}, you didn't specify a response and lost!")
             displayRoundScore(bet, dealerHand, userHand.blackjackPlus(5), user)
-            wait(bet, dealerHand, userHand, user)
+            cancel(user)
         }, 15, TimeUnit.SECONDS, silentExpiration = true)
     }
 
@@ -434,7 +434,6 @@ class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of bl
             channel.send(member, "There can only be one blackjack game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
                     "https://ardentbot.com/patreon to start more than one game per type at a time**")
         } else {
-            channel.send(member, "This is a solo game; it'll start in a second!")
             BlackjackGame(channel, member.id(), 1, false).startEvent()
         }
     }
