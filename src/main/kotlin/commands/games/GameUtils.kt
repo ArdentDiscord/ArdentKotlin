@@ -17,7 +17,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()!!
     var gameId: Long = 0
     val players = mutableListOf<String>()
-    val creation: Long
+    private val creation: Long
     var startTime: Long? = null
 
     init {
@@ -77,6 +77,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
 
 
     fun cleanup(gameData: GameData) {
+        activeGames.remove(this)
         val user = creator.toUser()!!
         if (r.table("${type.readable}Data").get(gameId).run<Any?>(conn) == null) {
             gameData.id = gameId
@@ -89,7 +90,6 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         }
         channel.send(user, "Game Data has been successfully inserted into the database. To view the results and statistics for this match, " +
                 "you can go to https://ardentbot.com/games/${type.name.toLowerCase()}/$gameId")
-        activeGames.remove(this)
     }
 
     fun announceCreation() {

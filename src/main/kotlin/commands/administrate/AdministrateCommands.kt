@@ -2,19 +2,20 @@ package commands.administrate
 
 import events.Category
 import events.Command
-import main.conn
-import main.jdas
-import main.managers
-import main.r
+import main.*
+import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.core.requests.RestAction
 import utils.*
 import java.awt.Color
+import java.util.*
 import java.util.concurrent.TimeUnit
+
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -55,16 +56,15 @@ class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the cha
                 }
                 return
             }
-            var number = arguments[0].toIntOrNull()
-            if (number == null || number < 2 || number > 100) channel.send(member, "Invalid number specified. Number must be between **2** and **99** messages")
+            val number = arguments[0].toIntOrNull()
+            if (number == null || number < 2 || number > 100) channel.send(member, "Invalid number specified. Number must be between **2** and **100** messages")
             else {
-                number++
                 channel.history.retrievePast(number).queue { messages ->
                     try {
                         channel.deleteMessages(messages).queue {
                             channel.send(member, "Successfully cleared **$number** messages")
                         }
-                    } catch(e: Exception) {
+                    } catch (e: Exception) {
                         channel.send(member, "Unable to clear messages - ${e.localizedMessage}")
                     }
                 }
@@ -96,7 +96,7 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
                         }, {
                             channel.send(member, "Failed to ban **${toBan.withDiscrim()}**. Check my permissions..?")
                         })
-                    } catch(e: Exception) {
+                    } catch (e: Exception) {
                         channel.send(member, "Failed to ban **${toBan.withDiscrim()}**. Check my permissions..?")
                     }
                 }
@@ -222,6 +222,39 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             .displayHelp(channel, member)
                 } else {
                     when (arguments[0]) {
+                        "eval" -> {
+                            val message = event.message
+                            val shortcuts = hashMapOf<String, Any>();
+                            shortcuts.put("jda", message.jda);
+                            shortcuts.put("event", event);
+
+                            shortcuts.put("channel", channel);
+                            shortcuts.put("guild", channel.guild);
+
+                            shortcuts.put("message", message);
+                            shortcuts.put("msg", message);
+                            shortcuts.put("me", event.author);
+                            shortcuts.put("bot", message.jda.selfUser);
+                            shortcuts.put("config", config);
+
+                            val timeout = 10;
+
+                            val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat());
+                            val builder = MessageBuilder()
+                            if (result.first is RestAction<*>)
+                                (result.first as RestAction<*>).queue();
+                            else if (result.first != null && (result.first as String).isNotEmpty())
+                                builder.appendCodeBlock(result.first.toString(), "");
+                            if (!result.second.isEmpty() && result.first != null)
+                                builder.append("\n").appendCodeBlock(result.first as String, "");
+                            if (!result.third.isEmpty())
+                                builder.append("\n").appendCodeBlock(result.third, "");
+                            if (builder.isEmpty)
+                                event.message.addReaction("✅").queue();
+                            else
+                                for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
+                                    event.channel.sendMessage(m).queue();
+                        }
                         "whitelist" -> {
                             if (arguments.size == 1) {
                                 val embed = embed("Whitelisted members", member, Color.RED)
@@ -341,7 +374,7 @@ class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who d
                             guild.controller.addRolesToMember(m, role).queue({
                                 addedTo++
                             }, {})
-                        } catch(ignored: Exception) {
+                        } catch (ignored: Exception) {
                         }
                     }
                 }

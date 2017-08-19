@@ -50,7 +50,7 @@ class WebPanel : Command(Category.ADMINISTRATE, "webpanel", "administrate the se
     }
 }
 
-class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server", "s") {
+class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "Visit our new web panel for an easy way to manage your settings - https://ardentbot.com/manage/${guild.id}")
     }

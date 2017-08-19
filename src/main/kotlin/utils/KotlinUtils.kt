@@ -1,5 +1,6 @@
 package utils
 
+import com.google.common.util.concurrent.MoreExecutors
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.rethinkdb.net.Cursor
@@ -9,12 +10,22 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.TextChannel
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl
 import org.json.simple.JSONObject
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.lang.management.ManagementFactory
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import javax.management.Attribute
 import javax.management.ObjectName
+import javax.script.ScriptEngine
+import javax.script.ScriptEngineManager
+
 
 class Pair2(val first1: Any?, val second1: Any?)
 
@@ -181,4 +192,24 @@ fun <T> List<T>.collate(size: Int): List<List<T>> {
             subList(fromIndex, toIndex)
         }
     }
+}
+
+fun replaceAll(builder: StringBuilder, from: String, to: String) {
+    var cont = true
+    while (cont) {
+        val temp = builder.indexOf(from)
+        if (temp != -1) builder.replace(temp, temp + from.length, to)
+        else cont = false
+    }
+}
+
+fun replaceFirst(text: String, searchString: String, replacement: String): String {
+    return org.apache.commons.lang3.StringUtils.replaceOnce(text, searchString, replacement)
+}
+
+/**
+ * Thanks StackOverflow
+ */
+fun replaceLast(text: String, regex: String, replacement: String): String {
+    return text.replaceFirst(("(?s)(.*)" + regex).toRegex(), "$1$replacement")
 }

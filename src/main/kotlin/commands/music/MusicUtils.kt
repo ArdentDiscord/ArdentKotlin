@@ -165,7 +165,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
         } else manager.nextTrack()
     }
 
-    fun String.rmCharacters(characterSymbol: String): String {
+    private fun String.rmCharacters(characterSymbol: String): String {
         if (characterSymbol.contains("[]")) {
             return this.replace("\\s*\\[[^\\]]*\\]\\s*".toRegex(), " ")
         } else if (characterSymbol.contains("{}")) {

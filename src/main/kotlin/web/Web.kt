@@ -354,7 +354,7 @@ class Web {
                                             val ticket = SupportTicketModel(user.id, title, true).add(description)
                                             ticket.insert("supportTickets")
                                             response.redirect("/tickets/${ticket.id}")
-                                            "322066335008030720".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
+                                            "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
                                                     "https://ardentbot.com/tickets/${ticket.id}").queue()
                                         }
                                         null

@@ -10,10 +10,7 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.wrapper.spotify.Api
 import commands.`fun`.*
 import commands.administrate.*
-import commands.games.BetCommand
-import commands.games.BlackjackCommand
-import commands.games.CoinflipCommand
-import commands.games.Games
+import commands.games.*
 import commands.info.*
 import commands.music.*
 import commands.music.Queue
@@ -38,7 +35,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = true
+val test = false
 
 var r: RethinkDB = RethinkDB.r
 var conn: Connection? = null
@@ -101,6 +98,13 @@ fun main(args: Array<String>) {
             .addCommand(Prefix())
             .addCommand(Leave())
             .addCommand(Games())
+            .addCommand(Decline())
+            .addCommand(InviteToGame())
+            .addCommand(Gamelist())
+            .addCommand(LeaveGame())
+            .addCommand(JoinGame())
+            .addCommand(Cancel())
+            .addCommand(Forcestart())
             .addCommand(Invite())
             .addCommand(Settings())
             .addCommand(About())
@@ -143,7 +147,7 @@ fun main(args: Array<String>) {
     println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")
 }
 
-class Config(url: String) {
+data class Config(val url: String) {
     private val keys: MutableMap<String, String>
 
     init {

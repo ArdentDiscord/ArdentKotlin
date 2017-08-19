@@ -166,7 +166,8 @@ fun Message.getFirstRole(arguments: List<String>): Role? {
     return null
 }
 
-fun Guild.punishments(): MutableList<Punishment?> {
+fun Guild?.punishments(): MutableList<Punishment?> {
+    if (this == null) return mutableListOf()
     return r.table("punishments").filter(r.hashMap("guildId", id)).run<Any>(conn).queryAsArrayList(Punishment::class.java)
 }
 
