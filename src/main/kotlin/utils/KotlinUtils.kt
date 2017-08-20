@@ -31,7 +31,7 @@ class Pair2(val first1: Any?, val second1: Any?)
 
 var logChannel: TextChannel? = null
 
-private val random = Random()
+val random = Random()
 private val gsons = listOf(GsonBuilder().serializeSpecialFloatingPointValues().create(),
         GsonBuilder().serializeSpecialFloatingPointValues().create(),
         GsonBuilder().serializeSpecialFloatingPointValues().create(),

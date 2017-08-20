@@ -308,6 +308,18 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                                 }
                             }
                         }
+                        "setmoney" -> {
+                            if (event.message.mentionedUsers.size == 0 || arguments.size != 3) channel.send(member, "mention a user and type a number")
+                            else {
+                                val amount = arguments[2].toDoubleOrNull()
+                                if (amount == null) channel.send(member, "You need to add a value")
+                                else {
+                                    val data = event.message.mentionedUsers[0].getData()
+                                    data.gold = amount
+                                    data.update()
+                                }
+                            }
+                        }
                         "shutdown" -> {
                             channel.send(member, "Shutting down JDA instances...")
                             managers.forEach { idLong, manager ->

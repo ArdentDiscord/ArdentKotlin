@@ -13,6 +13,23 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
 import java.util.*
 
+class Balance : Command(Category.RPG, "bal", "see someone's balance (or yours)", "balance", "money", "gold") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val actionUser = if (event.message.mentionedUsers.size == 0) member.user else event.message.mentionedUsers[0]
+        val prefix = guild.getPrefix()
+        channel.send(member, "**${actionUser.withDiscrim()}**'s balance is *${actionUser.getData().gold}* gold\n" +
+                "You can use __${prefix}topserver__ or __${prefix}top__ to compare your balance to others in your server or globally")
+    }
+}
+
+class Daily : Command(Category.RPG, "daily", "get a daily stipend of gold") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val data = member.data()
+        if (data.canCollect()) channel.send(member, "You got **${data.collect()}** gold today!")
+        else channel.send(member, "You'll be able to use this command at **${data.collectionTime()}**")
+    }
+}
+
 class ProfileCommand : Command(Category.RPG, "profile", "see your or others' profile") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         val profiled = if (event.message.mentionedUsers.size == 0) member.user else event.message.mentionedUsers[0]
@@ -94,7 +111,8 @@ class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working ou
 
 class TopMoney : Command(Category.RPG, "top", "see who has the most money in the Ardent database", "topmoney") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
+        var page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
+        if (page <= 0) page = 1
         val embed = embed("Global Money Leaderboards | Page $page", member)
                 .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
         val builder = StringBuilder()
@@ -102,7 +120,7 @@ class TopMoney : Command(Category.RPG, "top", "see who has the most money in the
                 .limit(10).run<Any>(conn).queryAsArrayList(PlayerData::class.java)
         top.forEachIndexed { index, playerData ->
             if (playerData != null && playerData.id.toUser() != null) builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${playerData.id.toUser()!!.withDiscrim()}** " +
-                    "*${playerData.gold} gold* (#${index + 1 + (page * 10)})\n")
+                    "*${playerData.gold} gold* (#${index + 1 + ((page - 1) * 10)})\n")
         }
         builder.append("\n*You can see different pages by typing ${guild.getPrefix()}top __page_number__*")
         channel.send(member, embed.setDescription(builder.toString()))

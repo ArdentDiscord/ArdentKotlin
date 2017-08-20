@@ -13,7 +13,9 @@ import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.exceptions.PermissionException
 import java.awt.Color
 import java.lang.management.ManagementFactory
+import java.time.Instant
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class SanitizedGame(val user: String, val endTime: String, val type: String, val url: String)
 
@@ -343,7 +345,20 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
 
 data class LoggedCommand(val commandId: String, val userId: String, val executionTime: Long, val readableExecutionTime: String, val id: String = r.uuid().run(conn))
 
-class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0) {
+class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0) {
+    fun canCollect(): Boolean {
+        return ((System.currentTimeMillis() - collected) / 1000 / 60 / 60 / 24) >= 1
+    }
+    fun collectionTime(): String {
+        return (collected + TimeUnit.DAYS.toMillis(1)).readableDate()
+    }
+    fun collect(): Int {
+        val amount = random.nextInt(500) + 1
+        gold += amount
+        collected = System.currentTimeMillis() + (1000 * 60 * 60 * 24)
+        update()
+        return amount
+    }
     fun coinflipData(): CoinflipPlayerData {
         val data = CoinflipPlayerData()
         val coinflipGames = r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java)

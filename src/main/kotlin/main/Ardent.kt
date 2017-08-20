@@ -34,7 +34,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = false
+val test = true
 
 var r: RethinkDB = RethinkDB.r
 var conn: Connection? = null
@@ -144,6 +144,8 @@ fun main(args: Array<String>) {
             .addCommand(ProfileCommand())
             .addCommand(MarryCommand())
             .addCommand(DivorceCommand())
+            .addCommand(Daily())
+            .addCommand(Balance())
 
     startAdministrativeDaemon()
     println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")

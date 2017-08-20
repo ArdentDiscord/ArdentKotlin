@@ -26,6 +26,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         this.announceCreation()
         creation = System.currentTimeMillis()
         if (isPublic) {
+            displayLobby()
             scheduledExecutor.scheduleAtFixedRate({
                 if (((System.currentTimeMillis() - creation) / 1000) > 300 /* Lobby cancels at 5 minutes */) {
                     cancel(creator.toUser()!!)
