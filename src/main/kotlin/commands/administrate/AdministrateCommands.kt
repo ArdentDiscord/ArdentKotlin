@@ -123,7 +123,7 @@ class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of
 
 class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "You can manage settings for the **join** and **leave** messages on the web panel: ${guild.panelUrl()}")
+        channel.send(member, "You can manage settings for the **join** and **leave** messages on the web panel @ https://ardentbot.com/manage/${guild.id}")
     }
 }
 

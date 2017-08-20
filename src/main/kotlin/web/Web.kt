@@ -32,7 +32,7 @@ class Web {
                 val url = request.url()
                 try {
                     response.redirect("https://${url.split("http://")[1]}")
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     response.redirect("https://ardentbot.com")
                 }
             }
@@ -113,7 +113,7 @@ class Web {
             map.put("showSnackbar", false)
             map.put("title", "Commands")
             val category: Int? = request.queryParams("c")?.toIntOrNull()
-            if (category == null || category !in 1..5) map.put("genTable", false)
+            if (category == null || category !in 1..6) map.put("genTable", false)
             else {
                 map.put("genTable", true)
                 val commandCategory = when (category) {
@@ -122,6 +122,7 @@ class Web {
                     3 -> Category.SERVER_INFO
                     4 -> Category.ADMINISTRATE
                     5 -> Category.FUN
+                    6 -> Category.GAMES
                     else -> Category.GAMES
                 }
                 map.put("commands", factory.commands.filter { it.category == commandCategory })
@@ -140,7 +141,8 @@ class Web {
                 handle(request, map)
                 map.put("showSnackbar", false)
                 map.put("title", "Management Center")
-                map.put("availableGuilds", getMutualGuildsWith(user).filter { it.getMember(user).hasOverride(it.publicChannel, failQuietly = true) })
+                map.put("availableGuilds", getMutualGuildsWith(user).filter { it.getMember(user) != null &&
+                        it.getMember(user).hasOverride(it.textChannels[0], failQuietly = true) })
                 ModelAndView(map, "manage.hbs")
             }
         }, handlebars)
@@ -158,7 +160,7 @@ class Web {
                 val map = hashMapOf<String, Any>()
                 handle(request, map)
                 map.put("showSnackbar", false)
-                if (guild.getMember(user).hasOverride(guild.publicChannel, failQuietly = true)) {
+                if (guild.getMember(user).hasOverride(guild.textChannels[0], failQuietly = true)) {
                     manage(request, map, guild)
                     ModelAndView(map, "manageGuild.hbs")
                 } else {
@@ -912,7 +914,10 @@ fun manage(request: Request, map: HashMap<String, Any>, guild: Guild) {
 fun handle(request: Request, map: HashMap<String, Any>) {
     val session = request.session()
     val user = session.attribute<User>("user")
-    if (user == null) map.put("validSession", false)
+    if (user == null) {
+        map.put("validSession", false)
+        map.put("user", "")
+    }
     else {
         map.put("validSession", true)
         map.put("user", user)

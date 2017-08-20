@@ -14,8 +14,7 @@ import commands.games.*
 import commands.info.*
 import commands.music.*
 import commands.music.Queue
-import commands.rpg.TopMoney
-import commands.rpg.TopMoneyServer
+import commands.rpg.*
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
@@ -142,6 +141,9 @@ fun main(args: Array<String>) {
             // .addCommand(TriviaCommand()) I promise I'll eventually do this
             .addCommand(TopMoney())
             .addCommand(TopMoneyServer())
+            .addCommand(ProfileCommand())
+            .addCommand(MarryCommand())
+            .addCommand(DivorceCommand())
 
     startAdministrativeDaemon()
     println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")

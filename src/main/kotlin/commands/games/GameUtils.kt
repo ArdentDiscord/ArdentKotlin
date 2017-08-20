@@ -101,12 +101,11 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                         "Anyone in this server can join by typing *${prefix}minigames join #$gameId*")
             } else {
                 try {
-                    user.openPrivateChannel().queue {
-                        privateChannel ->
+                    user.openPrivateChannel().queue { privateChannel ->
                         privateChannel.send(user, "You successfully created a **__private__** game of **${type.readable}**. Invite members " +
                                 "by typing __${prefix}minigames invite @User__ - Choose wisely, because you can't get rid of them once they've accepted!")
                     }
-                } catch(e: Exception) {
+                } catch (e: Exception) {
                     channel.send(user, "${user.asMention}, you need to allow messages from me! If you don't remember how to invite people, I'd cancel the game")
                 }
             }
@@ -156,7 +155,9 @@ class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorr
 
 class CoinflipPlayerData(wins: Int = 0, losses: Int = 0, var roundsWon: Int = 0, var roundsLost: Int = 0) : PlayerGameData(wins, losses)
 
-class BlackjackPlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0, var roundsWon: Int, var roundsLost: Int) : PlayerGameData(wins, losses, ties)
+class BlackjackPlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0) : PlayerGameData(wins, losses, ties)
+
+class BettingPlayerData(wins: Int = 0, losses: Int = 0, var netWinnings: Double = 0.0) : PlayerGameData(wins, losses)
 
 abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: Int = 0) {
     fun gamesPlayed(): Int {

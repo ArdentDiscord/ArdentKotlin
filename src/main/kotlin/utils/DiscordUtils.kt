@@ -3,8 +3,7 @@ package utils
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.vdurmont.emoji.EmojiParser
 import commands.administrate.staff
-import commands.games.CoinflipPlayerData
-import commands.games.GameDataCoinflip
+import commands.games.*
 import commands.music.getGuildAudioPlayer
 import main.*
 import net.dv8tion.jda.core.EmbedBuilder
@@ -86,8 +85,29 @@ private fun Member.hasOverride(): Boolean {
     return isOwner || hasPermission(Permission.ADMINISTRATOR) || hasPermission(Permission.MANAGE_CHANNEL)
 }
 
-fun Guild.panelUrl(): String {
-    return "this doesn't work yet :("
+fun Member.getMarriage(): User? {
+    return getMarriageModeled()?.second
+}
+
+fun Member.getMarriageModeled(): Pair<Marriage, User?>? {
+    return user.getMarriageModeled()
+}
+
+fun User.getMarriage(): User? {
+    return getMarriageModeled()?.second
+}
+
+fun User.getMarriageModeled(): Pair<Marriage, User?>? {
+    r.table("marriages").run<Any>(conn).queryAsArrayList(Marriage::class.java).forEach { marriage ->
+        if (marriage != null) {
+            if (marriage.userOne == id || marriage.userTwo == id) {
+                val spouse: User? = if (marriage.userOne == id) marriage.userTwo.toUser() else marriage.userOne.toUser()
+                if (spouse == null) r.table("marriages").get(marriage.id).delete().runNoReply(conn)
+                return Pair(marriage, spouse)
+            }
+        }
+    }
+    return null
 }
 
 fun Member.withDiscrim(): String {
@@ -252,7 +272,9 @@ fun sendEmbed(embedBuilder: EmbedBuilder, channel: TextChannel, user: User, vara
     return MessageBuilder().build()
 }
 
-@Deprecated("useless") fun sendFailed(user: User, embed: Boolean) {}
+@Deprecated("useless")
+fun sendFailed(user: User, embed: Boolean) {
+}
 
 fun Guild.getPrefix(): String {
     val prefix = this.getData().prefix
@@ -278,7 +300,11 @@ fun Guild.donationLevel(): DonationLevel {
 
 fun User.getData(): PlayerData {
     var data: Any? = r.table("playerData").get(id).run(conn)
-    if (data != null) return asPojo(data as HashMap<*, *>?, PlayerData::class.java)!!
+    if (data != null) {
+        val pd = asPojo(data as HashMap<*, *>?, PlayerData::class.java)!!
+        if (isStaff()) pd.donationLevel = DonationLevel.EXTREME
+        return pd
+    }
     data = PlayerData(id, DonationLevel.NONE)
     data.insert("playerData")
     return data
@@ -315,18 +341,52 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
     return servers
 }
 
+data class LoggedCommand(val commandId: String, val userId: String, val executionTime: Long, val readableExecutionTime: String, val id: String = r.uuid().run(conn))
+
 class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0) {
     fun coinflipData(): CoinflipPlayerData {
         val data = CoinflipPlayerData()
         val coinflipGames = r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java)
         coinflipGames.forEach { game: GameDataCoinflip? ->
-            if (game != null) {
-                if (game.contains(id)) {
-                    if (game.winner == id) data.wins++
-                    else data.losses++
-                    game.rounds.forEach { round ->
-                        if (round.winners.contains(id)) data.roundsWon++
-                        else data.roundsLost++
+            if (game != null && game.contains(id)) {
+                if (game.winner == id) data.wins++
+                else data.losses++
+                game.rounds.forEach { round ->
+                    if (round.winners.contains(id)) data.roundsWon++
+                    else data.roundsLost++
+                }
+            }
+        }
+        return data
+    }
+
+    fun blackjackData(): BlackjackPlayerData {
+        val data = BlackjackPlayerData()
+        r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { game ->
+            if (game != null && game.creator == id) {
+                game.rounds.forEach { round ->
+                    when (round.won) {
+                        BlackjackGame.Result.TIED -> data.ties++
+                        BlackjackGame.Result.WON -> data.wins++
+                        BlackjackGame.Result.LOST -> data.losses++
+                    }
+                }
+            }
+        }
+        return data
+    }
+
+    fun bettingData(): BettingPlayerData {
+        val data = BettingPlayerData()
+        r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { game ->
+            if (game != null && game.creator == id) {
+                game.rounds.forEach { round ->
+                    if (round.won) {
+                        data.wins++
+                        data.netWinnings += round.betAmount
+                    } else {
+                        data.losses++
+                        data.netWinnings -= round.betAmount
                     }
                 }
             }

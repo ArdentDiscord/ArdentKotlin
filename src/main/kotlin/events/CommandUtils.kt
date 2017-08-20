@@ -1,5 +1,7 @@
 package events
 
+import main.conn
+import main.r
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
@@ -33,9 +35,10 @@ class CommandFactory {
     @SubscribeEvent
     fun onMessageEvent(event: MessageReceivedEvent) {
         if (event.author.isBot) return
+        event.guild.getData()
         var cont = true
         event.guild.punishments().forEach { punishment ->
-            if (punishment != null && punishment.id == event.author.id) {
+            if (punishment != null && punishment.userId == event.author.id) {
                 try {
                     event.message.delete().reason("This user is muted").queue()
                     cont = false
@@ -67,6 +70,8 @@ class CommandFactory {
                             data.gold += 2
                             data.update()
                             cmd.execute(args, event)
+                            r.table("commands").insert(r.json(getGson().toJson(
+                                    LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                         } catch (e: Throwable) {
                             e.log()
                             event.channel.send(member, "There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +

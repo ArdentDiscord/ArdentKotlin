@@ -70,10 +70,10 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                     return@waitForMessage
                 }
             }
-
         }, {
             channel.send(user, "${user.asMention}, you didn't specify a response and lost!")
-            displayRoundScore(bet, dealerHand, userHand.blackjackPlus(5), user)
+            while (userHand.value() < 21) userHand.blackjackPlus(1)
+            displayRoundScore(bet, dealerHand, userHand, user)
             cancel(user)
         }, 15, TimeUnit.SECONDS, silentExpiration = true)
     }

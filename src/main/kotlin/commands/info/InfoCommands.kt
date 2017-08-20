@@ -2,9 +2,9 @@ package commands.info
 
 import events.Category
 import events.Command
-import events.toCategory
 import main.factory
 import main.waiter
+import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
@@ -13,6 +13,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
 import utils.Settings
+import java.awt.Color
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
@@ -96,8 +97,7 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                 if (role == null) {
                     data.iamList.remove(it)
                     data.update()
-                }
-                else {
+                } else {
                     guild.controller.addRolesToMember(member, role).reason("Ardent Autoroles").queue({
                         channel.send(member, "Successfully gave you the **${role.name}** role!")
                     }, {
@@ -128,8 +128,7 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
                 if (role == null) {
                     data.iamList.remove(it)
                     data.update()
-                }
-                else {
+                } else {
                     if (member.roles.contains(role)) {
                         guild.controller.removeRolesFromMember(member, role).reason("Ardent Autoroles - Removal").queue({
                             channel.send(member, "Successfully removed the **${role.name}** role!")
@@ -137,8 +136,7 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
                             channel.send(member, "Failed to remove *${role.name}* - **please ask an administrator of this server to allow me " +
                                     "to manage roles!**")
                         })
-                    }
-                    else channel.send(member, "You can't remove a role you don't have! :thinking:")
+                    } else channel.send(member, "You can't remove a role you don't have! :thinking:")
                 }
                 found = true
                 return@forEach
@@ -151,23 +149,37 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
 
 class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val categories = Category.values().map { it.toString() }.toMutableList()
-        channel.selectFromList(member, "Which category of commands would you like help in?", categories, { number ->
-            val category = categories[number].toCategory()
-            val categoryCommands = factory.commands.filter { it.category == category }.toMutableList().shuffle()
-            val embed = embed("${category.fancyName} Commands", member)
-                    .appendDescription("*${category.description}*")
-            categoryCommands.forEach { command ->
-                embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: ${command.description}")
-                if (command.aliases.isNotEmpty()) {
-                    embed.appendDescription("\n")
-                    if (command.aliases.size > 1) embed.appendDescription("         __aliases: [${command.aliases.toList().stringify()}]__")
-                    else embed.appendDescription("         __alias: ${command.aliases.toList().stringify()}__")
-                }
+        val embed: EmbedBuilder
+        if (arguments.size == 0) {
+            embed = embed("Help | General", member, Color.DARK_GRAY)
+            Category.values().forEachIndexed { index, category ->
+                embed.appendDescription("${Emoji.SMALL_ORANGE_DIAMOND} ${category.fancyName} [**${index + 1}**]: *${category.description}*\n")
             }
-            channel.send(member, embed)
-        }, "Command count: **${factory.commands.size}**\n" +
-                "*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
+            embed.appendDescription("\n**Type _${guild.getPrefix()}help NUMBER_ to see a category-specific command list**")
+        } else {
+            var categoryIndex: Int = -1
+            val name = arguments.concat()
+            val tempIndex = name.toIntOrNull()
+            if (tempIndex != null && tempIndex in 1..(Category.values().size )) categoryIndex = tempIndex - 1
+            else Category.values().forEachIndexed { index, category -> if (name.equals(category.fancyName, true)) categoryIndex = index }
+            if (categoryIndex == -1) {
+                channel.send(member, "Unable to find the category you specified... Type **${guild.getPrefix()}help** to see a list")
+                return
+            } else {
+                val category = Category.values()[categoryIndex]
+                embed = embed("${category.fancyName} | Command List", member, Color.DARK_GRAY)
+                factory.commands.filter { it.category == category }.toMutableList().shuffle().forEach { command ->
+                    embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND} **${command.name}**: ${command.description}")
+                    if (command.aliases.isNotEmpty()) {
+                        embed.appendDescription("\n")
+                        if (command.aliases.size > 1) embed.appendDescription("         __aliases: [${command.aliases.toList().stringify()}]__")
+                        else embed.appendDescription("         __alias: ${command.aliases.toList().stringify()}__")
+                    }
+                }
+                embed.appendDescription("\n\n*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
+            }
+        }
+        channel.send(member, embed)
     }
 }
 
