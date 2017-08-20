@@ -71,6 +71,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
 
     fun cancel(user: User) {
         gamesInLobby.remove(this)
+        activeGames.remove(this)
         channel.send(user, "**${user.withDiscrim()}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(")
         scheduledExecutor.shutdownNow()
     }
