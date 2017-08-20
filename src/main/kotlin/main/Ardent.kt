@@ -138,7 +138,7 @@ fun main(args: Array<String>) {
             .addCommand(CoinflipCommand())
             .addCommand(BlackjackCommand())
             .addCommand(BetCommand())
-            // .addCommand(TriviaCommand()) I promise I'll eventually do this
+            .addCommand(TriviaCommand())
             .addCommand(TopMoney())
             .addCommand(TopMoneyServer())
             .addCommand(ProfileCommand())

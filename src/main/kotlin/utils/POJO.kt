@@ -3,7 +3,20 @@ package utils
 import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.User
+import org.apache.commons.lang3.text.WordUtils
 
+data class TriviaCategory(val id: Int, val title: String, val created_at: String, val updated_at: String, val clues_count: Int) {
+    fun getCategoryName(): String {
+        return title.split(" ").map { WordUtils.capitalize(it) }.concat()
+    }
+}
+data class TriviaQuestion(val id: String, val answer: String, val question: String, val value: Int, val airdate: String,
+                          val created_at: String, val updated_at: String, val category_id: Int, val game_id: Int?,
+                          val invalid_count: Int?, val category: TriviaCategory) {
+    fun test(guess: String): Boolean {
+        return guess.equals(answer, true)
+    }
+}
 data class Marriage(var userOne: String, var userTwo: String, val id: String = r.uuid().run(conn))
 data class Patron(var id: String, var donationLevel: DonationLevel)
 

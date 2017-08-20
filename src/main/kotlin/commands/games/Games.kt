@@ -14,6 +14,7 @@ import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.collections.HashMap
 
 val invites = ConcurrentHashMap<String, Game>()
 
@@ -222,6 +223,37 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
         }
     }
 }
+class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.COINFLIP, channel, creator, playerCount, isPublic) {
+    val rounds = mutableListOf<Round>()
+    val roundTotal = 21
+    override fun onStart() {
+        doRound(1)
+    }
+
+    fun doRound(currentRound: Int) {
+        if (currentRound == 21) doFinalJeopardy()
+        else {
+
+        }
+    }
+
+    fun doFinalJeopardy() {
+
+    }
+
+    fun getScores(): Pair<HashMap<String, Int /* Point values */>, HashMap<String, Int /* Amt of Qs correct */>> {
+        val points = hashMapOf<String, Int>()
+        val questions = hashMapOf<String, Int>()
+        rounds.forEach { (winner, _, points1) ->
+            if (points.containsKey(winner)) points.replace(winner, points[winner]!! + points1)
+            else points.put(winner, points1)
+            questions.incrementValue(winner)
+        }
+        return Pair(points, questions)
+    }
+    data class FinalJeopardy(val winners: HashMap<String, Int>, val losers: HashMap<String, Int>)
+    data class Round(val winner: String, val losers: MutableList<String>, val points: Int, val question: String, val answer: String)
+}
 
 class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.COINFLIP, channel, creator, playerCount, isPublic) {
     override fun onStart() {
@@ -416,16 +448,35 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
 
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Make sure to try out **${guild.getPrefix()}minigames** to see all available minigames subcommands")
         if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
         else BetGame(channel, member.id()).startEvent()
     }
 }
 
+class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
+        else if (guild.hasGameType(GameType.TRIVIA) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+            channel.send(member, "There can only be one trivia game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
+                    "https://ardentbot.com/patreon to start more than one game per type at a time**")
+        } else {
+            channel.selectFromList(member, "Would you like this game of ${GameType.TRIVIA.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), { public ->
+                val isPublic = public == 0
+                channel.send(member, "How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
+                waiter.waitForMessage(Settings(member.user.id, channel.id, guild.id), { playerCount ->
+                    val count = playerCount.content.toIntOrNull() ?: 999
+                    val game = TriviaGame(channel, member.id(), count, isPublic)
+                    gamesInLobby.add(game)
+
+                })
+            })
+        }
+    }
+
+}
 
 class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of blackjack") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Make sure to try out **${guild.getPrefix()}minigames** to see all available minigames subcommands")
         if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
         else if (guild.hasGameType(GameType.BLACKJACK) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
             channel.send(member, "There can only be one blackjack game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
@@ -438,7 +489,6 @@ class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of bl
 
 class CoinflipCommand : Command(Category.GAMES, "coinflip", "start games of coinflip (it's fun we promise)") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "Make sure to try out **${guild.getPrefix()}minigames** to see all available minigames subcommands")
         if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
         else if (guild.hasGameType(GameType.COINFLIP) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
             channel.send(member, "There can only be one coinflip game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +

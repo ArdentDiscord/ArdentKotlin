@@ -9,6 +9,7 @@ import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.collections.HashMap
 
 val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
@@ -176,5 +177,8 @@ class GameDataCoinflip(gameId: Long, creator: String, startTime: Long, val winne
         return winner == id || losers.contains(id)
     }
 }
+
+class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner: String, val losers: List<String>, val scores: HashMap<String, Int>,
+                     val rounds: List<TriviaGame.Round>, val finalJeopardy: TriviaGame.FinalJeopardy) : GameData(gameId, creator, startTime)
 
 abstract class GameData(var id: Long? = null, val creator: String, val startTime: Long, val endTime: Long = System.currentTimeMillis())

@@ -11,6 +11,7 @@ import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.exceptions.PermissionException
+import org.jsoup.Jsoup
 import java.awt.Color
 import java.lang.management.ManagementFactory
 import java.time.Instant
@@ -331,6 +332,11 @@ fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, 
     if (user.donationLevel().level >= donationLevel.level || guild.donationLevel().level >= donationLevel.level) return true
     if (!failQuietly) channel.requires(this, donationLevel)
     return false
+}
+
+fun Int.getTrivia(): List<TriviaQuestion> {
+    return getGson().fromJson(Jsoup.connect("http://jservice.io/api/random?count=$this").ignoreHttpErrors(true).ignoreContentType(true)
+            .get().text(), Array<TriviaQuestion>::class.java).toList()
 }
 
 fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
