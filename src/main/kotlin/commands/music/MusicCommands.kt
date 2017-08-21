@@ -55,28 +55,30 @@ class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel
         manager.nextTrack()
         val vc = guild.audioManager.connectedChannel
         guild.audioManager.closeAudioConnection()
-        if (vc != null) event.channel.send( "Successfully disconnected from **${vc.name}** ${Emoji.MULTIPLE_MUSICAL_NOTES}")
+        if (vc != null) event.channel.send("Successfully disconnected from **${vc.name}** ${Emoji.MULTIPLE_MUSICAL_NOTES}")
     }
 }
 
 class Pause : Command(Category.MUSIC, "pause", "pause the player... what did you think this was gonna do?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
-        val player = event.guild.getGuildAudioPlayer(event.textChannel).player
-        if (!player.currentlyPlaying(event.textChannel)) return
-        player.isPaused = true
-        event.channel.send( "Paused the player ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        pause(event, true)
     }
 }
 
 class Resume : Command(Category.MUSIC, "resume", "resumes the player. what did you think this was gonna do?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
-        val player = event.guild.getGuildAudioPlayer(event.textChannel).player
-        if (!player.currentlyPlaying(event.textChannel)) return
-        player.isPaused = false
-        event.channel.send( "Resumed playback ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        pause(event, false)
     }
+}
+
+fun pause(event: MessageReceivedEvent, value: Boolean) {
+    if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
+    val player = event.guild.getGuildAudioPlayer(event.textChannel).player
+    if (!player.currentlyPlaying(event.textChannel)) return
+    player.isPaused = value
+    if (!value) event.channel.send("Resumed playback ${Emoji.WHITE_HEAVY_CHECKMARK}")
+    else event.channel.send("Paused playback ${Emoji.WHITE_HEAVY_CHECKMARK}")
+
 }
 
 class Skip : Command(Category.MUSIC, "skip", "skips the currently playing track") {
@@ -86,7 +88,7 @@ class Skip : Command(Category.MUSIC, "skip", "skips the currently playing track"
         if (!manager.player.currentlyPlaying(event.textChannel)) return
         val track = manager.scheduler.manager.current!!
         manager.player.playingTrack.position = manager.player.playingTrack.duration - 1
-        event.channel.send( "Skipped current track: **${track.track.info.title}** by *${track.track.info.author}* ${track.track.getCurrentTime()} - added by **${track.author.toUser()?.withDiscrim()}**")
+        event.channel.send("Skipped current track: **${track.track.info.title}** by *${track.track.info.author}* ${track.track.getCurrentTime()} - added by **${track.author.toUser()?.withDiscrim()}**")
     }
 }
 
@@ -96,7 +98,7 @@ class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tra
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
         manager.player.stopTrack()
         manager.scheduler.manager.resetQueue()
-        event.channel.send( "Stopped and reset the player ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        event.channel.send("Stopped and reset the player ${Emoji.WHITE_HEAVY_CHECKMARK}")
     }
 }
 
@@ -105,7 +107,7 @@ class SongUrl : Command(Category.MUSIC, "songlink", "get the link for the curren
         if (!event.member.checkSameChannel(event.textChannel)) return
         val player = event.guild.getGuildAudioPlayer(event.textChannel).player
         if (!player.currentlyPlaying(event.textChannel)) return
-        event.channel.send( "**${player.playingTrack.info.title}** by **${player.playingTrack.info.author}**: ${player.playingTrack.info.uri}")
+        event.channel.send("**${player.playingTrack.info.title}** by **${player.playingTrack.info.author}**: ${player.playingTrack.info.uri}")
     }
 }
 
@@ -113,7 +115,7 @@ class Shuffle : Command(Category.MUSIC, "shuffle", "shuffle the current queue") 
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
         event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.shuffle()
-        event.channel.send( "Shuffled the current queue ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        event.channel.send("Shuffled the current queue ${Emoji.WHITE_HEAVY_CHECKMARK}")
     }
 }
 
@@ -124,7 +126,7 @@ class Repeat : Command(Category.MUSIC, "repeat", "repeat the track that's curren
         val player = manager.player
         if (!player.currentlyPlaying(event.textChannel)) return
         manager.scheduler.manager.addToBeginningOfQueue(manager.scheduler.manager.current)
-        event.channel.send( "Added the current track as Up Next ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        event.channel.send("Added the current track as Up Next ${Emoji.WHITE_HEAVY_CHECKMARK}")
     }
 }
 
@@ -134,7 +136,7 @@ class Playing : Command(Category.MUSIC, "playing", "shows information about the 
         val player = manager.player
         if (!player.currentlyPlaying(event.textChannel)) return
         val track = manager.scheduler.manager.current!!
-        event.channel.send( "**${track.track.info.title}** by *${track.track.info.author}* ${track.track.getCurrentTime()} - added by **${track.author.toUser()?.withDiscrim()}**")
+        event.channel.send("**${track.track.info.title}** by *${track.track.info.author}* ${track.track.getCurrentTime()} - added by **${track.author.toUser()?.withDiscrim()}**")
     }
 }
 
@@ -143,18 +145,18 @@ class Volume : Command(Category.MUSIC, "volume", "see and change the volume of t
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
         val player = manager.player
         if (arguments.size == 0) {
-            event.channel.send( "The volume of this server's music player is **${player.volume}**% ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
-            event.channel.send( "If the owner of your server or if you are an Ardent patron, type *${event.guild.getPrefix()}volume percentage_here* to set " +
+            event.channel.send("The volume of this server's music player is **${player.volume}**% ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
+            event.channel.send("If the owner of your server or if you are an Ardent patron, type *${event.guild.getPrefix()}volume percentage_here* to set " +
                     "the volume")
             return
         }
         if (!event.member.hasDonationLevel(event.textChannel, DonationLevel.BASIC)) return
         if (!event.member.checkSameChannel(event.textChannel)) return
         val setTo: Int? = arguments[0].replace("%", "").toIntOrNull()
-        if (setTo == null || setTo < 0 || setTo > 100) event.channel.send( "You need to specify a valid percentage. Example: *${event.guild.getPrefix()}volume 99%")
+        if (setTo == null || setTo < 0 || setTo > 100) event.channel.send("You need to specify a valid percentage. Example: *${event.guild.getPrefix()}volume 99%")
         else {
             player.volume = setTo
-            event.channel.send( "Set player volume to **$setTo**% ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
+            event.channel.send("Set player volume to **$setTo**% ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
         }
     }
 }
@@ -163,7 +165,7 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
         if (manager.scheduler.manager.queue.size == 0) {
-            event.channel.send( "${Emoji.MULTIPLE_MUSICAL_NOTES} There are no songs in the queue currently!")
+            event.channel.send("${Emoji.MULTIPLE_MUSICAL_NOTES} There are no songs in the queue currently!")
             return
         }
         val embed = event.member.embed("Current Queue: ${event.guild.name}")
@@ -178,7 +180,7 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
             embed.appendDescription("\n [**${number + 1}**] : **${track.track.info.title}** by *${track.track.info.author}*\n${track.track.getCurrentTime()} - added by __${track.author.toUser()?.withDiscrim()}__")
         }
         if (remaining > 0) embed.appendDescription("\n\n   *...and $remaining tracks after*")
-        event.channel.send( embed)
+        event.channel.send(embed)
     }
 }
 
@@ -194,7 +196,7 @@ class FixMusic : Command(Category.MUSIC, "fixmusic", "fix your music player if s
             queue.forEach { queueMember ->
                 newManager.scheduler.manager.queue(ArdentTrack(queueMember.author, queueMember.channel, queueMember.track.makeClone()))
             }
-            event.channel.send( "${Emoji.BALLOT_BOX_WITH_CHECK} Successfully reset player")
+            event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} Successfully reset player")
         }
     }
 }
@@ -204,7 +206,7 @@ class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq"
         if (event.member.hasOverride(event.textChannel, true, djCommand = true)) {
             if (!event.member.checkSameChannel(event.textChannel)) return
             event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.resetQueue()
-            event.channel.send( "Cleared the queue ${Emoji.BALLOT_BOX_WITH_CHECK}")
+            event.channel.send("Cleared the queue ${Emoji.BALLOT_BOX_WITH_CHECK}")
         }
 
     }
@@ -215,10 +217,10 @@ class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks 
         if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true)) return
         val mentioned = event.message.mentionedUsers
         if (mentioned.size == 0) {
-            event.channel.send( "You need to mention at least one person to remove songs from!")
+            event.channel.send("You need to mention at least one person to remove songs from!")
         } else {
             mentioned.forEach { removeFrom -> event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.removeFrom(removeFrom) }
-            event.channel.send( "Successfully removed any queued tracks from **${mentioned.map { it.withDiscrim() }.toList().stringify()}** ${Emoji.WHITE_HEAVY_CHECKMARK}")
+            event.channel.send("Successfully removed any queued tracks from **${mentioned.map { it.withDiscrim() }.toList().stringify()}** ${Emoji.WHITE_HEAVY_CHECKMARK}")
         }
     }
 }
@@ -286,14 +288,14 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
         override fun noMatches() {
             if (search) {
                 if (autoplay) {
-                    textChannel.send( "I was unable to find a related song...")
-                } else textChannel.send( "I was unable to find a track with that name. Please try again with a different query")
+                    textChannel.send("I was unable to find a related song...")
+                } else textChannel.send("I was unable to find a track with that name. Please try again with a different query")
             } else ("ytsearch: ${this@load}").load(member, textChannel, message, true, autoplay = autoplay)
         }
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
             if (!playlist.isSearchResult) {
-                textChannel.send( "${Emoji.BALLOT_BOX_WITH_CHECK} Adding ${playlist.tracks.size} tracks to the queue...")
+                textChannel.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding ${playlist.tracks.size} tracks to the queue...")
                 try {
                     playlist.tracks.forEach { play(member, member.guild, member.voiceChannel()!!, musicManager, it, textChannel) }
                 } catch (e: Exception) {
