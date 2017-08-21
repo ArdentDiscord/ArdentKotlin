@@ -90,8 +90,8 @@ fun Long.format(): String {
 }
 
 fun String.shortenIf(numChars: Int): String {
-    if (length <= numChars) return this
-    else return substring(0, numChars)
+    return if (length <= numChars) this
+    else substring(0, numChars)
 }
 
 fun <K> MutableMap<K, Int>.incrementValue(key: K): Int {
@@ -171,7 +171,7 @@ fun getProcessCpuLoad(): Double {
     val value = att.value as Double
 
     // usually takes a couple of seconds before we get real values
-    if (value === -1.0) return java.lang.Double.NaN
+    if (value == -1.0) return Double.NaN
     // returns a percentage value with 1 decimal point precision
     return (value * 1000).toInt() / 10.0
 }

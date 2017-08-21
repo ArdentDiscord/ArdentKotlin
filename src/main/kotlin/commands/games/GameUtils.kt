@@ -33,8 +33,10 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 } else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
         } else {
-            creator.toUser()!!.openPrivateChannel().queue { ch -> ch.sendMessage("You successfully created a __private__ game of **${type.readable}**. " +
-                    "Invite members by typing **/gameinvite @User** - Choose wisely, because you can't get rid of players once they've accepted!").queue() }
+            creator.toUser()!!.openPrivateChannel().queue { ch ->
+                ch.sendMessage("You successfully created a __private__ game of **${type.readable}**. " +
+                        "Invite members by typing **/gameinvite @User** - Choose wisely, because you can't get rid of players once they've accepted!").queue()
+            }
         }
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
@@ -48,14 +50,14 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     fun displayLobby(): Message? {
         val prefix = channel.guild.getPrefix()
         val member = channel.guild.selfMember
-        val embed = embed("${type.readable} Game Lobby", member, Color.ORANGE)
+        val embed = member.embed("${type.readable} Game Lobby", Color.ORANGE)
                 .setFooter("Ardent Game Engine - Adam#9261", member.user.avatarUrl)
                 .setDescription("This lobby has been active for ${((System.currentTimeMillis() - creation) / 1000).formatMinSec()}\n" +
                         "It currently has **${players.size}** of **$playerCount** players required to start | ${players.toUsers()}\n" +
                         "To start, the host can also type *${prefix}minigames forcestart*\n\n" +
                         "Join by typing *${prefix}join #$gameId*\n" +
                         "This game was created by __${creator.toUser()?.withDiscrim()}__")
-        return channel.sendReceive(channel.guild.selfMember, embed)
+        return channel.sendReceive(embed)
     }
 
     fun startEvent() {
@@ -76,7 +78,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     fun cancel(user: User) {
         gamesInLobby.remove(this)
         activeGames.remove(this)
-        channel.send(user, "**${user.withDiscrim()}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(")
+        channel.send("**${user.withDiscrim()}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(")
         scheduledExecutor.shutdownNow()
     }
 
@@ -90,10 +92,10 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         } else {
             val newGameId = type.findNextId()
             gameData.id = gameId
-            channel.send(user, "This Game ID has already been inserted into the database. Your new Game ID is **#$newGameId**")
+            channel.send("This Game ID has already been inserted into the database. Your new Game ID is **#$newGameId**")
             gameData.insert("${type.readable}Data")
         }
-        channel.send(user, "Game Data has been successfully inserted into the database. To view the results and statistics for this match, " +
+        channel.send("Game Data has been successfully inserted into the database. To view the results and statistics for this match, " +
                 "you can go to https://ardentbot.com/games/${type.name.toLowerCase()}/$gameId")
     }
 
@@ -102,16 +104,16 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
             val prefix = channel.guild.getPrefix()
             val user = creator.toUser()!!
             if (isPublic) {
-                channel.send(user, "You successfully created a **Public ${type.readable}** game with ID #__${gameId}__!\n" +
+                channel.send("You successfully created a **Public ${type.readable}** game with ID #__${gameId}__!\n" +
                         "Anyone in this server can join by typing *${prefix}minigames join #$gameId*")
             } else {
                 try {
                     user.openPrivateChannel().queue { privateChannel ->
-                        privateChannel.send(user, "You successfully created a **__private__** game of **${type.readable}**. Invite members " +
+                        privateChannel.send("You successfully created a **__private__** game of **${type.readable}**. Invite members " +
                                 "by typing __${prefix}minigames invite @User__ - Choose wisely, because you can't get rid of them once they've accepted!")
                     }
                 } catch (e: Exception) {
-                    channel.send(user, "${user.asMention}, you need to allow messages from me! If you don't remember how to invite people, I'd cancel the game")
+                    channel.send("${user.asMention}, you need to allow messages from me! If you don't remember how to invite people, I'd cancel the game")
                 }
             }
         }

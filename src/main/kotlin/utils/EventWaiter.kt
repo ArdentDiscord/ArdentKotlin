@@ -2,10 +2,7 @@ package utils
 
 import main.factory
 import main.waiter
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.Message
-import net.dv8tion.jda.core.entities.MessageReaction
-import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.Event
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
@@ -50,7 +47,7 @@ class EventWaiter : EventListener {
                 }
                 is MessageReactionAddEvent -> reactionAddEvents.forEach { rAE ->
                     val settings = rAE.first
-                    var cont: Boolean = true
+                    var cont = true
                     if (settings.channel != null && settings.channel != e.channel.id) cont = false
                     if (settings.id != null && settings.id != e.user.id) cont = false
                     if (settings.guild != null && settings.guild != e.guild.id) cont = false
@@ -72,7 +69,7 @@ class EventWaiter : EventListener {
                 reactionAddEvents.remove(pair)
                 if (!silentExpiration) {
                     val channel: TextChannel? = settings.channel?.toChannel()
-                    channel?.send(channel.guild.selfMember, "You took too long to add a reaction! [${unit.toSeconds(time.toLong())} seconds]")
+                    channel?.send("You took too long to add a reaction! [${unit.toSeconds(time.toLong())} seconds]")
                 }
             }
         }, time.toLong(), unit)
@@ -94,7 +91,7 @@ class EventWaiter : EventListener {
             if (messageEvents.contains(pair)) {
                 messageEvents.remove(pair)
                 val channel: TextChannel? = settings.channel?.toChannel()
-                if (expiration == null && !silentExpiration) channel?.send(channel.guild.selfMember, "You took too long to respond! [${unit.toSeconds(time.toLong())} seconds]")
+                if (expiration == null && !silentExpiration) channel?.send("You took too long to respond! [${unit.toSeconds(time.toLong())} seconds]")
                 expiration?.invoke()
             }
         }, time.toLong(), unit)
@@ -109,22 +106,22 @@ class EventWaiter : EventListener {
 
 data class Settings(val id: String? = null, val channel: String? = null, val guild: String? = null, val message: String? = null)
 
-fun TextChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
-    val embed = embed(title, member)
+fun MessageChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
+    val embed = member.embed(title)
     val builder = StringBuilder()
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
     }
     if (footerText != null) builder.append("\n$footerText\n")
     builder.append("\n__Please type the number corresponding with the choice you want to select, or write the option__\n")
-    val msg = sendReceive(member, embed.setDescription(builder))
-    waiter.waitForMessage(Settings(member.user.id, id, guild.id), { message ->
+    val msg = sendReceive(embed.setDescription(builder))
+    waiter.waitForMessage(Settings(member.user.id, id, member.guild.id), { message ->
         val option: Int? = message.rawContent.toIntOrNull()?.minus(1) ?:
                 if (options.map { it.toLowerCase() }.contains(message.rawContent.toLowerCase()))
                     options.map { it.toLowerCase() }.indexOf(message.rawContent.toLowerCase())
                 else null
         if (option == null || (option < 0 || option >= options.size)) {
-            if (failure == null) send(member, "You sent an invalid response; you had to respond with the **number** or **text** of an option")
+            if (failure == null) send("You sent an invalid response; you had to respond with the **number** or **text** of an option")
             else failure.invoke()
             return@waitForMessage
         }

@@ -32,11 +32,10 @@ class JoinRemoveEvents {
             val channel: TextChannel? = e.guild.getTextChannelById(joinMessage.second ?: "1")
             if (channel != null) {
                 if (joinMessage.first /* Message */ != null && !joinMessage.first!!.isEmpty()) {
-                    channel.send(e.guild.owner,
-                            joinMessage.first!!.replace("\$username", e.member.withDiscrim())
-                                    .replace("\$usermention", e.member.asMention)
-                                    .replace("\$membercount", e.guild.members.size.toString())
-                                    .replace("\$servername", e.guild.name)
+                    channel.send(joinMessage.first!!.replace("\$username", e.member.withDiscrim())
+                            .replace("\$usermention", e.member.asMention)
+                            .replace("\$membercount", e.guild.members.size.toString())
+                            .replace("\$servername", e.guild.name)
                     )
                 }
             }
@@ -48,7 +47,7 @@ class JoinRemoveEvents {
                     e.guild.controller.addRolesToMember(e.member, role).reason("Default Role - Automatic Addition")
                             .queue({}, {
                                 e.member.user.openPrivateChannel().queue({ channel ->
-                                    channel.send(e.member, "Unable to give you the default role **${role.name}** in **${e.guild.name}**. Please contact the server " +
+                                    channel.send("Unable to give you the default role **${role.name}** in **${e.guild.name}**. Please contact the server " +
                                             "owner or administrators to let them know.")
                                 })
                             })
@@ -66,7 +65,7 @@ class JoinRemoveEvents {
             val channel: TextChannel? = e.guild.getTextChannelById(leaveMessage.second ?: "1")
             if (channel != null) {
                 if (leaveMessage.first /* Message */ != null && !leaveMessage.first!!.isEmpty()) {
-                    channel.send(e.guild.owner,
+                    channel.send(
                             leaveMessage.first!!.replace("\$username", "**${e.member.withDiscrim()}**")
                                     .replace("\$usermention", "**${e.member.withDiscrim()}**")
                                     .replace("\$membercount", e.guild.members.size.toString())

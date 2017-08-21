@@ -4,6 +4,7 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Member
+import net.dv8tion.jda.core.entities.MessageChannel
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
@@ -73,7 +74,7 @@ class CommandFactory {
                                     LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                         } catch (e: Throwable) {
                             e.log()
-                            event.channel.send(member, "There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +
+                            event.channel.send("There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +
                                     "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
                         }
                     }
@@ -89,7 +90,7 @@ abstract class Command(val category: Category, val name: String, val description
     fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent) {
         if (event.channelType == ChannelType.PRIVATE)
             event.author.openPrivateChannel().queue { channel ->
-                channel.send(event.author, "Please use commands inside a Discord server!")
+                channel.send("Please use commands inside a Discord server!")
             }
         else execute(args, event)
     }
@@ -101,16 +102,16 @@ abstract class Command(val category: Category, val name: String, val description
         return this
     }
 
-    fun displayHelp(channel: TextChannel, member: Member) {
-        val prefix = channel.guild.getPrefix()
-        val embed = embed("How can I use $prefix$name ?", member, Color.BLACK)
+    fun displayHelp(channel: MessageChannel, member: Member) {
+        val prefix = member.guild.getPrefix()
+        val embed = member.embed("How can I use $prefix$name ?", Color.BLACK)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
                 .setFooter("Aliases: ${aliases.toList().stringify()}", member.user.avatarUrl)
                 .appendDescription("*$description*\n")
         help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first}**: *${it.second}*") }
         if (help.size > 0) embed.appendDescription("\n\n**Example**: $prefix$name ${help[0].first}")
-        embed.appendDescription("\n\nType ${channel.guild.getPrefix()}help to view a full list of commands")
-        channel.send(member, embed)
+        embed.appendDescription("\n\nType ${member.guild.getPrefix()}help to view a full list of commands")
+        channel.send(embed)
         help.clear()
     }
 

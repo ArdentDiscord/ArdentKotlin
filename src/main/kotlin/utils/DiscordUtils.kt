@@ -14,7 +14,6 @@ import net.dv8tion.jda.core.exceptions.PermissionException
 import org.jsoup.Jsoup
 import java.awt.Color
 import java.lang.management.ManagementFactory
-import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -122,10 +121,10 @@ fun User.withDiscrim(): String {
 }
 
 
-fun embed(title: String, member: Member, color: Color = Color.DARK_GRAY): EmbedBuilder {
-    return EmbedBuilder().setAuthor(title, "https://ardentbot.com", member.guild.iconUrl)
+fun Member.embed(title: String, color: Color = Color.DARK_GRAY): EmbedBuilder {
+    return EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
             .setColor(color)
-            .setFooter("Served by Ardent ${Emoji.COPYRIGHT_SIGN} Adam#9261", member.user.avatarUrl)
+            .setFooter("Served by Ardent ${Emoji.COPYRIGHT_SIGN} Adam#9261", user.avatarUrl)
 }
 
 fun String.toUser(): User? {
@@ -204,6 +203,7 @@ fun Member.punishments(): MutableList<Punishment?> {
     return punishments
 }
 
+@Deprecated("Inefficient - Use consumer rather than blocking logic")
 fun MessageChannel.sendReceive(embed: EmbedBuilder): Message? {
     try {
         return this.sendMessage(embed.build()).complete()
@@ -212,7 +212,8 @@ fun MessageChannel.sendReceive(embed: EmbedBuilder): Message? {
     return null
 }
 
-fun MessageChannel.sendReceive(member: Member, message: String): Message? {
+@Deprecated("Inefficient - Use consumer rather than blocking logic")
+fun MessageChannel.sendReceive(message: String): Message? {
     try {
         return this.sendMessage(message).complete()
     } catch (ex: PermissionException) {
@@ -224,7 +225,7 @@ fun User.whitelisted(): List<SpecialPerson?> {
     return r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java).filter { it != null && it.backer == id }
 }
 
-fun TextChannel.send(embedBuilder: EmbedBuilder) {
+fun MessageChannel.send(embedBuilder: EmbedBuilder) {
     sendEmbed(embedBuilder)
 }
 
@@ -247,7 +248,7 @@ fun MessageChannel.send(message: String) {
     }
 }
 
-fun TextChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: String): Message {
+fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: String): Message {
     try {
         val message = sendMessage(embedBuilder.build()).complete()
         for (reaction in reactions) {
@@ -261,8 +262,8 @@ fun TextChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: String):
 
 fun Guild.getPrefix(): String {
     val prefix = this.getData().prefix
-    if (prefix == null) return "/"
-    else return prefix
+    return if (prefix == null) "/"
+    else prefix
 }
 
 enum class DonationLevel(val readable: String, val level: Int) {
@@ -308,7 +309,7 @@ fun User.donationLevel(): DonationLevel {
     return asPojo(r.table("patrons").get(id).run(conn), Patron::class.java)?.donationLevel ?: DonationLevel.NONE
 }
 
-fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
+fun Member.hasDonationLevel(channel: MessageChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
     if (user.donationLevel().level >= donationLevel.level || guild.donationLevel().level >= donationLevel.level) return true
     if (!failQuietly) channel.requires(this, donationLevel)
     return false
@@ -319,7 +320,7 @@ fun Int.getTrivia(): List<TriviaQuestion> {
             .get().text(), Array<TriviaQuestion>::class.java).toList()
 }
 
-fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
+fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel) {
     send("${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
 }
 
@@ -335,9 +336,11 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
     fun canCollect(): Boolean {
         return ((System.currentTimeMillis() - collected) / 1000 / 60 / 60 / 24) >= 1
     }
+
     fun collectionTime(): String {
         return (collected + TimeUnit.DAYS.toMillis(1)).readableDate()
     }
+
     fun collect(): Int {
         val amount = random.nextInt(500) + 1
         gold += amount
@@ -345,6 +348,7 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
         update()
         return amount
     }
+
     fun coinflipData(): CoinflipPlayerData {
         val data = CoinflipPlayerData()
         val coinflipGames = r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java)

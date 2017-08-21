@@ -138,14 +138,14 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
 
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
         if (channel!!.guild.getData().musicSettings.announceNewMusic) {
-            val builder = embed("Now Playing: ${track.info.title}", guild.selfMember)
+            val builder = guild.selfMember.embed("Now Playing: ${track.info.title}")
             builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
             builder.addField("Title", track.info.title, true)
                     .addField("Author", track.info.author, true)
                     .addField("Duration", track.getDurationFancy(), true)
                     .addField("URL", track.info.uri, true)
                     .addField("Is Stream", track.info.isStream.toString(), true)
-            channel?.send(guild.selfMember, builder)
+            channel?.send(builder)
         }
     }
 
@@ -155,13 +155,14 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
             try {
                 val get = songSearch.get()
                 if (get.items.size == 0) {
-                    channel?.send(guild.selfMember, "Couldn't find this song in the Spotify database, no autoplay available.")
+                    channel?.send("Couldn't find this song in the Spotify database, no autoplay available.")
                     return
                 }
                 val songId = get.items[0].id
                 spotifyApi.getRecommendations().tracks(mutableListOf(songId)).build().get()[0].name.load(guild.selfMember,
                         channel ?: guild.publicChannel, null, false, autoplay = true)
-            } catch(e: Exception) {}
+            } catch (e: Exception) {
+            }
         } else manager.nextTrack()
     }
 
@@ -180,7 +181,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
         guild.audioManager.closeAudioConnection()
         ch.connect(guild.selfMember, channel!!)
         guild.getGuildAudioPlayer(channel).scheduler.manager.nextTrack()
-        channel?.send(guild.selfMember, "${Emoji.BALLOT_BOX_WITH_CHECK} The player got stuck... attempting to skip now now (this is Discord's fault)")
+        channel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} The player got stuck... attempting to skip now now (this is Discord's fault)")
 
     }
 
@@ -232,7 +233,8 @@ fun AudioTrack.getCurrentTime(): String {
             .format("%02d", lengthMinutes % 60)}:${String.format("%02d", lengthSeconds % 60)}]"
 }
 
-@Synchronized fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
+@Synchronized
+fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
     val guildId = id.toLong()
     var musicManager = managers[guildId]
     if (musicManager == null) {
