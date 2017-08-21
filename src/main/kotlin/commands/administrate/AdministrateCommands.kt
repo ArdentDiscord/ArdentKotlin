@@ -218,148 +218,83 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             .withHelp("staff add|remove @User role_name", "^")
                             .withHelp("whitelist", "whitelist your friends (let them have patreon permissions)")
                             .displayHelp(event.textChannel, event.member)
-                } else {
-                    when (arguments[0]) {
-                        "eval" -> {
-                            val message = event.message
-                            val shortcuts = hashMapOf<String, Any>()
-                            shortcuts.put("jda", message.jda)
-                            shortcuts.put("event", event)
-
-                            shortcuts.put("channel", event.channel)
-                            shortcuts.put("guild", event.guild)
-
-                            shortcuts.put("message", message)
-                            shortcuts.put("msg", message)
-                            shortcuts.put("me", event.author)
-                            shortcuts.put("bot", message.jda.selfUser)
-                            shortcuts.put("config", config)
-
-                            val timeout = 10
-
-                            val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat())
-                            val builder = MessageBuilder()
-                            if (result.first is RestAction<*>)
-                                (result.first as RestAction<*>).queue()
-                            else if (result.first != null && (result.first as String).isNotEmpty())
-                                builder.appendCodeBlock(result.first.toString(), "")
-                            if (!result.second.isEmpty() && result.first != null)
-                                builder.append("\n").appendCodeBlock(result.first as String, "")
-                            if (!result.third.isEmpty())
-                                builder.append("\n").appendCodeBlock(result.third, "")
-                            if (builder.isEmpty)
-                                event.message.addReaction("✅").queue()
-                            else
-                                for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
-                                    event.channel.sendMessage(m).queue()
-                        }
-                        "whitelist" -> {
-                            if (arguments.size == 1) {
-                                val embed = event.member.embed("Whitelisted members", Color.RED)
-                                val whitelisted = event.author.whitelisted()
-                                whitelisted.forEach {
-                                    val user = getUserById(it!!.id)
-                                    if (user == null) r.table("specialPeople").get(it.id).delete().runNoReply(conn)
-                                    else embed.appendDescription("- ${user.name}#${user.discriminator}")
-                                }
-                                if (whitelisted.isEmpty()) embed.appendDescription("None.")
-                                embed.appendDescription("\n\nAdd a user to the whitelist (3 max) by typing /nono whitelist add @User\n\n" +
-                                        "Remove a user from the whitelist by typing /nono whitelist remove @User")
-                                event.channel.send(embed)
-                            } else {
-                                when (arguments[1]) {
-                                    "add" -> {
-                                        if (event.message.mentionedUsers.size == 0) event.channel.send("gotta mention someone bud")
-                                        else {
-                                            val toWhitelist = event.message.mentionedUsers[0]
-                                            if (toWhitelist.isBot) event.channel.send("you are an idiot")
-                                            else {
-                                                if (toWhitelist.donationLevel() != DonationLevel.NONE) event.channel.send("this person already has patreon permissions")
-                                                else {
-                                                    val whitelisted = event.author.whitelisted()
-                                                    if (whitelisted.size == 3) event.channel.send("You can only whitelist 3 people at a time :(")
-                                                    else {
-                                                        SpecialPerson(toWhitelist.id, event.author.id).insert("specialPeople")
-                                                        event.channel.send("whitelisted ${toWhitelist.asMention}")
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    "remove" -> {
-                                        if (event.message.mentionedUsers.size == 0) event.channel.send("gotta mention someone bud")
-                                        else {
-                                            val toRemove = event.message.mentionedUsers[0]
-                                            if (toRemove.donationLevel() == DonationLevel.NONE) event.channel.send("this person doesn't have patreon permissions")
-                                            else {
-                                                val whitelisted = r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java)
-                                                        .filter { it != null && it.backer == event.author.id && it.id == toRemove.id }
-                                                if (whitelisted.isEmpty()) event.channel.send("this person isn't whitelisted!")
-                                                else {
-                                                    r.table("specialPeople").get(toRemove.id).delete().runNoReply(conn)
-                                                    event.channel.send("removed ${toRemove.asMention} from the whitelist")
-                                                }
-                                            }
-                                        }
-                                    }
-                                    else -> event.channel.send("dumbo, you don't know how this works")
-                                }
-                            }
-                        }
-                        "setmoney" -> {
-                            if (event.message.mentionedUsers.size == 0 || arguments.size != 3) event.channel.send("mention a user and type a number")
-                            else {
-                                val amount = arguments[2].toDoubleOrNull()
-                                if (amount == null) event.channel.send("You need to add a value")
-                                else {
-                                    val data = event.message.mentionedUsers[0].getData()
-                                    data.gold = amount
-                                    data.update()
-                                }
-                            }
-                        }
-                        "shutdown" -> {
-                            event.channel.send("Shutting down now!")
-                            managers.forEach { idLong, manager ->
-                                if (manager.player.playingTrack != null) {
-                                    manager.scheduler.manager.getChannel()?.send("**Squashing bugs** and **becoming stronger**... I'll be back online in a few seconds, updating!")
-                                }
-                            }
-                            jdas.forEach {
-                                it.shutdown()
-                            }
-                            System.exit(0)
-                        }
-                        "staff" -> {
-                            if (arguments.size == 4) {
-                                val type = arguments[1]
-                                val roleName = arguments[3]
-                                val roles = Staff.StaffRole.values().map { it.name.toLowerCase() }
-                                if (roles.contains(roleName)) {
-                                    if (event.message.mentionedUsers.size == 0) {
-                                        event.channel.send("no")
-                                        return
-                                    }
-                                    val user = event.message.mentionedUsers[0]
-                                    if (type == "add") {
-                                        if (r.table("staff").get(user.id).run<Any>(conn) != null) {
-                                            r.table("staff").get(user.id).update(r.hashMap("role", roleName.toUpperCase())).runNoReply(conn)
-                                        } else r.table("staff").insert(r.json(getGson().toJson(Staff(user.id, Staff.StaffRole.valueOf(roleName.toUpperCase()))))).runNoReply(conn)
-                                    } else if (type == "remove") {
-                                        r.table("staff").get(user.id).delete().runNoReply(conn)
-                                    } else {
-                                        event.channel.send("no")
-                                        return
-                                    }
-                                    event.channel.send("updated database")
-                                } else event.channel.send("/nono staff add|remove @User roleName dumbo")
-                            } else event.channel.send("/nono staff remove|add @User roleName")
-                        }
-                        else -> event.channel.send("You're an idiot")
-                    }
+                    return
                 }
-                return
+                when (arguments[0]) {
+                    "eval" -> {
+                        val message = event.message
+                        val shortcuts = hashMapOf<String, Any>()
+                        shortcuts.put("jda", message.jda)
+                        shortcuts.put("event", event)
+
+                        shortcuts.put("channel", event.channel)
+                        shortcuts.put("guild", event.guild)
+
+                        shortcuts.put("message", message)
+                        shortcuts.put("msg", message)
+                        shortcuts.put("me", event.author)
+                        shortcuts.put("bot", message.jda.selfUser)
+                        shortcuts.put("config", config)
+
+                        val timeout = 10
+
+                        val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat())
+                        val builder = MessageBuilder()
+                        if (result.first is RestAction<*>)
+                            (result.first as RestAction<*>).queue()
+                        else if (result.first != null && (result.first as String).isNotEmpty())
+                            builder.appendCodeBlock(result.first.toString(), "")
+                        if (!result.second.isEmpty() && result.first != null)
+                            builder.append("\n").appendCodeBlock(result.first as String, "")
+                        if (!result.third.isEmpty())
+                            builder.append("\n").appendCodeBlock(result.third, "")
+                        if (builder.isEmpty)
+                            event.message.addReaction("✅").queue()
+                        else
+                            for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
+                                event.channel.sendMessage(m).queue()
+                    }
+                    "shutdown" -> {
+                        event.channel.send("Shutting down now!")
+                        managers.forEach { idLong, manager ->
+                            if (manager.player.playingTrack != null) {
+                                manager.scheduler.manager.getChannel()?.send("**Squashing bugs** and **becoming stronger**... I'll be back online in a few seconds, updating!")
+                            }
+                        }
+                        jdas.forEach {
+                            it.shutdown()
+                        }
+                        System.exit(0)
+                    }
+                    "staff" -> {
+                        if (arguments.size == 4) {
+                            val type = arguments[1]
+                            val roleName = arguments[3]
+                            val roles = Staff.StaffRole.values().map { it.name.toLowerCase() }
+                            if (roles.contains(roleName)) {
+                                if (event.message.mentionedUsers.size == 0) {
+                                    event.channel.send("no")
+                                    return
+                                }
+                                val user = event.message.mentionedUsers[0]
+                                if (type == "add") {
+                                    if (r.table("staff").get(user.id).run<Any>(conn) != null) {
+                                        r.table("staff").get(user.id).update(r.hashMap("role", roleName.toUpperCase())).runNoReply(conn)
+                                    } else r.table("staff").insert(r.json(getGson().toJson(Staff(user.id, Staff.StaffRole.valueOf(roleName.toUpperCase()))))).runNoReply(conn)
+                                } else if (type == "remove") {
+                                    r.table("staff").get(user.id).delete().runNoReply(conn)
+                                } else {
+                                    event.channel.send("no")
+                                    return
+                                }
+                                event.channel.send("updated database")
+                            } else event.channel.send("/nono staff add|remove @User roleName dumbo")
+                        } else event.channel.send("/nono staff remove|add @User roleName")
+                    }
+                    else -> event.channel.send("You're an idiot")
+                }
             }
+            return
         }
     }
 }

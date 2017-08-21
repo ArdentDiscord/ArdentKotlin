@@ -26,7 +26,6 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
 import utils.EventWaiter
-import utils.Iam
 import utils.logChannel
 import web.Web
 import java.io.File
@@ -79,6 +78,37 @@ fun main(args: Array<String>) {
     AudioSourceManagers.registerRemoteSources(playerManager)
     AudioSourceManagers.registerLocalSource(playerManager)
 
+    addCommands()
+    startAdministrativeDaemon()
+    println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")
+}
+
+data class Config(val url: String) {
+    private val keys: MutableMap<String, String>
+
+    init {
+        keys = HashMap<String, String>()
+        try {
+            val keysTemp = IOUtils.readLines(FileReader(File(url)))
+            keysTemp.forEach { pair ->
+                val keyPair = pair.split(" :: ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                if (keyPair.size == 2) keys.put(keyPair[0], keyPair[1])
+            }
+        } catch (e: IOException) {
+            println("Unable to load Config....")
+
+            e.printStackTrace()
+            System.exit(1)
+        }
+        conn = r.connection().timeout(5000).db("ardent").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
+    }
+
+    fun getValue(keyName: String): String {
+        return (keys as Map<String, String>).getOrDefault(keyName, "not_available")
+    }
+}
+
+fun addCommands() {
     factory.addCommand(Play())
             .addCommand(Radio())
             .addCommand(Stop())
@@ -147,32 +177,4 @@ fun main(args: Array<String>) {
             .addCommand(Daily())
             .addCommand(Balance())
             .addCommand(AcceptInvitation())
-
-    startAdministrativeDaemon()
-    println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")
-}
-
-data class Config(val url: String) {
-    private val keys: MutableMap<String, String>
-
-    init {
-        keys = HashMap<String, String>()
-        try {
-            val keysTemp = IOUtils.readLines(FileReader(File(url)))
-            keysTemp.forEach { pair ->
-                val keyPair = pair.split(" :: ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                if (keyPair.size == 2) keys.put(keyPair[0], keyPair[1])
-            }
-        } catch (e: IOException) {
-            println("Unable to load Config....")
-
-            e.printStackTrace()
-            System.exit(1)
-        }
-        conn = r.connection().timeout(5000).db("ardent").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
-    }
-
-    fun getValue(keyName: String): String {
-        return (keys as Map<String, String>).getOrDefault(keyName, "not_available")
-    }
 }
