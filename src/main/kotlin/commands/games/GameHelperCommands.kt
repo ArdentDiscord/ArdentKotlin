@@ -48,14 +48,7 @@ class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (event.member.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first")
         else {
-            gamesInLobby.forEach { game ->
-                if (invites.containsKey(event.author.id) && invites[event.author.id]!!.gameId == game.gameId) {
-                    invites.remove(event.author.id)
-                    game.players.add(event.author.id)
-                    event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
-                            "Players in lobby: *${game.players.toUsers()}*")
-                } else event.channel.send("You must be invited by the creator of this game to join this __private__ game!")
-            }
+            gamesInLobby.forEach { game -> checkInvite(event, game) }
         }
     }
 }
@@ -77,12 +70,7 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
                             event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
                                     "Players in lobby: *${game.players.toUsers()}*")
                         } else {
-                            if (invites.containsKey(event.author.id) && invites[event.author.id]!!.gameId == game.gameId) {
-                                invites.remove(event.author.id)
-                                game.players.add(event.author.id)
-                                event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
-                                        "Players in lobby: *${game.players.toUsers()}*")
-                            } else event.channel.send("You must be invited by the creator of this game to join this __private__ game!")
+                            checkInvite(event, game)
                         }
                     }
                     return
@@ -175,4 +163,13 @@ class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to you
         }
         event.channel.send("You're not the creator of a game that's in lobby! ${Emoji.NO_ENTRY_SIGN}")
     }
+}
+
+fun checkInvite(event: MessageReceivedEvent, game: Game) {
+    if (invites.containsKey(event.author.id) && invites[event.author.id]!!.gameId == game.gameId) {
+        invites.remove(event.author.id)
+        game.players.add(event.author.id)
+        event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
+                "Players in lobby: *${game.players.toUsers()}*")
+    } else event.channel.send("You must be invited by the creator of this game to join this __private__ game!")
 }
