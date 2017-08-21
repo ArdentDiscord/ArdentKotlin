@@ -2,7 +2,10 @@ package commands.administrate
 
 import events.Category
 import events.Command
-import main.*
+import main.config
+import main.conn
+import main.jdas
+import main.r
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
@@ -222,74 +225,12 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                 }
                 when (arguments[0]) {
                     "eval" -> {
-                        val message = event.message
-                        val shortcuts = hashMapOf<String, Any>()
-                        shortcuts.put("jda", message.jda)
-                        shortcuts.put("event", event)
-
-                        shortcuts.put("channel", event.channel)
-                        shortcuts.put("guild", event.guild)
-
-                        shortcuts.put("message", message)
-                        shortcuts.put("msg", message)
-                        shortcuts.put("me", event.author)
-                        shortcuts.put("bot", message.jda.selfUser)
-                        shortcuts.put("config", config)
-
-                        val timeout = 10
-
-                        val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat())
-                        val builder = MessageBuilder()
-                        if (result.first is RestAction<*>)
-                            (result.first as RestAction<*>).queue()
-                        else if (result.first != null && (result.first as String).isNotEmpty())
-                            builder.appendCodeBlock(result.first.toString(), "")
-                        if (!result.second.isEmpty() && result.first != null)
-                            builder.append("\n").appendCodeBlock(result.first as String, "")
-                        if (!result.third.isEmpty())
-                            builder.append("\n").appendCodeBlock(result.third, "")
-                        if (builder.isEmpty)
-                            event.message.addReaction("✅").queue()
-                        else
-                            for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
-                                event.channel.sendMessage(m).queue()
+                        eval(arguments, event)
                     }
                     "shutdown" -> {
                         event.channel.send("Shutting down now!")
-                        managers.forEach { idLong, manager ->
-                            if (manager.player.playingTrack != null) {
-                                manager.scheduler.manager.getChannel()?.send("**Squashing bugs** and **becoming stronger**... I'll be back online in a few seconds, updating!")
-                            }
-                        }
-                        jdas.forEach {
-                            it.shutdown()
-                        }
+                        jdas.forEach { it.shutdown() }
                         System.exit(0)
-                    }
-                    "staff" -> {
-                        if (arguments.size == 4) {
-                            val type = arguments[1]
-                            val roleName = arguments[3]
-                            val roles = Staff.StaffRole.values().map { it.name.toLowerCase() }
-                            if (roles.contains(roleName)) {
-                                if (event.message.mentionedUsers.size == 0) {
-                                    event.channel.send("no")
-                                    return
-                                }
-                                val user = event.message.mentionedUsers[0]
-                                if (type == "add") {
-                                    if (r.table("staff").get(user.id).run<Any>(conn) != null) {
-                                        r.table("staff").get(user.id).update(r.hashMap("role", roleName.toUpperCase())).runNoReply(conn)
-                                    } else r.table("staff").insert(r.json(getGson().toJson(Staff(user.id, Staff.StaffRole.valueOf(roleName.toUpperCase()))))).runNoReply(conn)
-                                } else if (type == "remove") {
-                                    r.table("staff").get(user.id).delete().runNoReply(conn)
-                                } else {
-                                    event.channel.send("no")
-                                    return
-                                }
-                                event.channel.send("updated database")
-                            } else event.channel.send("/nono staff add|remove @User roleName dumbo")
-                        } else event.channel.send("/nono staff remove|add @User roleName")
                     }
                     else -> event.channel.send("You're an idiot")
                 }
@@ -326,4 +267,34 @@ class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who d
             }
         }
     }
+}
+
+fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    val message = event.message
+    val shortcuts = hashMapOf<String, Any>()
+    shortcuts.put("jda", message.jda)
+    shortcuts.put("event", event)
+    shortcuts.put("channel", event.channel)
+    shortcuts.put("guild", event.guild)
+    shortcuts.put("message", message)
+    shortcuts.put("msg", message)
+    shortcuts.put("me", event.author)
+    shortcuts.put("bot", message.jda.selfUser)
+    shortcuts.put("config", config)
+    val timeout = 10
+    val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat())
+    val builder = MessageBuilder()
+    if (result.first is RestAction<*>)
+        (result.first as RestAction<*>).queue()
+    else if (result.first != null && (result.first as String).isNotEmpty())
+        builder.appendCodeBlock(result.first.toString(), "")
+    if (!result.second.isEmpty() && result.first != null)
+        builder.append("\n").appendCodeBlock(result.first as String, "")
+    if (!result.third.isEmpty())
+        builder.append("\n").appendCodeBlock(result.third, "")
+    if (builder.isEmpty)
+        event.message.addReaction("✅").queue()
+    else
+        for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
+            event.channel.sendMessage(m).queue()
 }
