@@ -5,10 +5,7 @@ import events.Command
 import main.*
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.Message
-import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import utils.*
@@ -18,7 +15,7 @@ import java.util.concurrent.TimeUnit
 
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = guild.getData()
 
         if (arguments.size != 2) {
@@ -37,7 +34,7 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
 }
 
 class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the channel you're sending the command in") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.hasOverride(channel)) return
         if (!guild.selfMember.hasPermission(channel, Permission.MESSAGE_MANAGE)) {
             channel.send(member, "I need the `Message Manage` permission to be able to delete messages!")
@@ -74,7 +71,7 @@ class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the cha
 }
 
 class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someone", "tban") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0 || arguments.size < 2) {
             channel.send(member, "You need to mention a member and the amount of hours to ban them! **Example**: `${guild.getPrefix()}tempban @User 4` - the 4 " +
@@ -107,7 +104,7 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
 }
 
 class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of everyone in this server who currently has a punishment") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = embed("Punishments in ${guild.name}", member)
         val builder = StringBuilder()
         val punishments = guild.punishments()
@@ -122,13 +119,13 @@ class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of
 }
 
 class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         channel.send(member, "You can manage settings for the **join** and **leave** messages on the web panel @ https://ardentbot.com/manage/${guild.id}")
     }
 }
 
 class Mute : Command(Category.ADMINISTRATE, "mute", "temporarily mute members who abuse their ability to send messages") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0 || arguments.size != 2) channel.send(member,
                 """**Muting**: The first parameter for this command must be a mention of the member you wish to mute (obviously)
@@ -184,7 +181,7 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
 }
 
 class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are muted") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) channel.send(member, "Please mention the member you want to unmute!")
         else {
@@ -212,7 +209,7 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
 }
 
 class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administrators only") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         staff.forEach {
             if (member.id() == "169904324980244480" || member.id() == it.id && it.role == Staff.StaffRole.ADMINISTRATOR) {
                 if (arguments.size == 0) {
@@ -367,7 +364,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
 }
 
 class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who don't have any role, the role you specify", "giveall") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             channel.send(member, "You need to type the name of the role that you'd like to give to all members who currently have no roles in this server!")
             return

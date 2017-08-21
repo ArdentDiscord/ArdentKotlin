@@ -3,7 +3,6 @@ package events
 import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.ChannelType
-import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -69,7 +68,7 @@ class CommandFactory {
                             val data = member.data()
                             data.gold += 2
                             data.update()
-                            cmd.execute(args, event)
+                            cmd.executeInternal(args, event)
                             r.table("commands").insert(r.json(getGson().toJson(
                                     LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                         } catch (e: Throwable) {
@@ -87,15 +86,15 @@ class CommandFactory {
 
 abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String) {
     val help = mutableListOf<Pair<String, String>>()
-    fun execute(args: MutableList<String>, event: MessageReceivedEvent) {
+    fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent) {
         if (event.channelType == ChannelType.PRIVATE)
             event.author.openPrivateChannel().queue { channel ->
                 channel.send(event.author, "Please use commands inside a Discord server!")
             }
-        else execute(event.member, event.textChannel, event.guild, args, event)
+        else execute(args, event)
     }
 
-    abstract fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent)
+    abstract fun execute(arguments: MutableList<String>, event: MessageReceivedEvent)
 
     fun withHelp(syntax: String, description: String): Command {
         help.add(Pair(syntax, description))

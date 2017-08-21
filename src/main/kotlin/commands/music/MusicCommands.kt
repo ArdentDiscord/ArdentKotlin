@@ -17,7 +17,7 @@ class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a
             Pair("Jamendo Lounge", "http://streaming.radionomy.com/JamendoLounge?lang=en-US%2cen%3bq%3d0.8"),
             Pair("Radio Rock Mix", "http://streaming.hotmixradio.fr/hotmixradio-rock-128.mp3?lang=en-US%2cen%3bq%3d0.8%2cru%3bq%3d0.6"))
 
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             withHelp("start", "view and select from the list of current radio stations")
                     .withHelp("request [name of radio station]", "send a request to the developers to add a specific radio station")
@@ -37,7 +37,7 @@ class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a
 }
 
 class Play : Command(Category.MUSIC, "play", "play a song by its url or search a song to look it up on youtube", "p") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             channel.send(member, "You need to specify a URL or search query!")
             return
@@ -47,7 +47,7 @@ class Play : Command(Category.MUSIC, "play", "play a song by its url or search a
 }
 
 class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel I'm in") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true, djCommand = true)) return
         val manager = guild.getGuildAudioPlayer(channel).scheduler.manager
         manager.resetQueue()
@@ -59,7 +59,7 @@ class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel
 }
 
 class Pause : Command(Category.MUSIC, "pause", "pause the player... what did you think this was gonna do?") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true, djCommand = true)) return
         val player = guild.getGuildAudioPlayer(channel).player
         if (!player.currentlyPlaying(channel)) return
@@ -69,7 +69,7 @@ class Pause : Command(Category.MUSIC, "pause", "pause the player... what did you
 }
 
 class Resume : Command(Category.MUSIC, "resume", "resumes the player. what did you think this was gonna do?") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true, djCommand = true)) return
         val player = guild.getGuildAudioPlayer(channel).player
         if (!player.currentlyPlaying(channel)) return
@@ -79,7 +79,7 @@ class Resume : Command(Category.MUSIC, "resume", "resumes the player. what did y
 }
 
 class Skip : Command(Category.MUSIC, "skip", "skips the currently playing track") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true, djCommand = true)) return
         val manager = guild.getGuildAudioPlayer(channel)
         if (!manager.player.currentlyPlaying(channel)) return
@@ -90,7 +90,7 @@ class Skip : Command(Category.MUSIC, "skip", "skips the currently playing track"
 }
 
 class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tracks in the queue") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true, djCommand = true)) return
         val manager = guild.getGuildAudioPlayer(channel)
         manager.player.stopTrack()
@@ -100,7 +100,7 @@ class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tra
 }
 
 class SongUrl : Command(Category.MUSIC, "songlink", "get the link for the currently playing track!", "su") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel)) return
         val player = guild.getGuildAudioPlayer(channel).player
         if (!player.currentlyPlaying(channel)) return
@@ -109,7 +109,7 @@ class SongUrl : Command(Category.MUSIC, "songlink", "get the link for the curren
 }
 
 class Shuffle : Command(Category.MUSIC, "shuffle", "shuffle the current queue") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true, djCommand = true)) return
         guild.getGuildAudioPlayer(channel).scheduler.manager.shuffle()
         channel.send(member, "Shuffled the current queue ${Emoji.WHITE_HEAVY_CHECKMARK}")
@@ -117,7 +117,7 @@ class Shuffle : Command(Category.MUSIC, "shuffle", "shuffle the current queue") 
 }
 
 class Repeat : Command(Category.MUSIC, "repeat", "repeat the track that's currently playing") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true, djCommand = true)) return
         val manager = guild.getGuildAudioPlayer(channel)
         val player = manager.player
@@ -128,7 +128,7 @@ class Repeat : Command(Category.MUSIC, "repeat", "repeat the track that's curren
 }
 
 class Playing : Command(Category.MUSIC, "playing", "shows information about the currently playing track", "np") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val manager = guild.getGuildAudioPlayer(channel)
         val player = manager.player
         if (!player.currentlyPlaying(channel)) return
@@ -138,7 +138,7 @@ class Playing : Command(Category.MUSIC, "playing", "shows information about the 
 }
 
 class Volume : Command(Category.MUSIC, "volume", "see and change the volume of the player") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val manager = guild.getGuildAudioPlayer(channel)
         val player = manager.player
         if (arguments.size == 0) {
@@ -159,7 +159,7 @@ class Volume : Command(Category.MUSIC, "volume", "see and change the volume of t
 }
 
 class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queue", "q") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val manager = guild.getGuildAudioPlayer(channel)
         if (manager.scheduler.manager.queue.size == 0) {
             channel.send(member, "${Emoji.MULTIPLE_MUSICAL_NOTES} There are no songs in the queue currently!")
@@ -182,7 +182,7 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
 }
 
 class FixMusic : Command(Category.MUSIC, "fixmusic", "fix your music player if something isn't going right") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.hasOverride(channel, true, djCommand = true)) {
             val manager = guild.getGuildAudioPlayer(channel)
             val queue = manager.scheduler.manager.queueAsList
@@ -199,7 +199,7 @@ class FixMusic : Command(Category.MUSIC, "fixmusic", "fix your music player if s
 }
 
 class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.hasOverride(channel, true, djCommand = true)) {
             if (!member.checkSameChannel(channel)) return
             guild.getGuildAudioPlayer(channel).scheduler.manager.resetQueue()
@@ -210,7 +210,7 @@ class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq"
 }
 
 class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks from the mentioned user or users", "rf") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!member.checkSameChannel(channel) || !member.hasOverride(channel, true)) return
         val mentioned = event.message.mentionedUsers
         if (mentioned.size == 0) {

@@ -3,9 +3,6 @@ package commands.games
 import events.Category
 import events.Command
 import main.waiter
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
 import java.util.concurrent.Executors
@@ -13,7 +10,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running game") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == member.id()) {
                 channel.send(member, "${Emoji.HEAVY_EXCLAMATION_MARK_SYMBOL}" +
@@ -32,7 +29,7 @@ class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running gam
 }
 
 class Forcestart : Command(Category.GAMES, "forcestart", "manually start a game") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == member.id() && game.channel.guild == guild) {
                 if (game.players.size == 1 && game.type == GameType.TRIVIA) channel.send(member, "You can't force start a game with only **1** person!")
@@ -48,7 +45,7 @@ class Forcestart : Command(Category.GAMES, "forcestart", "manually start a game"
 
 
 class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation to a game") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.isInGameOrLobby()) channel.send(member, "You can't join another game! You must leave the game you're currently in first")
         else {
             gamesInLobby.forEach { game ->
@@ -64,7 +61,7 @@ class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation
 }
 
 class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 1) {
             val id = arguments[0].replace("#", "").toIntOrNull()
             if (id == null) {
@@ -97,7 +94,7 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
 }
 
 class LeaveGame : Command(Category.GAMES, "leavegame", "leave a game you're currently queued for", "lg") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == member.id() && game.channel.guild == guild) {
                 channel.send(member, "You can't leave the game that you've started! If you want to cancel the game, type **${guild.getPrefix()}cancel**")
@@ -113,7 +110,7 @@ class LeaveGame : Command(Category.GAMES, "leavegame", "leave a game you're curr
 }
 
 class Gamelist : Command(Category.GAMES, "gamelist", "show a list of all currently running games") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = embed("Games in Lobby", member)
         val builder = StringBuilder()
                 .append("**Red means that the game is private, Green that it's public and anyone can join**")
@@ -132,7 +129,7 @@ class Gamelist : Command(Category.GAMES, "gamelist", "show a list of all current
 }
 
 class Decline : Command(Category.GAMES, "decline", "decline a pending game invite") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (invites.containsKey(member.id())) {
             val game = invites[member.id()]!!
             channel.send(member, "${member.asMention} declined an invite to **${game.creator.toUser()!!.withDiscrim()}**'s game of **${game.type.readable}**")
@@ -143,7 +140,7 @@ class Decline : Command(Category.GAMES, "decline", "decline a pending game invit
 
 class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to your game!", "ginvite", "gi") {
     private val inviteManager: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == member.id() && game.channel.guild == guild) {
                 if (game.isPublic) {

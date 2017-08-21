@@ -5,18 +5,12 @@ import com.github.vbauer.yta.service.YTranslateApiImpl
 import com.mb3364.twitch.api.Twitch
 import com.mb3364.twitch.api.handlers.ChannelResponseHandler
 import com.mb3364.twitch.api.handlers.StreamResponseHandler
-import com.mb3364.twitch.api.handlers.StreamsResponseHandler
 import com.mb3364.twitch.api.models.Channel
 import com.mb3364.twitch.api.models.Stream
-import commands.administrate.staff
 import events.Category
 import events.Command
 import main.config
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
 import utils.*
 import java.awt.Color
@@ -25,7 +19,7 @@ import java.security.SecureRandom
 
 class Roll : Command(Category.FUN, "roll", "use our customizable system to roll dice") {
     val random = SecureRandom()
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val help = """You can use this command with the following format: **sides**x**amount**, where `amount` represents the amount of times
 you want to roll the die, and `sides` represents the amount of sides that this die will have.
 
@@ -52,7 +46,7 @@ __Please Note__: You are limited to 999999x10, meaning that at maximum you can r
 }
 
 class UrbanDictionary : Command(Category.FUN, "urban", "get search results for your favorite words from urban dictionary", "ud") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) channel.send(member, "${Emoji.HEAVY_MULTIPLICATION_X} Bro, you gotta include a search term")
         else {
             val term = arguments.concat()
@@ -77,7 +71,7 @@ class UrbanDictionary : Command(Category.FUN, "urban", "get search results for y
 }
 
 class UnixFortune : Command(Category.FUN, "unixfortune", "in the mood for a unix fortune? us too", "fortune") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val doc = Jsoup.connect("http://motd.ambians.com/quotes" +
                 ".php/name/linux_fortunes_random/toc_id/1-1-1").userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
                 "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!
@@ -86,7 +80,7 @@ class UnixFortune : Command(Category.FUN, "unixfortune", "in the mood for a unix
 }
 
 class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your future... or something, idfk") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) channel.send(member, "${Emoji.HEAVY_MULTIPLICATION_X} How dare you try to ask the 8-ball an empty question??!!")
         else {
             channel.send(member, getGson().fromJson(Jsoup.connect("https://8ball.delegator.com/magic/JSON/${URLEncoder.encode(arguments.concat())}")
@@ -97,7 +91,7 @@ class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your fu
 }
 
 class FML : Command(Category.FUN, "fml", "someone's had a shitty day.") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val doc = Jsoup.connect("http://fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
                 "rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").ignoreContentType(true).get()!!
         channel.send(member, doc.getElementsByTag("p")[0].getElementsByTag("a")[0].allElements[0].text())
@@ -106,7 +100,7 @@ class FML : Command(Category.FUN, "fml", "someone's had a shitty day.") {
 
 class Translate : Command(Category.FUN, "translate", "translate text to the provided language", "tr") {
     val api = YTranslateApiImpl("trnsl.1.1.20170227T013942Z.6878bfdf518abdf6.a6574733436345112da24eb08e7ee1ef2a0d6a97")
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size < 2) {
             val prefix = guild.getPrefix()
             channel.send(member, """Using the translation command is simple. The format for requesting one is as follows:
@@ -135,7 +129,7 @@ class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is
         twitch.clientId = config.getValue("twitch")
     }
 
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) channel.send(member, "Please include the name of a channel - **Example**: `${guild.getPrefix()}streaming ardentdiscord`")
         else {
             val ch = arguments.concat()

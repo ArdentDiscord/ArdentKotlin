@@ -4,8 +4,6 @@ import events.Category
 import events.Command
 import main.factory
 import main.waiter
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -487,14 +485,14 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
 }
 
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
         else BetGame(channel, member.id()).startEvent()
     }
 }
 
 class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
         else if (guild.hasGameType(GameType.TRIVIA) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
             channel.send(member, "There can only be one trivia game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
@@ -516,7 +514,7 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
 }
 
 class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of blackjack") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
         else if (guild.hasGameType(GameType.BLACKJACK) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
             channel.send(member, "There can only be one blackjack game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
@@ -528,7 +526,7 @@ class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of bl
 }
 
 class CoinflipCommand : Command(Category.GAMES, "coinflip", "start games of coinflip (it's fun we promise)") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (member.isInGameOrLobby()) channel.send(member, "${member.user.asMention}, You're already in game! You can't create another game!")
         else if (guild.hasGameType(GameType.COINFLIP) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
             channel.send(member, "There can only be one coinflip game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
@@ -549,7 +547,7 @@ class CoinflipCommand : Command(Category.GAMES, "coinflip", "start games of coin
 }
 
 class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play against friends or compete for the leaderboards in these addicting games") {
-    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         withHelp("/gamelist", "lists all games that are waiting for players or setting up to start")
                 .withHelp("/gameinvite @User", "allows the creator of the game to invite players in the server where it was started")
                 .withHelp("/decline invite", "decline a pending invite")

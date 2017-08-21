@@ -30,7 +30,7 @@ fun String.toChannel(): TextChannel? {
 
 fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
     if (playingTrack != null && channel.guild.getGuildAudioPlayer(channel).scheduler.manager.current != null) return true
-    channel.send(channel.guild.selfMember, "${Emoji.HEAVY_MULTIPLICATION_X} There isn't a currently playing track!")
+    channel.send("${Emoji.HEAVY_MULTIPLICATION_X} There isn't a currently playing track!")
     return false
 }
 
@@ -80,7 +80,7 @@ fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, fa
         val track = guild.getGuildAudioPlayer(channel).scheduler.manager.current
         if (track != null && track.author == id()) return true
     }
-    if (!failQuietly) channel.send(this, "${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
+    if (!failQuietly) channel.send("${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
     return false
 }
 
@@ -204,11 +204,10 @@ fun Member.punishments(): MutableList<Punishment?> {
     return punishments
 }
 
-fun MessageChannel.sendReceive(member: Member, embed: EmbedBuilder): Message? {
+fun MessageChannel.sendReceive(embed: EmbedBuilder): Message? {
     try {
         return this.sendMessage(embed.build()).complete()
     } catch (ex: Throwable) {
-        sendFailed(member.user, false)
     }
     return null
 }
@@ -217,7 +216,6 @@ fun MessageChannel.sendReceive(member: Member, message: String): Message? {
     try {
         return this.sendMessage(message).complete()
     } catch (ex: PermissionException) {
-        sendFailed(member.user, false)
     }
     return null
 }
@@ -226,23 +224,11 @@ fun User.whitelisted(): List<SpecialPerson?> {
     return r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java).filter { it != null && it.backer == id }
 }
 
-fun TextChannel.send(member: Member, embedBuilder: EmbedBuilder) {
-    send(member.user, embedBuilder)
+fun TextChannel.send(embedBuilder: EmbedBuilder) {
+    sendEmbed(embedBuilder)
 }
 
-fun TextChannel.send(user: User, embedBuilder: EmbedBuilder) {
-    try {
-        sendMessage(embedBuilder.build()).queue()
-    } catch (e: Exception) {
-        sendFailed(user, true)
-    }
-}
-
-fun MessageChannel.send(member: Member, message: String) {
-    this.send(member.user, message)
-}
-
-fun MessageChannel.send(user: User, message: String) {
+fun MessageChannel.send(message: String) {
     try {
         if (message.length <= 2000) {
             this.sendMessage(message).queue()
@@ -258,25 +244,19 @@ fun MessageChannel.send(user: User, message: String) {
             i += 2000
         }
     } catch (ex: PermissionException) {
-        sendFailed(user, false)
     }
 }
 
-fun sendEmbed(embedBuilder: EmbedBuilder, channel: TextChannel, user: User, vararg reactions: String): Message {
+fun TextChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: String): Message {
     try {
-        val message = channel.sendMessage(embedBuilder.build()).complete()
+        val message = sendMessage(embedBuilder.build()).complete()
         for (reaction in reactions) {
             message.addReaction(EmojiParser.parseToUnicode(reaction)).queue()
         }
         return message
     } catch (ex: PermissionException) {
-        sendFailed(user, true)
     }
     return MessageBuilder().build()
-}
-
-@Deprecated("useless")
-fun sendFailed(user: User, embed: Boolean) {
 }
 
 fun Guild.getPrefix(): String {
@@ -340,7 +320,7 @@ fun Int.getTrivia(): List<TriviaQuestion> {
 }
 
 fun TextChannel.requires(member: Member, requiredLevel: DonationLevel) {
-    send(member, "${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
+    send("${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
 }
 
 fun getMutualGuildsWith(user: User): MutableList<Guild> {
