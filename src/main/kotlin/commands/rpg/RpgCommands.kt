@@ -57,6 +57,10 @@ class MarryCommand : Command(Category.RPG, "marry", "really fond of someone? mak
             return
         }
         val proposed = event.message.mentionedUsers[0]
+        if (proposed.isBot || proposed.id == event.author.id) {
+            event.channel.send("You can't marry a bot or yourself :) Get some friends!")
+            return
+        }
         when {
             spouse != null -> event.channel.send("We live in the 21st century! No polygamic marriages!")
             proposed.getMarriage() != null -> event.channel.send("This person's already married. Sorry :-(")

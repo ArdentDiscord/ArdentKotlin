@@ -16,53 +16,55 @@ import java.util.concurrent.TimeUnit
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val data = guild.getData()
+        val data = event.guild.getData()
 
         if (arguments.size != 2) {
-            channel.send(member, "${Emoji.INFORMATION_SOURCE} The current prefix is **${data.prefix}**\n" +
+            event.channel.send("${Emoji.INFORMATION_SOURCE} The current prefix is **${data.prefix}**\n" +
                     "See a list of all commands by typing **${data.prefix}help** __or__ **ardent help**\n\n" +
                     "Change the current prefix by typing **${data.prefix}prefix set PREFIX_HERE** - Spaces are not allowed")
             return
         }
         if (arguments[0].equals("set", true)) {
-            if (!member.hasOverride(channel, false)) return
+            if (!event.member.hasOverride(event.textChannel, false)) return
             data.prefix = arguments[1]
             data.update()
-            channel.send(member, "The prefix has been updated to **${data.prefix}**")
-        } else channel.send(member, "${Emoji.NO_ENTRY_SIGN} Type **${data.prefix}prefix** to learn how to use this command")
+            event.channel.send("The prefix has been updated to **${data.prefix}**")
+        } else event.channel.send("${Emoji.NO_ENTRY_SIGN} Type **${data.prefix}prefix** to learn how to use this command")
     }
 }
 
 class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the channel you're sending the command in") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (!member.hasOverride(channel)) return
-        if (!guild.selfMember.hasPermission(channel, Permission.MESSAGE_MANAGE)) {
-            channel.send(member, "I need the `Message Manage` permission to be able to delete messages!")
+        if (!event.member.hasOverride(event.textChannel)) return
+        if (!event.guild.selfMember.hasPermission(event.textChannel, Permission.MESSAGE_MANAGE)) {
+            event.channel.send("I need the `Message Manage` permission to be able to delete messages!")
             return
         }
-        if (arguments.size == 0) channel.send(member, "You need to specify a number of messages - *or mention a member whose messages* to delete!")
+        if (arguments.size == 0) event.channel.send("You need to specify a number of messages - *or mention a member whose messages* to delete!")
         else {
             val mentionedUsers = event.message.mentionedUsers
             if (mentionedUsers.size > 0) {
-                channel.history.retrievePast(100).queue { messages ->
+                event.channel.history.retrievePast(100).queue { messages ->
                     val messagesByUser = mutableListOf<Message>()
                     messages.forEach { m -> if (m.author == mentionedUsers[0]) messagesByUser.add(m) }
-                    channel.deleteMessages(messagesByUser).queue {
-                        channel.send(member, "Successfully deleted **${messagesByUser.size}** messages from *${mentionedUsers[0].withDiscrim()}*")
-                    }
+                    event.textChannel.deleteMessages(messagesByUser).queue({
+                        event.channel.send("Successfully deleted **${messagesByUser.size}** messages from *${mentionedUsers[0].withDiscrim()}*")
+                    }, {
+                        event.channel.send("Unable to delete messages, please recheck my permissions")
+                    })
                 }
                 return
             }
             val number = arguments[0].toIntOrNull()
-            if (number == null || number < 2 || number > 100) channel.send(member, "Invalid number specified. Number must be between **2** and **100** messages")
+            if (number == null || number < 2 || number > 100) event.channel.send("Invalid number specified. Number must be between **2** and **100** messages")
             else {
-                channel.history.retrievePast(number).queue { messages ->
+                event.channel.history.retrievePast(number).queue { messages ->
                     try {
-                        channel.deleteMessages(messages).queue {
-                            channel.send(member, "Successfully cleared **$number** messages")
+                        event.textChannel.deleteMessages(messages).queue {
+                            event.channel.send("Successfully cleared **$number** messages")
                         }
                     } catch (e: Exception) {
-                        channel.send(member, "Unable to clear messages - ${e.localizedMessage}")
+                        event.channel.send("Unable to clear messages - ${e.localizedMessage}")
                     }
                 }
             }
@@ -74,69 +76,68 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0 || arguments.size < 2) {
-            channel.send(member, "You need to mention a member and the amount of hours to ban them! **Example**: `${guild.getPrefix()}tempban @User 4` - the 4 " +
+            event.channel.send("You need to mention a member and the amount of hours to ban them! **Example**: `${event.guild.getPrefix()}tempban @User 4` - the 4 " +
                     "represents the amount of hours")
             return
         }
-        if (!member.hasOverride(channel)) return
-        val toBan = guild.getMember(mentionedUsers[0])
-        if (toBan.hasOverride(channel, failQuietly = true)) channel.send(member, "You don't have permission to ban this person!")
-        else if (member.canInteract(toBan)) {
-            if (guild.selfMember.canInteract(toBan)) {
+        if (!event.member.hasOverride(event.textChannel)) return
+        val toBan = event.guild.getMember(mentionedUsers[0])
+        if (toBan.hasOverride(event.textChannel, failQuietly = true)) event.channel.send("You don't have permission to ban this person!")
+        else if (event.member.canInteract(toBan)) {
+            if (event.guild.selfMember.canInteract(toBan)) {
                 val hours = arguments[1].toIntOrNull()
-                if (hours == null) channel.send(member, "You need to provide an amount of hours to ban this user!")
+                if (hours == null) event.channel.send("You need to provide an amount of hours to ban this user!")
                 else {
                     try {
-                        guild.controller.ban(toBan, 1, "banned by ${member.withDiscrim()} for $hours hours").queue({
-                            Punishment(toBan.id(), member.id(), guild.id, Punishment.Type.TEMPBAN, System.currentTimeMillis() + (hours * 60 * 60 * 1000)).insert("punishments")
-                            channel.send(member, "Successfully banned **${toBan.withDiscrim()}** for **$hours** hours")
+                        event.guild.controller.ban(toBan, 1, "banned by ${event.author.withDiscrim()} for $hours hours").queue({
+                            Punishment(toBan.id(), event.author.id, event.guild.id, Punishment.Type.TEMPBAN, System.currentTimeMillis() + (hours * 60 * 60 * 1000)).insert("punishments")
+                            event.channel.send("Successfully banned **${toBan.withDiscrim()}** for **$hours** hours")
                         }, {
-                            channel.send(member, "Failed to ban **${toBan.withDiscrim()}**. Check my permissions..?")
+                            event.channel.send("Failed to ban **${toBan.withDiscrim()}**. Check my permissions..?")
                         })
                     } catch (e: Exception) {
-                        channel.send(member, "Failed to ban **${toBan.withDiscrim()}**. Check my permissions..?")
+                        event.channel.send("Failed to ban **${toBan.withDiscrim()}**. Check my permissions..?")
                     }
                 }
-            } else channel.send(member, "I don't have permission to ban this user!")
-        } else channel.send(member, "You cannot ban this person!")
+            } else event.channel.send("I don't have permission to ban this user!")
+        } else event.channel.send("You cannot ban this person!")
 
     }
 }
 
 class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of everyone in this server who currently has a punishment") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val embed = embed("Punishments in ${guild.name}", member)
+        val embed = event.member.embed("Punishments in ${event.guild.name}")
         val builder = StringBuilder()
-        val punishments = guild.punishments()
+        val punishments = event.guild.punishments()
         if (punishments.size == 0) builder.append("There are no current punishments in this server.")
         else {
             punishments.forEach { punishment ->
                 builder.append(" ${Emoji.NO_ENTRY_SIGN} **${punishment?.userId?.toUser()?.withDiscrim()}**: ${punishment?.type} until ${punishment?.expiration?.readableDate()}\n")
             }
         }
-        channel.send(member, embed.setColor(Color.RED).setDescription(builder.toString()))
+        event.channel.send(embed.setColor(Color.RED).setDescription(builder.toString()))
     }
 }
 
 class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        channel.send(member, "You can manage settings for the **join** and **leave** messages on the web panel @ https://ardentbot.com/manage/${guild.id}")
+        event.channel.send("You can manage settings for the **join** and **leave** messages on the web panel @ https://ardentbot.com/manage/${event.guild.id}")
     }
 }
 
 class Mute : Command(Category.ADMINISTRATE, "mute", "temporarily mute members who abuse their ability to send messages") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
-        if (mentionedUsers.size == 0 || arguments.size != 2) channel.send(member,
-                """**Muting**: The first parameter for this command must be a mention of the member you wish to mute (obviously)
+        if (mentionedUsers.size == 0 || arguments.size != 2) event.channel.send("""**Muting**: The first parameter for this command must be a mention of the member you wish to mute (obviously)
 The second parameter is the amount of time to mute them for - this can be in minutes, hours, or days.
 Type the number you wish (decimals are **not** allowed) and then suffix that with **m** (for minutes), **h** (for hours), or **d** (for days)
-**Example**: *${guild.getPrefix()}mute @User 3h* - would mute that user for three hours""")
+**Example**: *${event.guild.getPrefix()}mute @User 3h* - would mute that user for three hours""")
         else {
-            if (!member.hasOverride(channel)) return
-            val muteMember = guild.getMember(mentionedUsers[0])
-            if (muteMember.hasOverride(channel, failQuietly = true) || !member.canInteract(muteMember) || !guild.selfMember.canInteract(muteMember)) {
-                channel.send(member, "You don't have permission to mute this member! Make sure that they do not have the `Manage Server` or other elevated " +
+            if (!event.member.hasOverride(event.textChannel)) return
+            val muteMember = event.guild.getMember(mentionedUsers[0])
+            if (muteMember.hasOverride(event.textChannel, failQuietly = true) || !event.member.canInteract(muteMember) || !event.guild.selfMember.canInteract(muteMember)) {
+                event.channel.send("You don't have permission to mute this member! Make sure that they do not have the `Manage Server` or other elevated " +
                         "permissions")
                 return
             }
@@ -144,7 +145,7 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
             punishments.forEach { punishment ->
                 if (punishment != null) {
                     if (punishment.type == Punishment.Type.MUTE) {
-                        channel.send(member, "**${muteMember.withDiscrim()}** is already muted!")
+                        event.channel.send("**${muteMember.withDiscrim()}** is already muted!")
                         return
                     }
                 }
@@ -165,16 +166,16 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
                     unparsedTime = unparsedTime.removeSuffix("d")
                 }
                 else -> {
-                    channel.send(member, "You didn't include a time unit! Type ${guild.getPrefix()}mute for help with this command")
+                    event.channel.send("You didn't include a time unit! Type ${event.guild.getPrefix()}mute for help with this command")
                     return
                 }
             }
             val number = unparsedTime.toLongOrNull()
-            if (number == null) channel.send(member, "You specified an invalid number. Type ${guild.getPrefix()}mute for help with this command")
+            if (number == null) event.channel.send("You specified an invalid number. Type ${event.guild.getPrefix()}mute for help with this command")
             else {
                 val unmuteTime = System.currentTimeMillis() + (unit.toMillis(number))
-                Punishment(muteMember.id(), member.id(), guild.id, Punishment.Type.MUTE, unmuteTime).insert("punishments")
-                channel.send(member, "Successfully muted **${muteMember.withDiscrim()}** until ${unmuteTime.readableDate()}")
+                Punishment(muteMember.id(), event.author.id, event.guild.id, Punishment.Type.MUTE, unmuteTime).insert("punishments")
+                event.channel.send("Successfully muted **${muteMember.withDiscrim()}** until ${unmuteTime.readableDate()}")
             }
         }
     }
@@ -183,27 +184,27 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
 class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are muted") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
-        if (mentionedUsers.size == 0) channel.send(member, "Please mention the member you want to unmute!")
+        if (mentionedUsers.size == 0) event.channel.send("Please mention the member you want to unmute!")
         else {
-            if (!member.hasOverride(channel)) return
-            val unmuteMember = guild.getMember(mentionedUsers[0])
+            if (!event.member.hasOverride(event.textChannel)) return
+            val unmuteMember = event.guild.getMember(mentionedUsers[0])
             val punishments = unmuteMember.punishments()
             punishments.forEach { punishment ->
                 if (punishment != null) {
                     if (punishment.type == Punishment.Type.MUTE) {
-                        guild.controller.removeRolesFromMember(unmuteMember, guild.getRolesByName("muted", true))
-                                .reason("Unmuted by ${member.withDiscrim()}")
+                        event.guild.controller.removeRolesFromMember(unmuteMember, event.guild.getRolesByName("muted", true))
+                                .reason("Unmuted by ${event.author.withDiscrim()}")
                                 .queue({
                                     r.table("punishments").get(punishment.id).delete().runNoReply(conn)
-                                    channel.send(member, "Successfully unmuted **${unmuteMember.withDiscrim()}**")
+                                    event.channel.send("Successfully unmuted **${unmuteMember.withDiscrim()}**")
                                 }, {
-                                    channel.send(member, "Failed to unmute **${unmuteMember.withDiscrim()}** - Please give me proper permissions to remove roles")
+                                    event.channel.send("Failed to unmute **${unmuteMember.withDiscrim()}** - Please give me proper permissions to remove roles")
                                 })
                         return
                     }
                 }
             }
-            channel.send(member, "This person isn't muted!")
+            event.channel.send("This person isn't muted!")
         }
     }
 }
@@ -211,51 +212,51 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
 class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administrators only") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         staff.forEach {
-            if (member.id() == "169904324980244480" || member.id() == it.id && it.role == Staff.StaffRole.ADMINISTRATOR) {
+            if (event.author.id == "169904324980244480" || (event.author.id == it.id && it.role == Staff.StaffRole.ADMINISTRATOR)) {
                 if (arguments.size == 0) {
                     withHelp("shutdown", "this is really fucking obvious")
                             .withHelp("staff add|remove @User role_name", "^")
                             .withHelp("whitelist", "whitelist your friends (let them have patreon permissions)")
-                            .displayHelp(channel, member)
+                            .displayHelp(event.textChannel, event.member)
                 } else {
                     when (arguments[0]) {
                         "eval" -> {
                             val message = event.message
-                            val shortcuts = hashMapOf<String, Any>();
-                            shortcuts.put("jda", message.jda);
-                            shortcuts.put("event", event);
+                            val shortcuts = hashMapOf<String, Any>()
+                            shortcuts.put("jda", message.jda)
+                            shortcuts.put("event", event)
 
-                            shortcuts.put("channel", channel);
-                            shortcuts.put("guild", channel.guild);
+                            shortcuts.put("channel", event.channel)
+                            shortcuts.put("guild", event.guild)
 
-                            shortcuts.put("message", message);
-                            shortcuts.put("msg", message);
-                            shortcuts.put("me", event.author);
-                            shortcuts.put("bot", message.jda.selfUser);
-                            shortcuts.put("config", config);
+                            shortcuts.put("message", message)
+                            shortcuts.put("msg", message)
+                            shortcuts.put("me", event.author)
+                            shortcuts.put("bot", message.jda.selfUser)
+                            shortcuts.put("config", config)
 
-                            val timeout = 10;
+                            val timeout = 10
 
-                            val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat());
+                            val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat())
                             val builder = MessageBuilder()
                             if (result.first is RestAction<*>)
-                                (result.first as RestAction<*>).queue();
+                                (result.first as RestAction<*>).queue()
                             else if (result.first != null && (result.first as String).isNotEmpty())
-                                builder.appendCodeBlock(result.first.toString(), "");
+                                builder.appendCodeBlock(result.first.toString(), "")
                             if (!result.second.isEmpty() && result.first != null)
-                                builder.append("\n").appendCodeBlock(result.first as String, "");
+                                builder.append("\n").appendCodeBlock(result.first as String, "")
                             if (!result.third.isEmpty())
-                                builder.append("\n").appendCodeBlock(result.third, "");
+                                builder.append("\n").appendCodeBlock(result.third, "")
                             if (builder.isEmpty)
-                                event.message.addReaction("✅").queue();
+                                event.message.addReaction("✅").queue()
                             else
                                 for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
-                                    event.channel.sendMessage(m).queue();
+                                    event.channel.sendMessage(m).queue()
                         }
                         "whitelist" -> {
                             if (arguments.size == 1) {
-                                val embed = embed("Whitelisted members", member, Color.RED)
-                                val whitelisted = member.user.whitelisted()
+                                val embed = event.member.embed("Whitelisted members", Color.RED)
+                                val whitelisted = event.author.whitelisted()
                                 whitelisted.forEach {
                                     val user = getUserById(it!!.id)
                                     if (user == null) r.table("specialPeople").get(it.id).delete().runNoReply(conn)
@@ -264,52 +265,52 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                                 if (whitelisted.isEmpty()) embed.appendDescription("None.")
                                 embed.appendDescription("\n\nAdd a user to the whitelist (3 max) by typing /nono whitelist add @User\n\n" +
                                         "Remove a user from the whitelist by typing /nono whitelist remove @User")
-                                channel.send(member, embed)
+                                event.channel.send(embed)
                             } else {
                                 when (arguments[1]) {
                                     "add" -> {
-                                        if (event.message.mentionedUsers.size == 0) channel.send(member, "gotta mention someone bud")
+                                        if (event.message.mentionedUsers.size == 0) event.channel.send("gotta mention someone bud")
                                         else {
                                             val toWhitelist = event.message.mentionedUsers[0]
-                                            if (toWhitelist.isBot) channel.send(member, "you are an idiot")
+                                            if (toWhitelist.isBot) event.channel.send("you are an idiot")
                                             else {
-                                                if (toWhitelist.donationLevel() != DonationLevel.NONE) channel.send(member, "this person already has patreon permissions")
+                                                if (toWhitelist.donationLevel() != DonationLevel.NONE) event.channel.send("this person already has patreon permissions")
                                                 else {
-                                                    val whitelisted = member.user.whitelisted()
-                                                    if (whitelisted.size == 3) channel.send(member, "You can only whitelist 3 people at a time :(")
+                                                    val whitelisted = event.author.whitelisted()
+                                                    if (whitelisted.size == 3) event.channel.send("You can only whitelist 3 people at a time :(")
                                                     else {
-                                                        SpecialPerson(toWhitelist.id, member.id()).insert("specialPeople")
-                                                        channel.send(member, "whitelisted ${toWhitelist.asMention}")
+                                                        SpecialPerson(toWhitelist.id, event.author.id).insert("specialPeople")
+                                                        event.channel.send("whitelisted ${toWhitelist.asMention}")
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                     "remove" -> {
-                                        if (event.message.mentionedUsers.size == 0) channel.send(member, "gotta mention someone bud")
+                                        if (event.message.mentionedUsers.size == 0) event.channel.send("gotta mention someone bud")
                                         else {
                                             val toRemove = event.message.mentionedUsers[0]
-                                            if (toRemove.donationLevel() == DonationLevel.NONE) channel.send(member, "this person doesn't have patreon permissions")
+                                            if (toRemove.donationLevel() == DonationLevel.NONE) event.channel.send("this person doesn't have patreon permissions")
                                             else {
                                                 val whitelisted = r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java)
-                                                        .filter { it != null && it.backer == member.id() && it.id == toRemove.id }
-                                                if (whitelisted.isEmpty()) channel.send(member, "this person isn't whitelisted!")
+                                                        .filter { it != null && it.backer == event.author.id && it.id == toRemove.id }
+                                                if (whitelisted.isEmpty()) event.channel.send("this person isn't whitelisted!")
                                                 else {
                                                     r.table("specialPeople").get(toRemove.id).delete().runNoReply(conn)
-                                                    channel.send(member, "removed ${toRemove.asMention} from the whitelist")
+                                                    event.channel.send("removed ${toRemove.asMention} from the whitelist")
                                                 }
                                             }
                                         }
                                     }
-                                    else -> channel.send(member, "dumbo, you don't know how this works")
+                                    else -> event.channel.send("dumbo, you don't know how this works")
                                 }
                             }
                         }
                         "setmoney" -> {
-                            if (event.message.mentionedUsers.size == 0 || arguments.size != 3) channel.send(member, "mention a user and type a number")
+                            if (event.message.mentionedUsers.size == 0 || arguments.size != 3) event.channel.send("mention a user and type a number")
                             else {
                                 val amount = arguments[2].toDoubleOrNull()
-                                if (amount == null) channel.send(member, "You need to add a value")
+                                if (amount == null) event.channel.send("You need to add a value")
                                 else {
                                     val data = event.message.mentionedUsers[0].getData()
                                     data.gold = amount
@@ -318,10 +319,10 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             }
                         }
                         "shutdown" -> {
-                            channel.send(member, "Shutting down JDA instances...")
+                            event.channel.send("Shutting down now!")
                             managers.forEach { idLong, manager ->
                                 if (manager.player.playingTrack != null) {
-                                    manager.scheduler.manager.getChannel()?.send(guild.selfMember.user, "**Squashing bugs** and **becoming stronger**... I'll be back online in a few seconds, updating!")
+                                    manager.scheduler.manager.getChannel()?.send("**Squashing bugs** and **becoming stronger**... I'll be back online in a few seconds, updating!")
                                 }
                             }
                             jdas.forEach {
@@ -336,7 +337,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                                 val roles = Staff.StaffRole.values().map { it.name.toLowerCase() }
                                 if (roles.contains(roleName)) {
                                     if (event.message.mentionedUsers.size == 0) {
-                                        channel.send(member, "no")
+                                        event.channel.send("no")
                                         return
                                     }
                                     val user = event.message.mentionedUsers[0]
@@ -347,14 +348,14 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                                     } else if (type == "remove") {
                                         r.table("staff").get(user.id).delete().runNoReply(conn)
                                     } else {
-                                        channel.send(member, "no")
+                                        event.channel.send("no")
                                         return
                                     }
-                                    channel.send(member, "updated database")
-                                } else channel.send(member, "/nono staff add|remove @User roleName dumbo")
-                            } else channel.send(member, "/nono staff remove|add @User roleName")
+                                    event.channel.send("updated database")
+                                } else event.channel.send("/nono staff add|remove @User roleName dumbo")
+                            } else event.channel.send("/nono staff remove|add @User roleName")
                         }
-                        else -> channel.send(member, "You're an idiot")
+                        else -> event.channel.send("You're an idiot")
                     }
                 }
                 return
@@ -366,21 +367,21 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
 class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who don't have any role, the role you specify", "giveall") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
-            channel.send(member, "You need to type the name of the role that you'd like to give to all members who currently have no roles in this server!")
+            event.channel.send("You need to type the name of the role that you'd like to give to all members who currently have no roles in this server!")
             return
         }
-        if (member.hasOverride(channel)) {
+        if (event.member.hasOverride(event.textChannel)) {
             val query = arguments.concat()
-            val results = guild.getRolesByName(query, true)
-            if (results.size == 0) channel.send(member, "No roles with that name were found")
+            val results = event.guild.getRolesByName(query, true)
+            if (results.size == 0) event.channel.send("No roles with that name were found")
             else {
-                channel.send(member, "Running... This could take a while.")
+                event.channel.send("Running... This could take a while.")
                 var addedTo = 0
                 val role = results[0]
-                guild.members.forEach { m ->
+                event.guild.members.forEach { m ->
                     if (m.roles.size < 2) {
                         try {
-                            guild.controller.addRolesToMember(m, role).queue({
+                            event.guild.controller.addRolesToMember(m, role).queue({
                                 addedTo++
                             }, {})
                         } catch (ignored: Exception) {
