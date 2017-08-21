@@ -146,6 +146,7 @@ fun main(args: Array<String>) {
             .addCommand(DivorceCommand())
             .addCommand(Daily())
             .addCommand(Balance())
+            .addCommand(AcceptInvitation())
 
     startAdministrativeDaemon()
     println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")

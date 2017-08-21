@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 
 class EventWaiter : EventListener {
     val executor = Executors.newScheduledThreadPool(50)
-    val gameEvents = CopyOnWriteArrayList<Triple<String, Long, ((Message) -> Unit)> /* ID of channel, Long MS of expiration */>()
+    val gameEvents = CopyOnWriteArrayList<Triple<String, Long, Pair<((Message) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
     val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
     val reactionAddEvents = ConcurrentLinkedDeque<Pair<Settings, (MessageReaction) -> Unit>>()
 
@@ -43,13 +43,12 @@ class EventWaiter : EventListener {
                     gameEvents.forEach { game ->
                         if (e.channel.id == game.first) {
                             if (System.currentTimeMillis() < game.second) {
-                                factory.executor.execute { game.third.invoke(e.message) }
+                                factory.executor.execute { game.third.first(e.message) }
                             } else gameEvents.remove(game)
                         }
                     }
                 }
-                is MessageReactionAddEvent -> reactionAddEvents.forEach {
-                    rAE ->
+                is MessageReactionAddEvent -> reactionAddEvents.forEach { rAE ->
                     val settings = rAE.first
                     var cont: Boolean = true
                     if (settings.channel != null && settings.channel != e.channel.id) cont = false
@@ -80,8 +79,12 @@ class EventWaiter : EventListener {
         return pair
     }
 
-    fun gameChannelWait(channel: String, consumer: (Message) -> Unit, time: Int = 10, unit: TimeUnit = TimeUnit.SECONDS) {
-        gameEvents.add(Triple(channel, System.currentTimeMillis() + unit.toMillis(time.toLong()), consumer))
+    fun gameChannelWait(channel: String, consumer: (Message) -> Unit, expirationConsumer: (() -> Unit)? = null, time: Int = 10, unit: TimeUnit = TimeUnit.SECONDS) {
+        val game = Triple(channel, System.currentTimeMillis() + unit.toMillis(time.toLong()), Pair(consumer, expirationConsumer))
+        gameEvents.add(game)
+        executor.schedule({
+            if (gameEvents.contains(game)) game.third.second?.invoke()
+        }, time.toLong(), unit)
     }
 
     fun waitForMessage(settings: Settings, consumer: (Message) -> Unit, expiration: (() -> Unit)? = null, time: Int = 20, unit: TimeUnit = TimeUnit.SECONDS, silentExpiration: Boolean = false) {

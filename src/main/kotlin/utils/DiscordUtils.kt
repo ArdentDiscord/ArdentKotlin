@@ -122,7 +122,7 @@ fun User.withDiscrim(): String {
 }
 
 
-fun embed(title: String, member: Member, color: Color = Color.MAGENTA): EmbedBuilder {
+fun embed(title: String, member: Member, color: Color = Color.DARK_GRAY): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", member.guild.iconUrl)
             .setColor(color)
             .setFooter("Served by Ardent ${Emoji.COPYRIGHT_SIGN} Adam#9261", member.user.avatarUrl)

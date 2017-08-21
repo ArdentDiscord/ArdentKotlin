@@ -1,6 +1,5 @@
 package utils
 
-import com.google.common.util.concurrent.MoreExecutors
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.rethinkdb.net.Cursor
@@ -10,21 +9,12 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.TextChannel
 import org.apache.commons.lang3.exception.ExceptionUtils
-import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl
 import org.json.simple.JSONObject
-import java.io.PrintWriter
-import java.io.StringWriter
 import java.lang.management.ManagementFactory
 import java.time.Instant
 import java.util.*
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 import javax.management.Attribute
 import javax.management.ObjectName
-import javax.script.ScriptEngine
-import javax.script.ScriptEngineManager
 
 
 class Pair2(val first1: Any?, val second1: Any?)
@@ -129,8 +119,16 @@ fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }
 
-fun Map<*, Number>.sort(descending: Boolean = true): MutableMap<*, Number> {
-    var list = toList().sortedWith(compareBy { it.second.toDouble() })
+inline fun <E, T> Map<E, T>.forEachIndexed(function: (index: Int, E, T) -> Unit) {
+    var current = 0
+    forEach {
+        function.invoke(current, it.key, it.value)
+        current++
+    }
+}
+
+fun Map<*, *>.sort(descending: Boolean = true): MutableMap<*, *> {
+    var list = toList().sortedWith(compareBy { (it.second as Number).toDouble() })
     if (descending) list = list.reversed()
     return list.toMap().toMutableMap()
 }

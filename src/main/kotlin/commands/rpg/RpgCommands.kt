@@ -135,7 +135,7 @@ class TopMoneyServer : Command(Category.RPG, "topserver", "see who has the most 
         val builder = StringBuilder()
         val members = hashMapOf<String, Double>()
         guild.playerDatas().forEach { members.put(it.id, it.gold) }
-        val top = members.sort().toList()
+        val top = members.sort().toList() as List<Pair<String, Double>>
         try {
             for (includedMember in ((page - 1) * 10)..(((page - 1) * 10) + 10)) {
                 val user = (top[includedMember].first as String).toUser()

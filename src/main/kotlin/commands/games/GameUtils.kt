@@ -9,7 +9,6 @@ import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.collections.HashMap
 
 val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
@@ -33,6 +32,9 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                     cancel(creator.toUser()!!)
                 } else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
+        } else {
+            creator.toUser()!!.openPrivateChannel().queue { ch -> ch.sendMessage("You successfully created a __private__ game of **${type.readable}**. " +
+                    "Invite members by typing **/gameinvite @User** - Choose wisely, because you can't get rid of players once they've accepted!").queue() }
         }
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
@@ -51,7 +53,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 .setDescription("This lobby has been active for ${((System.currentTimeMillis() - creation) / 1000).formatMinSec()}\n" +
                         "It currently has **${players.size}** of **$playerCount** players required to start | ${players.toUsers()}\n" +
                         "To start, the host can also type *${prefix}minigames forcestart*\n\n" +
-                        "Join by typing *${prefix}minigames join #$gameId*\n" +
+                        "Join by typing *${prefix}join #$gameId*\n" +
                         "This game was created by __${creator.toUser()?.withDiscrim()}__")
         return channel.sendReceive(channel.guild.selfMember, embed)
     }

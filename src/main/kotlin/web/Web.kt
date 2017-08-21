@@ -625,7 +625,7 @@ class Web {
                 get("/data/*/*", { request, response ->
                     val session = request.session()
                     val user: User? = session.attribute<User>("user")
-                    val guild = getGuildById(request.splat()[0])
+                    val guild = getGuildById(request.splat()[0] ?: "1")
                     if (user == null) {
                         response.redirect("/login")
                         null
@@ -636,10 +636,10 @@ class Web {
                         val map = hashMapOf<String, Any>()
                         handle(request, map)
                         map.put("showSnackbar", false)
-                        if (guild.getMember(user).hasOverride(guild.publicChannel, failQuietly = true)) {
+                        if (guild.getMember(user).hasOverride(guild.textChannels[0], failQuietly = true)) {
                             map.put("title", "Management Center")
                             val data = guild.getData()
-                            when (request.splat()[1]) {
+                            when (request.splat()[1] ?: "1") {
                                 "addautorole" -> {
                                     map.replace("showSnackbar", true)
                                     val title = request.queryParams("name")

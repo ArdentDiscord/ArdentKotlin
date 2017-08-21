@@ -46,7 +46,24 @@ class Forcestart : Command(Category.GAMES, "forcestart", "manually start a game"
     }
 }
 
-class JoinGame : Command(Category.GAMES, "joingame", "join a game in lobby") {
+
+class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation to a game") {
+    override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (member.isInGameOrLobby()) channel.send(member, "You can't join another game! You must leave the game you're currently in first")
+        else {
+            gamesInLobby.forEach { game ->
+                if (invites.containsKey(member.id()) && invites[member.id()]!!.gameId == game.gameId) {
+                    invites.remove(member.id())
+                    game.players.add(member.id())
+                    channel.send(member, "**${member.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
+                            "Players in lobby: *${game.players.toUsers()}*")
+                } else channel.send(member, "You must be invited by the creator of this game to join this __private__ game!")
+            }
+        }
+    }
+}
+
+class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 1) {
             val id = arguments[0].replace("#", "").toIntOrNull()
@@ -83,8 +100,7 @@ class LeaveGame : Command(Category.GAMES, "leavegame", "leave a game you're curr
     override fun execute(member: Member, channel: TextChannel, guild: Guild, arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == member.id() && game.channel.guild == guild) {
-                channel.send(member, "You can't leave the game that you've started! If you want to cancel the game, type **${guild.getPrefix()}minigames " +
-                        "cancel**")
+                channel.send(member, "You can't leave the game that you've started! If you want to cancel the game, type **${guild.getPrefix()}cancel**")
                 return
             } else if (game.players.contains(member.id())) {
                 game.players.remove(member.id())
@@ -144,8 +160,8 @@ class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to you
                             else -> {
                                 invites.put(toInvite.id, game)
                                 channel.send(member, "${toInvite.asMention}, you're being invited by ${member.asMention} to join a __${if (game.isPublic) "public" else "private"}__ game of " +
-                                        "**${game.type.readable}**! Type *${guild.getPrefix()}minigames join #${game.gameId}* to accept this invite and join the game " +
-                                        "or decline by typing *${guild.getPrefix()}minigames decline*")
+                                        "**${game.type.readable}**! Type *${guild.getPrefix()}accept* to accept this invite and join the game " +
+                                        "or decline by typing *${guild.getPrefix()}decline*")
                                 val delay = 45
                                 inviteManager.schedule({
                                     if (invites.containsKey(toInvite.id)) {

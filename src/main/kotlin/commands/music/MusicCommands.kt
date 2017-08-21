@@ -13,7 +13,7 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
 
 class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a list of provided options. this is a **patron-only** feature", "pr") {
-    val stations = hashMapOf(Pair("977hits", "http://19353.live.streamtheworld.com/977_HITS_SC"),
+    private val stations = hashMapOf(Pair("977hits", "http://19353.live.streamtheworld.com/977_HITS_SC"),
             Pair("Jamendo Lounge", "http://streaming.radionomy.com/JamendoLounge?lang=en-US%2cen%3bq%3d0.8"),
             Pair("Radio Rock Mix", "http://streaming.hotmixradio.fr/hotmixradio-rock-128.mp3?lang=en-US%2cen%3bq%3d0.8%2cru%3bq%3d0.6"))
 
@@ -26,8 +26,7 @@ class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a
         }
         if (arguments[0].equals("start", true)) {
             val keys = stations.keys.toMutableList()
-            channel.selectFromList(member, "Select the radio station that you want to listen to", keys, {
-                selection ->
+            channel.selectFromList(member, "Select the radio station that you want to listen to", keys, { selection ->
                 if (member.isPatron() || guild.isPatronGuild()) {
                     stations.values.toList()[selection].load(member, channel, event.message, radioName = keys[selection])
                 } else channel.requires(member, DonationLevel.BASIC)
@@ -287,10 +286,8 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
             if (search) {
                 if (autoplay) {
                     textChannel.send(member, "I was unable to find a related song...")
-                }
-                else textChannel.send(member, "I was unable to find a track with that name. Please try again with a different query")
-            }
-            else ("ytsearch: ${this@load}").load(member, textChannel, message, true, autoplay = autoplay)
+                } else textChannel.send(member, "I was unable to find a track with that name. Please try again with a different query")
+            } else ("ytsearch: ${this@load}").load(member, textChannel, message, true, autoplay = autoplay)
         }
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
@@ -298,8 +295,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
                 textChannel.send(member, "${Emoji.BALLOT_BOX_WITH_CHECK} Adding ${playlist.tracks.size} tracks to the queue...")
                 try {
                     playlist.tracks.forEach { play(member, member.guild, member.voiceChannel()!!, musicManager, it, textChannel) }
-                }
-                catch (e: Exception) {
+                } catch (e: Exception) {
                     textChannel.send(member, "Failed to play tracks: **Error:** ${e.localizedMessage}")
                 }
                 return
@@ -318,8 +314,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
                         current++
                     }
                 }
-            }
-            else {
+            } else {
                 val selectFrom = mutableListOf<String>()
                 val num: Int
                 if (playlist.tracks.size >= 7) num = 7
