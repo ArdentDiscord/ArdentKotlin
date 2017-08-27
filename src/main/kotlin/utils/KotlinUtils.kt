@@ -3,7 +3,6 @@ package utils
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.rethinkdb.net.Cursor
-import commands.games.CoinflipGame
 import commands.info.formatter
 import main.conn
 import main.r
@@ -144,20 +143,6 @@ fun Map<*, *>.sort(descending: Boolean = true): MutableMap<*, *> {
     var list = toList().sortedWith(compareBy { (it.second as Number).toDouble() })
     if (descending) list = list.reversed()
     return list.toMap().toMutableMap()
-}
-
-fun MutableList<CoinflipGame.Round>.mapScores(): MutableMap<String, Int> {
-    val scores = hashMapOf<String, Int>()
-    forEach { round ->
-        round.winners.forEach {
-            scores.putIfAbsent(it, 0)
-            scores.replace(it, scores[it]!! + 1)
-        }
-        round.losers.forEach {
-            scores.putIfAbsent(it, 0)
-        }
-    }
-    return scores.toList().sortedWith(compareBy { it.second }).reversed().toMap().toMutableMap()
 }
 
 fun Any.toJson(): String {

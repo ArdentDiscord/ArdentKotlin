@@ -356,22 +356,6 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
         return amount
     }
 
-    fun coinflipData(): CoinflipPlayerData {
-        val data = CoinflipPlayerData()
-        val coinflipGames = r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java)
-        coinflipGames.forEach { game: GameDataCoinflip? ->
-            if (game != null && game.contains(id)) {
-                if (game.winner == id) data.wins++
-                else data.losses++
-                game.rounds.forEach { round ->
-                    if (round.winners.contains(id)) data.roundsWon++
-                    else data.roundsLost++
-                }
-            }
-        }
-        return data
-    }
-
     fun blackjackData(): BlackjackPlayerData {
         val data = BlackjackPlayerData()
         r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { game ->
@@ -403,6 +387,32 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
                 }
             }
         }
+        return data
+    }
+
+    fun triviaData(): TriviaPlayerData {
+        val correctByCategory = hashMapOf<String, Pair<Int, Int>>()
+        val data = TriviaPlayerData()
+        r.table("TriviaData").run<Any>(conn).queryAsArrayList(GameDataTrivia::class.java).forEach { game ->
+            if (game != null && (game.winner == id || game.losers.contains(id))) {
+                if (game.winner == id) data.wins++
+                else data.losses++
+                game.rounds.forEach { round ->
+                    val currentQuestion = round.question
+                    if (!correctByCategory.containsKey(currentQuestion.category)) correctByCategory.put(currentQuestion.category, Pair(0, 0))
+                   if (round.winners.contains(id)) {
+                       data.questionsCorrect++
+                       correctByCategory.replace(currentQuestion.category, Pair(correctByCategory[currentQuestion.category]!!.first + 1, correctByCategory[currentQuestion.category]!!.second))
+                   }
+                    else {
+                       data.questionsWrong++
+                       correctByCategory.replace(currentQuestion.category, Pair(correctByCategory[currentQuestion.category]!!.first, correctByCategory[currentQuestion.category]!!.second + 1))
+                   }
+                }
+            }
+        }
+        correctByCategory.forEach { category, (first, second) -> data.percentageCorrect.put(category, first.toDouble() / (first + second).toDouble() * 100) }
+        data.overallCorrectPercent = (data.questionsCorrect.toDouble() / (data.questionsCorrect + data.questionsWrong).toDouble()) * 100.0
         return data
     }
 }

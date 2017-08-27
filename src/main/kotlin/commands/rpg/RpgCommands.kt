@@ -8,6 +8,7 @@ import main.r
 import main.waiter
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import java.awt.Color
 import java.util.*
 
 class Balance : Command(Category.RPG, "bal", "see someone's balance (or yours)", "balance", "money", "gold") {
@@ -27,13 +28,26 @@ class Daily : Command(Category.RPG, "daily", "get a daily stipend of gold") {
     }
 }
 
+class TriviaStats : Command(Category.RPG, "triviastats", "see your or others' trivia stats") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val user = if (event.message.mentionedUsers.size > 0) event.message.mentionedUsers[0] else event.author
+        val triviaData = user.getData().triviaData()
+        event.channel.send(event.member.embed("${user.name}'s Trivia Stats", Color.CYAN)
+                .setThumbnail("https://pbs.twimg.com/profile_images/526480510747299840/L54TjKO2.jpeg")
+                .setDescription("Wins: **${triviaData.wins}**\nLosses: **${triviaData.losses}**\n" +
+                        "Questions Correct: **${triviaData.questionsCorrect}** of **${triviaData.questionsWrong + triviaData.questionsCorrect}** _(${triviaData.overallCorrectPercent}%)_\n\n" +
+                        "**Percentage Won by Category**: \n${triviaData.percentagesFancy()}"))
+    }
+
+}
+
 class ProfileCommand : Command(Category.RPG, "profile", "see your or others' profile") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val profiled = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         val data = profiled.getData()
         val blackjackData = data.blackjackData()
         val bettingData = data.bettingData()
-        val coinflipData = data.coinflipData()
+        val triviaData = data.triviaData()
         val spouse = profiled.getMarriage()
         val embed = event.member.embed("${profiled.withDiscrim()}'s Profile")
                 .setThumbnail(profiled.effectiveAvatarUrl)
@@ -42,8 +56,8 @@ class ProfileCommand : Command(Category.RPG, "profile", "see your or others' pro
         embed.addField("Money", "**${data.gold}** gold", true)
                 .addField("Blackjack Stats", "Wins: **${blackjackData.wins}**\nTies: **${blackjackData.ties}**\nLosses: **${blackjackData.losses}**", true)
                 .addField("Betting Stats", "Wins: **${bettingData.wins}**\nLosses: **${bettingData.ties}**\nNet Winnings: **${bettingData.netWinnings}** gold", true)
-                .addField("Coinflip Stats", "Wins: **${coinflipData.wins}**\nLosses: **${coinflipData.losses}**", true)
-                .addField("Married To", if (spouse == null) "Nobody :(" else spouse.withDiscrim(), true)
+                .addField("Trivia Stats", "**Use ${event.guild.getPrefix()}triviastats @User**", true)
+                .addField("Married To", spouse?.withDiscrim() ?: "Nobody :(", true)
         event.channel.send(embed)
     }
 }

@@ -222,7 +222,6 @@ class Web {
             handle(request, map)
             map.put("title", "Recent Games")
             val games = mutableListOf<Pair<GameType, GameData>>()
-            r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java).forEach { games.add(Pair(GameType.COINFLIP, it!!)) }
             r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { games.add(Pair(GameType.BLACKJACK, it!!)) }
             r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { games.add(Pair(GameType.BETTING, it!!)) }
             r.table("TriviaData").run<Any>(conn).queryAsArrayList(GameDataTrivia::class.java).forEach { games.add(Pair(GameType.TRIVIA, it!!)) }
@@ -289,25 +288,6 @@ class Web {
                         ModelAndView(map, "trivia.hbs")
                     }
 
-                }
-                "coinflip" -> {
-                    val id = request.splat()[1].toIntOrNull() ?: 999999999
-                    val game = asPojo(r.table("CoinflipData").get(id).run(conn), GameDataCoinflip::class.java)
-                    if (game == null) {
-                        map.put("showSnackbar", true)
-                        map.put("snackbarMessage", "No game with that id was found!")
-                        map.put("title", "Gamemode not found")
-                        ModelAndView(map, "404.hbs")
-                    } else {
-                        val creator = game.creator.toUser()!!
-                        map.put("title", "Coinflip Game #$id")
-                        map.put("game", game)
-                        map.put("user", creator)
-                        map.put("winner", game.winner.toUser()!!.withDiscrim())
-                        map.put("losers", game.losers.toUsers())
-                        map.put("date", game.startTime.readableDate())
-                        ModelAndView(map, "coinflip.hbs")
-                    }
                 }
                 "betting" -> {
                     val id = request.splat()[1].toIntOrNull() ?: 999999999

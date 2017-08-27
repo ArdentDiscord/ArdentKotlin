@@ -9,6 +9,7 @@ import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.collections.HashMap
 
 val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
@@ -144,7 +145,6 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
 }
 
 enum class GameType(val readable: String, val description: String, val id: Int) {
-    COINFLIP("Coinflip", "this is a placeholder", 1),
     BLACKJACK("Blackjack", "this is a placeholder", 2),
     TRIVIA("Trivia", "this is a placeholder", 3),
     BETTING("Betting", "this is a placeholder", 4)
@@ -182,11 +182,13 @@ fun User.isInGameOrLobby(): Boolean {
     return false
 }
 
-class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0)
-
-// class GameDataTrivia(gameId: Long, creator: String, val winner: String, val scores: HashMap<String, Int>) : GameData(gameId, creator)
-
-class CoinflipPlayerData(wins: Int = 0, losses: Int = 0, var roundsWon: Int = 0, var roundsLost: Int = 0) : PlayerGameData(wins, losses)
+class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0, var overallCorrectPercent: Double = 0.0, var percentageCorrect: HashMap<String, Double> = hashMapOf()) {
+    fun percentagesFancy(): String {
+        val builder = StringBuilder()
+        percentageCorrect.forEach { category, percent ->  builder.append("  ${Emoji.SMALL_ORANGE_DIAMOND} $category: *$percent*%\n")}
+        return builder.toString()
+    }
+}
 
 class BlackjackPlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0) : PlayerGameData(wins, losses, ties)
 
@@ -201,12 +203,6 @@ abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: 
 class GameDataBetting(gameId: Long, creator: String, startTime: Long, val rounds: List<BetGame.Round>) : GameData(gameId, creator, startTime)
 
 class GameDataBlackjack(gameId: Long, creator: String, startTime: Long, val rounds: List<BlackjackGame.Round>) : GameData(gameId, creator, startTime)
-
-class GameDataCoinflip(gameId: Long, creator: String, startTime: Long, val winner: String, val losers: List<String>, val rounds: List<CoinflipGame.Round>) : GameData(gameId, creator, startTime) {
-    fun contains(id: String): Boolean {
-        return winner == id || losers.contains(id)
-    }
-}
 
 class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner: String, val losers: List<String>, val scores: Map<String, Int>,
                      val rounds: List<TriviaGame.Round>) : GameData(gameId, creator, startTime) {

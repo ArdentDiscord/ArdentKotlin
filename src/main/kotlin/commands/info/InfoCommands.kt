@@ -30,7 +30,7 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
 
 class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("My invite link is <https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=https://ardentbot.com/welcome&response_type=code>" +
+        event.channel.send("My invite link is <https://ardentbot.com/invite>" +
                 " - have fun using Ardent!")
     }
 }

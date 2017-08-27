@@ -28,7 +28,7 @@ class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running gam
     }
 }
 
-class Forcestart : Command(Category.GAMES, "forcestart", "manually start a game") {
+class Forcestart : Command(Category.GAMES, "start", "manually start a game", "forcestart") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id && game.channel.guild == event.guild) {

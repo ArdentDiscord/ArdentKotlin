@@ -70,12 +70,12 @@ val sheets: Sheets = setupDrive()
 fun main(args: Array<String>) {
     val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
             .execute()
-    spreadsheet.getValues().forEach { questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 50)) }
+    spreadsheet.getValues().forEach { if (it.getOrNull(1) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 50)) }
     Web()
     for (sh in 1..shards) {
         jdas.add(JDABuilder(AccountType.BOT)
                 .setCorePoolSize(10)
-                .setGame(Game.of("/help ! <3", "https://twitch.tv/ "))
+                .setGame(Game.of("Try out /trivia!", "https://twitch.tv/ "))
                 .addEventListener(waiter)
                 .addEventListener(factory)
                 .addEventListener(JoinRemoveEvents())
@@ -86,7 +86,7 @@ fun main(args: Array<String>) {
                 .buildBlocking())
     }
 
-    hangout = getGuildById("260841592070340609")
+    hangout = getGuildById("351220166018727936")
 
     jdas.forEach {
         val logCh: TextChannel? = it.getTextChannelById("351368131639246848")
@@ -185,7 +185,6 @@ fun addCommands() {
             .addCommand(WebPanel())
             .addCommand(IamCommand())
             .addCommand(IamnotCommand())
-            .addCommand(CoinflipCommand())
             .addCommand(BlackjackCommand())
             .addCommand(BetCommand())
             .addCommand(TriviaCommand())
@@ -197,6 +196,7 @@ fun addCommands() {
             .addCommand(Daily())
             .addCommand(Balance())
             .addCommand(AcceptInvitation())
+            .addCommand(TriviaStats())
 }
 
 fun setupDrive(): Sheets {
