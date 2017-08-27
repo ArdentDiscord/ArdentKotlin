@@ -26,11 +26,13 @@ import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.Game
+import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
 import utils.EventWaiter
 import utils.TriviaQuestion
+import utils.getGuildById
 import utils.logChannel
 import web.Web
 import java.io.File
@@ -39,6 +41,8 @@ import java.io.IOException
 import java.util.*
 
 val test = false
+
+var hangout: Guild? = null
 
 var r: RethinkDB = RethinkDB.r
 var conn: Connection? = null
@@ -82,8 +86,10 @@ fun main(args: Array<String>) {
                 .buildBlocking())
     }
 
+    hangout = getGuildById("260841592070340609")
+
     jdas.forEach {
-        val logCh: TextChannel? = it.getTextChannelById("345226134532784129")
+        val logCh: TextChannel? = it.getTextChannelById("351368131639246848")
         if (logCh != null) logChannel = logCh
     }
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
@@ -170,7 +176,6 @@ fun addCommands() {
             .addCommand(Mute())
             .addCommand(Unmute())
             .addCommand(Punishments())
-            .addCommand(FixMusic())
             .addCommand(Nono())
             .addCommand(GiveAll())
             .addCommand(WebsiteCommand())

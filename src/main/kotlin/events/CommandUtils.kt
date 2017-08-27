@@ -128,25 +128,25 @@ abstract class Command(val category: Category, val name: String, val description
 
 fun String.toCategory(): Category {
     when (this) {
-        "Music & Radio" -> return Category.MUSIC
-        "Bot Information" -> return Category.BOT_INFO
-        "Server Information" -> return Category.SERVER_INFO
-        "Server Administration" -> return Category.ADMINISTRATE
+        "Music" -> return Category.MUSIC
+        "BotInfo" -> return Category.BOT_INFO
+        "ServerInfo" -> return Category.SERVER_INFO
+        "Administrate" -> return Category.ADMINISTRATE
         "Games" -> return Category.GAMES
-        "Fun & Urban Dictionary" -> return Category.FUN
-        "RPG & Betting" -> return Category.RPG
+        "Fun" -> return Category.FUN
+        "RPG" -> return Category.RPG
         else -> return Category.BOT_INFO
     }
 }
 
 enum class Category(val fancyName: String, val description: String) {
     GAMES("Games", "Compete against your friends or users around the world in classic and addicting games!"),
-    MUSIC("Music & Radio", "Play your favorite tracks or listen to the radio, all inside Discord"),
-    BOT_INFO("Bot Information", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
-    SERVER_INFO("Server Information", "Check current information about different aspects of your server"),
-    ADMINISTRATE("Server Administration", "Administrate your server: this category includes commands like warnings and mutes"),
-    FUN("Fun & Urban Dictionary", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
-    RPG("RPG & Betting", "Need a gambling fix? Want to marry someone? Use this category!")
+    MUSIC("Music", "Play your favorite tracks or listen to the radio, all inside Discord"),
+    BOT_INFO("BotInfo", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
+    SERVER_INFO("ServerInfo", "Check current information about different aspects of your server"),
+    ADMINISTRATE("Administrate", "Administrate your server: this category includes commands like warnings and mutes"),
+    FUN("Fun", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
+    RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!")
     ;
 
     override fun toString(): String {

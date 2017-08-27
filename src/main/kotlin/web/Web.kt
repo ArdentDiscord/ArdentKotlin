@@ -198,7 +198,7 @@ class Web {
                 ModelAndView(map, "languages.hbs")
             }, handlebars)
         })
-        get("/support", { _, response -> response.redirect("https://discord.gg/rfGSxNA") })
+        get("/support", { _, response -> response.redirect("https://discord.gg/VebBB5z") })
         get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=$loginRedirect&response_type=code") })
         get("/login", { request, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") })
         get("/patreon", { request, response -> response.redirect("https://patreon.com/ardent") })
@@ -225,6 +225,7 @@ class Web {
             r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java).forEach { games.add(Pair(GameType.COINFLIP, it!!)) }
             r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { games.add(Pair(GameType.BLACKJACK, it!!)) }
             r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { games.add(Pair(GameType.BETTING, it!!)) }
+            r.table("TriviaData").run<Any>(conn).queryAsArrayList(GameDataTrivia::class.java).forEach { games.add(Pair(GameType.TRIVIA, it!!)) }
             games.sortByDescending { it.second.endTime }
             games.removeIf { it.second.creator.toUser() == null }
             map.put("recentGames", games.map {
@@ -376,7 +377,7 @@ class Web {
                                             val ticket = SupportTicketModel(user.id, title, true).add(description)
                                             ticket.insert("supportTickets")
                                             response.redirect("/tickets/${ticket.id}")
-                                            "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
+                                            "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
                                                     "https://ardentbot.com/tickets/${ticket.id}").queue()
                                         }
                                         null
@@ -388,11 +389,11 @@ class Web {
                                         if (message != null && ticket != null && ticket.user == user.id || map["isAdmin"] as Boolean) {
                                             if (ticket!!.user == user.id) {
                                                 ticket.userResponses.add(SupportMessageModel(user.id, true, message, System.currentTimeMillis()))
-                                                "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **replied** to their support ticket @ " +
+                                                "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **replied** to their support ticket @ " +
                                                         "https://ardentbot.com/tickets/${ticket.id}").queue()
                                             } else {
                                                 ticket.administratorResponses.add(SupportMessageModel(user.id, false, message, System.currentTimeMillis()))
-                                                "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}**, an **administrator**, has replied to the " +
+                                                "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}**, an **administrator**, has replied to the " +
                                                         "support ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
                                                 ticket.user.toUser()!!.openPrivateChannel().queue({ privateChannel ->
                                                     privateChannel.sendMessage("**Ardent Support**: __${user.withDiscrim()}__ has replied to your ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
@@ -412,7 +413,7 @@ class Web {
                                         if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
                                             r.table("supportTickets").get(ticket.id).update(r.hashMap("open", false)).runNoReply(conn)
                                             response.redirect("/tickets/${ticket.id}?announce=Successfully+closed+your+ticket")
-                                            "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **closed** a support ticket at " +
+                                            "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **closed** a support ticket at " +
                                                     "https://ardentbot.com/tickets/${ticket.id}. No further action is necessary").queue()
                                         } else {
                                             response.redirect("/fail")
@@ -424,7 +425,7 @@ class Web {
                                                 SupportTicketModel::class.java)
                                         if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
                                             r.table("supportTickets").get(ticket.id).update(r.hashMap("open", true)).runNoReply(conn)
-                                            "346818849032896513".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **re-opened** a support ticket at " +
+                                            "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **re-opened** a support ticket at " +
                                                     "https://ardentbot.com/tickets/${ticket.id}").queue()
                                             response.redirect("/tickets/${ticket.id}?announce=Successfully+reopened+your+ticket")
                                         } else {
@@ -602,7 +603,7 @@ class Web {
                                             val user = request.session().attribute<User>("user")
                                             val announcement = AnnouncementModel(System.currentTimeMillis(), user.id, content)
                                             announcement.insert("announcements")
-                                            "272411413031419904".toChannel()!!.sendMessage("**New Announcement** from __${user.withDiscrim()}__\n" +
+                                            "351369307147468800".toChannel()!!.sendMessage("**New Announcement** from __${user.withDiscrim()}__\n" +
                                                     "${announcement.content}\n" +
                                                     "*View Announcements @ https://ardentbot.com/announcements*").queue()
                                             response.redirect("/administrators")

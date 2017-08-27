@@ -150,7 +150,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     }
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
-        if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs) {
+        if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null) {
             val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
             try {
                 val get = songSearch.get()
@@ -167,12 +167,10 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     }
 
     private fun String.rmCharacters(characterSymbol: String): String {
-        if (characterSymbol.contains("[]")) {
-            return this.replace("\\s*\\[[^\\]]*\\]\\s*".toRegex(), " ")
-        } else if (characterSymbol.contains("{}")) {
-            return this.replace("\\s*\\{[^\\}]*\\}\\s*".toRegex(), " ")
-        } else {
-            return this.replace("\\s*\\([^\\)]*\\)\\s*".toRegex(), " ")
+        return when {
+            characterSymbol.contains("[]") -> this.replace("\\s*\\[[^\\]]*\\]\\s*".toRegex(), " ")
+            characterSymbol.contains("{}") -> this.replace("\\s*\\{[^\\}]*\\}\\s*".toRegex(), " ")
+            else -> this.replace("\\s*\\([^\\)]*\\)\\s*".toRegex(), " ")
         }
     }
 

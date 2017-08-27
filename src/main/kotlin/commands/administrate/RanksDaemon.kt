@@ -3,6 +3,7 @@ package commands.administrate
 import com.patreon.API
 import main.config
 import main.conn
+import main.hangout
 import main.r
 import org.json.JSONObject
 import utils.*
@@ -31,6 +32,14 @@ class RanksDaemon : Runnable {
                     try {
                         val discordId = current.getJSONObject("attributes").getJSONObject("social_connections").toString().split("{\"user_id\":\"")[1].removeSuffix("\"},\"twitch\":null,\"facebook\":null,\"spotify\":null}")
                         mappedPatreonDiscordIds.put(patreonId, discordId)
+                        if (hangout != null) {
+                            val patronRole = hangout!!.getRolesByName("Patron", true)[0]
+                            hangout!!.members.forEach {
+                                if (it.id() == discordId && !it.roles.contains(patronRole)) {
+                                    hangout!!.controller.addRolesToMember(hangout!!.getMemberById(it.id()), patronRole).queue()
+                                }
+                            }
+                        }
                     } catch(ignored: Throwable) {
                     }
                 }

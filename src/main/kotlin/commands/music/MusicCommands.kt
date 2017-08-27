@@ -8,6 +8,7 @@ import events.Category
 import events.Command
 import main.managers
 import main.playerManager
+import main.spotifyApi
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
@@ -184,23 +185,6 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
     }
 }
 
-class FixMusic : Command(Category.MUSIC, "fixmusic", "fix your music player if something isn't going right") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (event.member.hasOverride(event.textChannel, true, djCommand = true)) {
-            val manager = event.guild.getGuildAudioPlayer(event.textChannel)
-            val queue = manager.scheduler.manager.queueAsList
-            val current = manager.scheduler.manager.current
-            managers.remove(event.guild.idLong)
-            val newManager = event.guild.getGuildAudioPlayer(event.textChannel)
-            if (current != null) newManager.scheduler.manager.queue(ArdentTrack(current.author, current.channel, current.track.makeClone()))
-            queue.forEach { queueMember ->
-                newManager.scheduler.manager.queue(ArdentTrack(queueMember.author, queueMember.channel, queueMember.track.makeClone()))
-            }
-            event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} Successfully reset player")
-        }
-    }
-}
-
 class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (event.member.hasOverride(event.textChannel, true, djCommand = true)) {
@@ -269,6 +253,13 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
         member.voiceState.channel.connect(member, textChannel)
     }
     val musicManager = member.guild.getGuildAudioPlayer(textChannel)
+    if (this.contains("spotify")) {
+        val tr = spotifyApi.getTrack(this.removePrefix("https://open.spotify.com/track/")).build().get()
+        if (tr != null && tr.name != null) {
+            tr.name.load(member, textChannel, message, search, radioName,autoplay)
+            return
+        }
+    }
     playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {
         override fun loadFailed(exception: FriendlyException) {
             textChannel.send("There was an error loading the track: *${exception.localizedMessage}")

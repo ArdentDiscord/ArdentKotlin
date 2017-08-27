@@ -8,6 +8,7 @@ import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
 import utils.Settings
 import java.awt.Color
@@ -95,12 +96,18 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                     data.iamList.remove(it)
                     data.update()
                 } else {
-                    event.guild.controller.addRolesToMember(event.member, role).reason("Ardent Autoroles").queue({
-                        event.channel.send("Successfully gave you the **${role.name}** role!")
-                    }, {
-                        event.channel.send("Failed to give you the *${role.name}* role - **please ask an administrator of this server to allow me " +
+                    try {
+                        event.guild.controller.addRolesToMember(event.member, role).reason("Ardent Autoroles").queue({
+                            event.channel.send("Successfully gave you the **${role.name}** role!")
+                        }, {
+                            event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
+                                    "to give you roles!**")
+                        })
+                    }
+                    catch(e: PermissionException) {
+                        event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
                                 "to give you roles!**")
-                    })
+                    }
                 }
                 found = true
                 return@forEach
@@ -149,10 +156,11 @@ class Help : Command(Category.BOT_INFO, "help", "can you figure out what this do
         val embed: EmbedBuilder
         if (arguments.size == 0) {
             embed = event.member.embed("Help | General", Color.DARK_GRAY)
+                    .setThumbnail("https://cdn.pixabay.com/photo/2016/10/18/18/19/question-mark-1750942_960_720.png")
             Category.values().forEachIndexed { index, category ->
-                embed.appendDescription("${Emoji.SMALL_ORANGE_DIAMOND} ${category.fancyName} [**${index + 1}**]: *${category.description}*\n")
+                embed.appendDescription("${Emoji.SMALL_ORANGE_DIAMOND} [**${index + 1}**] ${category.fancyName}: *${category.description}*\n")
             }
-            embed.appendDescription("\n**Type _${event.guild.getPrefix()}help NUMBER_ to see a category-specific command list**")
+            embed.appendDescription("\n**Type _${event.guild.getPrefix()}help category-name or category-number_ to see a category-specific command list**")
         } else {
             var categoryIndex: Int = -1
             val name = arguments.concat()
@@ -165,12 +173,11 @@ class Help : Command(Category.BOT_INFO, "help", "can you figure out what this do
             } else {
                 val category = Category.values()[categoryIndex]
                 embed = event.member.embed("${category.fancyName} | Command List", Color.DARK_GRAY)
-                factory.commands.filter { it.category == category }.toMutableList().shuffle().forEach { command ->
-                    embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND} **${command.name}**: ${command.description}")
+                factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
+                    embed.appendDescription("\n${if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: ${command.description}")
                     if (command.aliases.isNotEmpty()) {
-                        embed.appendDescription("\n")
                         if (command.aliases.size > 1) embed.appendDescription("         __aliases: [${command.aliases.toList().stringify()}]__")
-                        else embed.appendDescription("         __alias: ${command.aliases.toList().stringify()}__")
+                        else embed.appendDescription("   (__alias: ${command.aliases.toList().stringify()}__)")
                     }
                 }
                 embed.appendDescription("\n\n*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
@@ -224,7 +231,7 @@ class UserInfo : Command(Category.SERVER_INFO, "userinfo", "view cool informatio
 
 class Support : Command(Category.BOT_INFO, "support", "need help? something not working?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Need help? Something not working? Join our support server @ https://discord.gg/rfGSxNA")
+        event.channel.send("Need help? Something not working? Join our support server @ https://discord.gg/VebBB5z")
     }
 }
 
