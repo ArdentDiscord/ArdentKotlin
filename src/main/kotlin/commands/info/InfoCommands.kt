@@ -198,7 +198,6 @@ class ServerInfo : Command(Category.SERVER_INFO, "serverinfo", "view some basic 
         embed.addField("Patron Server", guild.isPatronGuild().toString(), true)
         embed.addField("Owner", guild.owner.withDiscrim(), true)
         embed.addField("Creation Date", guild.creationTime.toLocalDate().toString(), true)
-        embed.addField("Public channel", guild.publicChannel.asMention, true)
         embed.addField("# of Voice Channels", guild.voiceChannels.size.toString(), true)
         embed.addField("# of Text Channels", guild.textChannels.size.toString(), true)
         embed.addField("# of Roles", guild.roles.size.toString(), true)
