@@ -125,7 +125,7 @@ class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of
 
 class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("You can manage settings for the **join** and **leave** messages on the web panel @ https://ardentbot.com/manage/${event.guild.id}")
+        event.channel.send("You can manage settings for the **join** and **leave** messages on the web panel @ <https://ardentbot.com/manage/${event.guild.id}>")
     }
 }
 
@@ -270,6 +270,7 @@ class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who d
 }
 
 fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    arguments.removeAt(0)
     val message = event.message
     val shortcuts = hashMapOf<String, Any>()
     shortcuts.put("jda", message.jda)
@@ -281,6 +282,7 @@ fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
     shortcuts.put("me", event.author)
     shortcuts.put("bot", message.jda.selfUser)
     shortcuts.put("config", config)
+    shortcuts.put("jdas", jdas)
     val timeout = 10
     val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat())
     val builder = MessageBuilder()

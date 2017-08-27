@@ -1,0 +1,13 @@
+{{> header.hbs }}
+{{#if showSnackbar}}
+    <a href="#" style="margin: 50px auto 0 auto; width: 75%; display: block;"
+       class="button special small">{{snackbarMessage}}</a>
+{{/if}}
+<!-- Main -->
+<section id="main" class="container 75%">
+    <h1 style="font-size: 50px;">Internal Server Error</h1>
+    <h5><b>Please join <a href="/support">our support server</a> and tell us how you got this error</b></h5>
+    <h5>Or, create a support ticket <a href="/tickets/new">here</a></h5>
+</section>
+
+{{> footer.hbs }}

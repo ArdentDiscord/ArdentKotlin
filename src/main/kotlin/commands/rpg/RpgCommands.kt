@@ -15,7 +15,7 @@ class Balance : Command(Category.RPG, "bal", "see someone's balance (or yours)",
         val actionUser = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         val prefix = event.guild.getPrefix()
         event.channel.send("**${actionUser.withDiscrim()}**'s balance is *${actionUser.getData().gold}* gold\n" +
-                "You can use __${prefix}topserver__ or __${prefix}top__ to compare your balance to others in your server or globally")
+                "You can use `${prefix}topserver` or `${prefix}top` to compare your balance to others in your server or globally")
     }
 }
 

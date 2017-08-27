@@ -34,13 +34,20 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 
+sourceSets {
+    main.java.srcDirs = []
+    main.kotlin.srcDirs = ['src/main/java', 'src/main/kotlin']
+    main.resources.srcDirs = ['src/main/resources']
+}
+
 dependencies {
     modules {
         module("javax.servlet:servlet-api") {
             replacedBy("javax.servlet:javax.servlet-api")
         }
     }
-    compile 'net.dv8tion:JDA:3.2.0_241'
+    compile group: 'com.google.apis', name: 'google-api-services-sheets', version: 'v4-rev483-1.22.0'
+    compile 'net.dv8tion:JDA:3.2.0_251'
     compile 'com.sedmelluq:jda-nas:1.0.3'
     compile 'com.sedmelluq:lavaplayer:1.2.42'
     compile 'com.github.jonasfugedi:spotify-web-api-java:browse-SNAPSHOT'

@@ -13,8 +13,11 @@ import org.json.simple.JSONObject
 import java.lang.management.ManagementFactory
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.management.Attribute
 import javax.management.ObjectName
+import kotlin.collections.HashMap
 
 
 class Pair2(val first1: Any?, val second1: Any?)
@@ -119,6 +122,16 @@ fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }
 
+val waiterExecutor = Executors.newScheduledThreadPool(3)!!
+fun after(consumer: () -> Unit, time: Int, unit: TimeUnit = TimeUnit.SECONDS) {
+    waiterExecutor.schedule({ consumer.invoke() }, time.toLong(), unit)
+}
+
+fun <E> List<E>.limit(int: Int) : List<E> {
+    return if (size <= int) this
+    else subList(0, int - 1)
+}
+
 inline fun <E, T> Map<E, T>.forEachIndexed(function: (index: Int, E, T) -> Unit) {
     var current = 0
     forEach {
@@ -152,8 +165,15 @@ fun Any.toJson(): String {
 }
 
 fun <T> MutableList<T>.without(t: T): MutableList<T> {
-    this.remove(t)
+    val n = mutableListOf<T>()
+    n.addAll(this)
+    n.remove(t)
     return this
+}
+
+fun List<String>.containsEq(string: String): Boolean {
+    forEach { if (string.toLowerCase() == it.toLowerCase()) return true }
+    return false
 }
 
 /**

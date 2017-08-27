@@ -29,14 +29,14 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
 
 class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("My invite link is https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=https://ardentbot.com/welcome&response_type=code" +
+        event.channel.send("My invite link is <https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=https://ardentbot.com/welcome&response_type=code>" +
                 " - have fun using Ardent!")
     }
 }
 
 class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and get special perks for it!") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Want to support our work and obtain some perks along the way? Head to https://ardentbot.com/support_us to see the different ways " +
+        event.channel.send("Want to support our work and obtain some perks along the way? Head to <https://ardentbot.com/patreon> to see the different ways " +
                 "you could help us out!")
     }
 }
@@ -44,13 +44,13 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
 
 class WebPanel : Command(Category.ADMINISTRATE, "webpanel", "administrate the settings for your server", "panel") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Visit our new web panel for an easy way to manage your settings - https://ardentbot.com/manage/${event.guild.id}")
+        event.channel.send("Visit our new web panel for an easy way to manage your settings - <https://ardentbot.com/manage/${event.guild.id}>")
     }
 }
 
 class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Visit our new web panel for an easy way to manage your settings - https://ardentbot.com/manage/${event.guild.id}")
+        event.channel.send("Visit our new web panel for an easy way to manage your settings - <https://ardentbot.com/manage/${event.guild.id}>")
     }
 }
 
@@ -257,7 +257,7 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
 
 class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for Ardent's cool website") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Check out the pages @ https://ardentbot.com ")
+        event.channel.send("Check out the pages @ <https://ardentbot.com>")
     }
 }
 

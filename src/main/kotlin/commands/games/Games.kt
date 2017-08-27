@@ -3,6 +3,7 @@ package commands.games
 import events.Category
 import events.Command
 import main.factory
+import main.test
 import main.waiter
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
@@ -14,9 +15,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 val invites = ConcurrentHashMap<String, Game>()
+val questions = mutableListOf<TriviaQuestion>()
 
 class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.BLACKJACK, channel, creator, playerCount, isPublic) {
-    val roundResults = mutableListOf<Round>()
+    private val roundResults = mutableListOf<Round>()
     override fun onStart() {
         val user = players.map { it.toUser()!! }.toList()[0]
         doRound(user)
@@ -224,73 +226,99 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
 class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.TRIVIA, channel, creator, playerCount, isPublic) {
     val ardent = channel.guild.selfMember!!
     private val rounds = mutableListOf<Round>()
-    private val roundTotal = 21
+    private val roundTotal = if (test) 4 else 15
     private val questions = roundTotal.getTrivia()
     override fun onStart() {
-        channel.send("**Trivia is starting..** There will be __${roundTotal}__ questions, followed by Final Jeopardy. You'll have **20** seconds to " +
-                "complete each round")
         doRound(0, questions)
     }
 
-    fun doRound(currentRound: Int, questions: List<TriviaQuestion>) {
-        if (currentRound == 20) doFinalJeopardy()
-        else {
+    private fun doRound(currentRound: Int, questions: List<TriviaQuestion>) {
+        if (currentRound == roundTotal) {
+            val sc = getScores().first.sort(true) as MutableMap<String, Int>
+            val winner = sc.toList()[0]
+            val winnerUser = winner.first.toUser()!!
+            channel.send("Congrats to ${winnerUser.asMention} for winning with **${winner.second}** points! You'll receive that amount in gold as a prize!\n" +
+                    "**Cleaning game up..**")
+            val data = winnerUser.getData()
+            data.gold += winner.second
+            data.update()
+            cleanup(GameDataTrivia(gameId, creator, startTime!!, winner.first, players.without(winner.first), sc, rounds))
+        } else {
+            if (currentRound == (roundTotal - 3)) channel.send("${Emoji.INFORMATION_SOURCE} There are only **3** rounds left!")
             val question = questions[currentRound]
-            channel.send(ardent.embed("Trivia | Question ${currentRound + 1}")
-                    .appendDescription("**${question.category.getCategoryName()}**\n" +
+            channel.send(ardent.embed("Trivia | Question ${currentRound + 1} of $roundTotal")
+                    .appendDescription("**${question.category}**\n" +
                             "${question.question}\n" +
                             "           **${question.value}** points"))
             var guessed = false
             waiter.gameChannelWait(channel.id, { response ->
-                if (response.rawContent.equals(question.answer, true) || "a ${response.rawContent}".equals(question.answer, true)) {
-                    channel.send("${response.author.asMention} guessed the correct answer and got **${question.value}** points!")
-                    guessed = true
-                    endRound(response.author.id, players.without(response.author.id), question, currentRound, questions)
-                    return@gameChannelWait
+                if (players.contains(response.author.id) && !guessed) {
+                    if (question.answers.containsEq(response.rawContent.toLowerCase())) {
+                        channel.send("${response.author.asMention} guessed the correct answer and got **${question.value}** points!")
+                        guessed = true
+                        endRound(players.without(response.author.id), question, currentRound, questions, response.author.id)
+                        return@gameChannelWait
+                    }
                 }
             }, {
                 if (!guessed) {
-                    channel.send("No one got it right! The correct answer was **${question.answer}**")
-                    endRound(null, players, question, currentRound, questions)
+                    channel.send("No one got it right! The correct answer was **${question.answers[0]}**")
+                    endRound(players, question, currentRound, questions)
                     return@gameChannelWait
                 }
             }, time = 20)
         }
     }
 
-    private fun endRound(winner: String?, losers: MutableList<String>, question: TriviaQuestion, currentRound: Int, questions: List<TriviaQuestion>) {
+    private fun endRound(losers: MutableList<String>, question: TriviaQuestion, currentRound: Int, questions: List<TriviaQuestion>, vararg winner: String) {
         rounds.add(Round(winner, losers, question))
-        showScores(currentRound)
-        doRound(currentRound + 1, questions)
+        if ((currentRound + 1) % 3 == 0) showScores(currentRound)
+        after({ doRound(currentRound + 1, questions) }, 2)
     }
 
-    fun showScores(currentRound: Int) {
-        val embed = ardent.embed("Trivia Scores | Round ${currentRound + 1}")
+    private fun showScores(currentRound: Int) {
+        val embed = ardent.embed("Trivia Scores | ${if (currentRound > 21) "Final Jeopardy" else "Round ${currentRound + 1}"}")
         val scores = getScores()
         if (scores.second.size == 0) embed.setDescription("No one has scored yet!")
-        else scores.first.forEachIndexed { index, u, score -> embed.appendDescription("[**$index**]: **${u.toUser()!!.asMention}** *($score points)*") }
+        else scores.first.forEachIndexed { index, u, score -> embed.appendDescription("[**${index + 1}**]: **${u.toUser()!!.asMention}** *($score points)*\n") }
         channel.send(embed)
     }
 
-    private fun doFinalJeopardy() {
-        val scores = getScores().first
-    }
 
-    fun getScores(): Pair<MutableMap<String, Int /* Point values */>, HashMap<String, Int /* Amt of Qs correct */>> {
+    private fun getScores(): Pair<MutableMap<String, Int /* Point values */>, HashMap<String, Int /* Amt of Qs correct */>> {
         val points = hashMapOf<String, Int>()
         val questions = hashMapOf<String, Int>()
-        rounds.forEach { (winner, _, q) ->
-            if (winner != null) {
-                if (points.containsKey(winner)) points.replace(winner, points[winner]!! + q.value)
-                else points.put(winner, q.value)
-                questions.incrementValue(winner)
+        rounds.forEach { (winners, _, q) ->
+            if (winners.isNotEmpty()) {
+                winners.forEach { winner ->
+                    if (points.containsKey(winner)) points.replace(winner, points[winner]!! + q.value)
+                    else points.put(winner, q.value)
+                    questions.incrementValue(winner)
+                }
             }
         }
+        players.forEach { points.putIfAbsent(it, 0) }
         return Pair(points.sort(true) as MutableMap<String, Int>, questions)
     }
 
-    data class FinalJeopardy(val winners: HashMap<String, Int>, val losers: HashMap<String, Int>)
-    data class Round(val winner: String?, val losers: MutableList<String>, val question: TriviaQuestion)
+    data class Round(val winners: Array<out String>, val losers: MutableList<String>, val question: TriviaQuestion) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as Round
+            if (!Arrays.equals(winners, other.winners)) return false
+            if (losers != other.losers) return false
+            if (question != other.question) return false
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = winners.let { Arrays.hashCode(it) } ?: 0
+            result = 31 * result + losers.hashCode()
+            result = 31 * result + question.hashCode()
+            return result
+        }
+    }
 }
 
 class CoinflipGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.COINFLIP, channel, creator, playerCount, isPublic) {
@@ -506,9 +534,11 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
                 channel.send("How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
                 waiter.waitForMessage(Settings(member.user.id, channel.id, event.guild.id), { playerCount ->
                     val count = playerCount.content.toIntOrNull() ?: 999
-                    val game = TriviaGame(channel, member.id(), count, isPublic)
-                    gamesInLobby.add(game)
-
+                    if (count == 0 || count == 1) channel.send("Invalid number provided, cancelling setup")
+                    else {
+                        val game = TriviaGame(channel, member.id(), count, isPublic)
+                        gamesInLobby.add(game)
+                    }
                 })
             })
         }

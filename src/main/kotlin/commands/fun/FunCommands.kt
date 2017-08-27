@@ -92,7 +92,7 @@ class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your fu
 
 class FML : Command(Category.FUN, "fml", "someone's had a shitty day.") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val doc = Jsoup.connect("http://fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
+        val doc = Jsoup.connect("http://www.fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
                 "rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").ignoreContentType(true).get()!!
         event.channel.send(doc.getElementsByTag("p")[0].getElementsByTag("a")[0].allElements[0].text())
     }
@@ -106,7 +106,7 @@ class Translate : Command(Category.FUN, "translate", "translate text to the prov
             event.channel.send("""Using the translation command is simple. The format for requesting one is as follows:
 **${prefix}translate language_code_here your text goes here**
 
-As follows are the language codes of some languages, but if you don't see the code for the language you want, go to https://ardentbot.com/translation/languages to view a full list.
+As follows are the language codes of some languages, but if you don't see the code for the language you want, go to <https://ardentbot.com/translation/languages> to view a full list.
 **English**: en, **French**: fr, **Spanish**: es, **Russian**: ru
 
 **Example**: *${prefix}translate en Bonjour tout le monde!* will return *Hello everyone!*""")

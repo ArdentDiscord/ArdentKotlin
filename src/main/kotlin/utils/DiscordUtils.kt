@@ -11,13 +11,15 @@ import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.exceptions.PermissionException
-import org.jsoup.Jsoup
 import java.awt.Color
 import java.lang.management.ManagementFactory
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class SanitizedGame(val user: String, val endTime: String, val type: String, val url: String)
+data class SanitizedTriviaRound(val hasWinner: Boolean, val winner: User?, val losers: List<User?>, val question: TriviaQuestion)
+data class SanitizedTrivia(val creator: User?, val id: Long?, val winner: User?, val losers: List<User?>, val scores: List<Pair<String, Int>>, val rounds: List<SanitizedTriviaRound>)
+
+data class SanitizedGame(val user: String, val endTime: String, val type: String, val url: String)
 
 fun String.toChannel(): TextChannel? {
     jdas.forEach { jda ->
@@ -316,8 +318,13 @@ fun Member.hasDonationLevel(channel: MessageChannel, donationLevel: DonationLeve
 }
 
 fun Int.getTrivia(): List<TriviaQuestion> {
-    return getGson().fromJson(Jsoup.connect("http://jservice.io/api/random?count=$this").ignoreHttpErrors(true).ignoreContentType(true)
-            .get().text(), Array<TriviaQuestion>::class.java).toList()
+    val list = mutableListOf<TriviaQuestion>()
+    val random = Random()
+    while (list.size < this) {
+        val q = questions[random.nextInt(questions.size)]
+        if (!list.contains(q)) list.add(q)
+    }
+    return list
 }
 
 fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel) {
@@ -332,7 +339,7 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
 
 data class LoggedCommand(val commandId: String, val userId: String, val executionTime: Long, val readableExecutionTime: String, val id: String = r.uuid().run(conn))
 
-class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0) {
+class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0, val reminders: MutableList<Reminder> = mutableListOf()) {
     fun canCollect(): Boolean {
         return ((System.currentTimeMillis() - collected) / 1000 / 60 / 60 / 24) >= 1
     }

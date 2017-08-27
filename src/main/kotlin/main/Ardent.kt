@@ -1,5 +1,9 @@
 package main
 
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+import com.google.api.client.http.HttpTransport
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.sheets.v4.Sheets
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
@@ -26,6 +30,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
 import utils.EventWaiter
+import utils.TriviaQuestion
 import utils.logChannel
 import web.Web
 import java.io.File
@@ -33,7 +38,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = true
+val test = false
 
 var r: RethinkDB = RethinkDB.r
 var conn: Connection? = null
@@ -52,7 +57,16 @@ val spotifyApi: Api = Api.builder().clientId("79d455af5aea45c094c5cea04d167ac1")
 
 val shards = 2
 
+val DATA_STORE_DIR = File(System.getProperty("user.home"), ".credentials/sheets.googleapis.com.json")
+var transport: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
+var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
+
+val sheets: Sheets = setupDrive()
+
 fun main(args: Array<String>) {
+    val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
+            .execute()
+    spreadsheet.getValues().forEach { questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 50)) }
     Web()
     for (sh in 1..shards) {
         jdas.add(JDABuilder(AccountType.BOT)
@@ -67,6 +81,7 @@ fun main(args: Array<String>) {
                 .setToken(config.getValue("token"))
                 .buildBlocking())
     }
+
     jdas.forEach {
         val logCh: TextChannel? = it.getTextChannelById("345226134532784129")
         if (logCh != null) logChannel = logCh
@@ -177,4 +192,10 @@ fun addCommands() {
             .addCommand(Daily())
             .addCommand(Balance())
             .addCommand(AcceptInvitation())
+}
+
+fun setupDrive(): Sheets {
+    val builder = Sheets.Builder(transport, jsonFactory, null)
+    builder.applicationName = "Ardent"
+    return builder.build()
 }

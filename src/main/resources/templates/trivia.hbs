@@ -1,0 +1,37 @@
+{{> header.hbs }}
+{{#with game}}
+    <!-- Main -->
+    <section id="main" class="container 75%">
+        <header>
+            <h2>{{creator.name}}'s Trivia game</h2>
+            <p>Game ID: #{{id}} - Started at {{date}}</p>
+        </header>
+        <div class="box">
+            <h3><b>Winner</b>: {{winner.name}}#{{winner.discriminator}}</h3>
+            <h4>Scores:</h4>
+            <ul style="padding-left: 50px;">
+                {{#each scores}}
+                    <li>{{first}}: <i>{{second}}</i> points</li>
+                {{/each}}
+            </ul>
+        </div>
+        {{#each rounds}}
+            <div class="box">
+                <div>
+                    <h3 class="alignleft">Question {{@index_1}} | {{question.category}}</h3>
+                    <h3 class="alignright">Winner: <span style="color:{{#if hasWinner}}green{{else}} red{{/if}};">{{#if
+                            hasWinner}}{{winner.name}}#{{winner.discriminator}}{{else}}None{{/if}}</span></h3>
+                    <div style="clear: both;"></div>
+                    <br/>
+                </div>
+                {{#with question}}
+                    <h4><b>Question Text</b>: {{question}}<br/>
+                        <b>Answer(s)</b>: {{answers}}<br/>
+                        <b>Points</b>: {{value}}</h4>
+                {{/with}}
+            </div>
+        {{/each}}
+    </section>
+{{/with}}
+
+{{> footer.hbs }}

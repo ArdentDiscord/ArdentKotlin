@@ -13,6 +13,11 @@ import java.util.concurrent.TimeUnit
 val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
 
+/**
+ * Abstracted Game features, providing standardized methods for cleanup, startup, and lobbies.
+ * @param creator Discord user ID of the user creating the game
+ * @param isPublic Should this game be treated as public? (will prompt lobby setup)
+ */
 abstract class Game(val type: GameType, val channel: TextChannel, val creator: String, val playerCount: Int, var isPublic: Boolean) {
     val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()!!
     var gameId: Long = 0
@@ -47,7 +52,10 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         }, 1, 1, TimeUnit.SECONDS)
     }
 
-    fun displayLobby(): Message? {
+    /**
+     * Displays the lobby prompt for this game and returns the sent [Message] if not null
+     */
+    private fun displayLobby(): Message? {
         val prefix = channel.guild.getPrefix()
         val member = channel.guild.selfMember
         val embed = member.embed("${type.readable} Game Lobby", Color.ORANGE)
@@ -55,11 +63,16 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 .setDescription("This lobby has been active for ${((System.currentTimeMillis() - creation) / 1000).formatMinSec()}\n" +
                         "It currently has **${players.size}** of **$playerCount** players required to start | ${players.toUsers()}\n" +
                         "To start, the host can also type *${prefix}minigames forcestart*\n\n" +
-                        "Join by typing *${prefix}join #$gameId*\n" +
                         "This game was created by __${creator.toUser()?.withDiscrim()}__")
-        return channel.sendReceive(embed)
+        val m = channel.sendReceive(embed)
+        channel.send("Join by typing **${prefix}join #$gameId**\n" +
+                "*You can cancel this game by typing ${prefix}cancel*")
+        return m
     }
 
+    /**
+     * Commence game startup, this must be called. Removes pending invites & changes game state
+     */
     fun startEvent() {
         invites.forEach { i, g -> if (g.gameId == gameId) invites.remove(i) }
         scheduledExecutor.shutdownNow()
@@ -69,12 +82,19 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         onStart()
     }
 
+    /**
+     * Logic to run after the [Game] starts. This <b>cannot</b> be called instead of startEvent()
+     */
     abstract fun onStart()
+
 
     fun cancel(member: Member) {
         cancel(member.user)
     }
 
+    /**
+     * Cancel a game (either ending it or during lobby). This should be called in [Game] logic.
+     */
     fun cancel(user: User) {
         gamesInLobby.remove(this)
         activeGames.remove(this)
@@ -82,7 +102,10 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         scheduledExecutor.shutdownNow()
     }
 
-
+    /**
+     * Clean up the game, ending it and inserting the provided [GameData] into the database.
+     * @param gameData <b>[Game] specific</b> data class that extends the [GameData] class. This is what is inserted and must be serializable.
+     */
     fun cleanup(gameData: GameData) {
         activeGames.remove(this)
         val user = creator.toUser()!!
@@ -99,7 +122,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 "you can go to https://ardentbot.com/games/${type.name.toLowerCase()}/$gameId")
     }
 
-    fun announceCreation() {
+    private fun announceCreation() {
         if (players.size > 1) {
             val prefix = channel.guild.getPrefix()
             val user = creator.toUser()!!
@@ -132,9 +155,12 @@ enum class GameType(val readable: String, val description: String, val id: Int) 
         return readable
     }
 
+    /**
+     * Generate a game ID, taking care to avoid duplication of an id.
+     */
     fun findNextId(): Long {
         val random = Random()
-        val number = random.nextInt(999999999) + 1
+        val number = random.nextInt(99999) + 1
         if (r.table("${readable}Data").get(number).run<Any?>(conn) == null) return number.toLong()
         else return findNextId()
     }
@@ -182,7 +208,16 @@ class GameDataCoinflip(gameId: Long, creator: String, startTime: Long, val winne
     }
 }
 
-class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner: String, val losers: List<String>, val scores: HashMap<String, Int>,
-                     val rounds: List<TriviaGame.Round>, val finalJeopardy: TriviaGame.FinalJeopardy) : GameData(gameId, creator, startTime)
+class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner: String, val losers: List<String>, val scores: Map<String, Int>,
+                     val rounds: List<TriviaGame.Round>) : GameData(gameId, creator, startTime) {
+    fun sanitize(): SanitizedTrivia {
+        val scoresTemp = hashMapOf<String, Int>()
+        scores.forEach { t, u -> scoresTemp.put(t.toUser()!!.withDiscrim(), u) }
+        val roundsTemp = mutableListOf<SanitizedTriviaRound>()
+        rounds.forEach { r -> roundsTemp.add(SanitizedTriviaRound(r.winners.isNotEmpty(),
+                r.winners.getOrNull(0)?.toUser(), r.losers.map { it.toUser() }, r.question)) }
+        return SanitizedTrivia(creator.toUser()!!, id, winner.toUser()!!, losers.map { it.toUser()!! }, scoresTemp.sort(true).toList() as List<Pair<String, Int>>, roundsTemp)
+    }
+}
 
 abstract class GameData(var id: Long? = null, val creator: String, val startTime: Long, val endTime: Long = System.currentTimeMillis())

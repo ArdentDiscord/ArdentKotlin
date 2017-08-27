@@ -10,10 +10,8 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
-import spark.ModelAndView
-import spark.Request
-import spark.Response
-import spark.Service
+import org.apache.commons.lang3.exception.ExceptionUtils
+import spark.*
 import spark.Spark.*
 import spark.template.handlebars.HandlebarsTemplateEngine
 import utils.*
@@ -47,6 +45,7 @@ class Web {
         settings.add(Setting("/music/announcenewmusic", "Announce Songs at Start", "Choose whether you want to allow "))
 
         staticFiles.location("/public")
+
 
         notFound({ request, response ->
             val map = hashMapOf<String, Any>()
@@ -141,8 +140,10 @@ class Web {
                 handle(request, map)
                 map.put("showSnackbar", false)
                 map.put("title", "Management Center")
-                map.put("availableGuilds", getMutualGuildsWith(user).filter { it.getMember(user) != null &&
-                        it.getMember(user).hasOverride(it.textChannels[0], failQuietly = true) })
+                map.put("availableGuilds", getMutualGuildsWith(user).filter {
+                    it.getMember(user) != null &&
+                            it.getMember(user).hasOverride(it.textChannels[0], failQuietly = true)
+                })
                 ModelAndView(map, "manage.hbs")
             }
         }, handlebars)
@@ -216,6 +217,22 @@ class Web {
             map.put("title", "404 Not Found")
             ModelAndView(map, "404.hbs")
         }, handlebars)
+        get("/games/recent", { request, response ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("title", "Recent Games")
+            val games = mutableListOf<Pair<GameType, GameData>>()
+            r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java).forEach { games.add(Pair(GameType.COINFLIP, it!!)) }
+            r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { games.add(Pair(GameType.BLACKJACK, it!!)) }
+            r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { games.add(Pair(GameType.BETTING, it!!)) }
+            games.sortByDescending { it.second.endTime }
+            games.removeIf { it.second.creator.toUser() == null }
+            map.put("recentGames", games.map {
+                SanitizedGame(it.second.creator.toUser()!!.withDiscrim(), it.second.endTime.readableDate(), it.first.readable, "https://ardentbot.com/games/${it.first.readable.toLowerCase()}/${it.second.id}")
+            }.limit(30))
+            ModelAndView(map, "recentgames.hbs")
+
+        }, handlebars)
         get("/fail", { request, response ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
@@ -230,22 +247,6 @@ class Web {
             map.put("title", "Announcements")
             map.put("announcements", getAnnouncements())
             ModelAndView(map, "announcements.hbs")
-        }, handlebars)
-        get("/games/recent", { request, response ->
-            val map = hashMapOf<String, Any>()
-            handle(request, map)
-            map.put("title", "Recent Games")
-            val games = mutableListOf<Pair<GameType, GameData>>()
-            r.table("CoinflipData").run<Any>(conn).queryAsArrayList(GameDataCoinflip::class.java).forEach { games.add(Pair(GameType.COINFLIP, it!!)) }
-            r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { games.add(Pair(GameType.BLACKJACK, it!!)) }
-            r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { games.add(Pair(GameType.BETTING, it!!)) }
-            games.sortByDescending { it.second.endTime }
-            games.removeIf { it.second.creator.toUser() == null }
-            map.put("recentGames", games.map {
-                SanitizedGame(it.second.creator.toUser()!!.withDiscrim(), it.second.endTime.readableDate(), it.first.readable, "https://ardentbot.com/games/${it.first.readable.toLowerCase()}/${it.second.id}")
-            }.subList(0, 30))
-            ModelAndView(map, "recentgames.hbs")
-
         }, handlebars)
         get("/games/*/*", { request, response ->
             val map = hashMapOf<String, Any>()
@@ -268,6 +269,25 @@ class Web {
                         map.put("data", user.getData())
                         ModelAndView(map, "blackjack.hbs")
                     }
+                }
+                "trivia" -> {
+                    val id = request.splat()[1].toIntOrNull() ?: 999999999
+                    val game = asPojo(r.table("TriviaData").get(id).run(conn), GameDataTrivia::class.java)
+                    if (game == null) {
+                        map.put("showSnackbar", true)
+                        map.put("snackbarMessage", "No game with that id was found!")
+                        map.put("title", "Gamemode not found")
+                        ModelAndView(map, "404.hbs")
+                    } else {
+                        val user = game.creator.toUser()!!
+                        map.put("title", "Trivia Game #$id")
+                        map.put("game", game.sanitize())
+                        map.put("user", user)
+                        map.put("date", game.startTime.readableDate())
+                        map.put("data", user.getData())
+                        ModelAndView(map, "trivia.hbs")
+                    }
+
                 }
                 "coinflip" -> {
                     val id = request.splat()[1].toIntOrNull() ?: 999999999
@@ -856,6 +876,13 @@ class Web {
                 })
             })
         })
+        internalServerError { request, response ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("showSnackbar", false)
+            map.put("title", "Internal Error")
+            handlebars.render(ModelAndView(map, "error.hbs"))
+        }
     }
 }
 
@@ -917,8 +944,7 @@ fun handle(request: Request, map: HashMap<String, Any>) {
     if (user == null) {
         map.put("validSession", false)
         map.put("user", "")
-    }
-    else {
+    } else {
         map.put("validSession", true)
         map.put("user", user)
     }
