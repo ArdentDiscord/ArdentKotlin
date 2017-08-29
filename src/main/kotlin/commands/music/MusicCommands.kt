@@ -28,9 +28,9 @@ class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a
         if (arguments[0].equals("start", true)) {
             val keys = stations.keys.toMutableList()
             event.channel.selectFromList(event.member, "Select the radio station that you want to listen to", keys, { selection ->
-                if (event.member.isPatron() || event.guild.isPatronGuild()) {
+                if (event.channel.requires(event.member, DonationLevel.BASIC)) {
                     stations.values.toList()[selection].load(event.member, event.textChannel, event.message, radioName = keys[selection])
-                } else event.channel.requires(event.member, DonationLevel.BASIC)
+                }
             })
             return
         }

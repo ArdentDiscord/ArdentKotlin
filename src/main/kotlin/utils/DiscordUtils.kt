@@ -327,8 +327,14 @@ fun Int.getTrivia(): List<TriviaQuestion> {
     return list
 }
 
-fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel) {
-    send("${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
+fun Member.isWhitelisted(): Boolean {
+    return asPojo(r.table("specialPeople").get(id()).run(conn), SpecialPerson::class.java) != null
+}
+
+fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel): Boolean {
+    if (member.isPatron() || member.isStaff() || member.isWhitelisted() || member.guild.isPatronGuild()) return true
+    else send("${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
+    return false
 }
 
 fun getMutualGuildsWith(user: User): MutableList<Guild> {

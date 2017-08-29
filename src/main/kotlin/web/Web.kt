@@ -10,8 +10,10 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
-import org.apache.commons.lang3.exception.ExceptionUtils
-import spark.*
+import spark.ModelAndView
+import spark.Request
+import spark.Response
+import spark.Service
 import spark.Spark.*
 import spark.template.handlebars.HandlebarsTemplateEngine
 import utils.*
@@ -183,6 +185,7 @@ class Web {
             val openTickets = getOpenTickets()
             map.put("noOpenTickets", openTickets.isEmpty())
             map.put("openTickets", openTickets)
+            map.put("staffMembers", staff.filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
             if (isAdministrator(request, response)) {
                 map.put("showSnackbar", false)
                 ModelAndView(map, "administrators.hbs")
@@ -494,6 +497,31 @@ class Web {
                                         }
                                     }
                                 }
+                                "addStaffMember" -> {
+                                    val role = session.attribute<Staff>("role")
+                                    if (role == null) ModelAndView(map, "fail.hbs")
+                                    else {
+                                        if (role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                            map.put("showSnackbar", true)
+                                            map.put("snackbarMessage", "You don't have permission to do this!")
+                                            ModelAndView(map, "fail.hbs")
+                                        } else {
+                                            if (actionUser.isStaff()) {
+                                                map.put("showSnackbar", true)
+                                                map.put("snackbarMessage", "This person is already a staff member!")
+                                                ModelAndView(map, "fail.hbs")
+                                            } else {
+                                                val newStaff = Staff(actionUser.id, Staff.StaffRole.MODERATOR)
+                                                staff.add(newStaff)
+                                                newStaff.insert("staff")
+                                                val redirect = request.queryParams("redirect")
+                                                if (redirect == null) response.redirect("/")
+                                                else response.redirect("/$redirect")
+                                                null
+                                            }
+                                        }
+                                    }
+                                }
                                 "removeWhitelisted" -> {
                                     val role = session.attribute<Staff>("role")
                                     if (role == null) ModelAndView(map, "fail.hbs")
@@ -618,6 +646,29 @@ class Web {
                             val id = request.queryParamOrDefault("id", "3")
                             val whitelisted = user.whitelisted().map { it!!.id }
                             if (whitelisted.contains(id)) r.table("specialPeople").get(id).delete().runNoReply(conn)
+                            response.redirect("/administrators")
+                            null
+                        }
+                    })
+                    get("/removeStaff", { request, response ->
+                        val map = hashMapOf<String, Any>()
+                        handle(request, map)
+                        map.put("title", "Administrator Zone")
+                        val session = request.session()
+                        val user: User? = session.attribute<User>("user")
+                        val role: Staff? = session.attribute<Staff>("role")
+                        if (user == null) {
+                            response.redirect("/login")
+                            null
+                        } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
+                            map.put("showSnackbar", true)
+                            map.put("snackbarMessage", "You need to be an administrator to access this page!")
+                            ModelAndView(map, "fail.hbs")
+
+                        } else {
+                            val id = request.queryParamOrDefault("id", "3")
+                            r.table("staff").get(id).delete().runNoReply(conn)
+                            staff.removeIf { it.id == id }
                             response.redirect("/administrators")
                             null
                         }

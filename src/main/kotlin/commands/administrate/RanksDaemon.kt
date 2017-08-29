@@ -88,7 +88,5 @@ data class Staff(val id: String, val role: StaffRole) {
 }
 
 fun List<Staff>.filterByRole(role: Staff.StaffRole): MutableList<Staff> {
-    val members = mutableListOf<Staff>()
-    forEach { if (it.role == role) members.add(it) }
-    return members
+    return staff.filter { it.role == role }.toMutableList()
 }
