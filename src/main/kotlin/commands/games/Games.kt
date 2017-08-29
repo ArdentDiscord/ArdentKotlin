@@ -2,14 +2,12 @@ package commands.games
 
 import events.Category
 import events.Command
-import main.factory
 import main.test
 import main.waiter
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
-import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -399,6 +397,103 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
     data class Round(val won: Boolean, val betAmount: Double, val suit: BlackjackGame.Suit)
 }
 
+class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNECT_4, channel, creator, 4, false) {
+    override fun onStart() {
+
+    }
+
+    data class Tile(val x: Int, val y: Int, var possessor: String? = null)
+    data class GameBoard(val state: GameState = GameState.WAITING_PLAYER_ONE, val playerOne: String, val playerTwo: String) {
+        val tiles: Array<Tile>
+
+        init {
+            var x = 0
+            var y = 0
+            tiles = Array(49, { _ ->
+                if (y < 7) {
+                    Tile(x, y++)
+                } else {
+                    y = 1
+                    Tile(x++, y)
+                }
+            })
+        }
+
+        fun getRow(index: Int): Array<Tile> {
+            val row = Array(7, { _ -> Tile(0, 0, null) })
+            var current = -1
+            tiles.forEach { if (it.y == index) row[current++] = it }
+            return row
+        }
+
+        fun checkWin(): Boolean {
+            var currentStreak = 0
+            var currentPossesor: String? = null
+            tiles.forEachIndexed { index, tile ->
+                if (index % 7 == 0) currentStreak = 0
+                if (tile.possessor == currentPossesor) {
+                    currentStreak++
+                }
+                else currentPossesor = tile.possessor
+                if (currentStreak == 4) return true
+                else {
+                    currentStreak = 0
+
+                }
+            }
+        }
+
+        /**
+         * Returns <b>1</b> if this causes a 4 tile connection,
+         * <b>0</b> if game should continue, or
+         * <b>-1</b> if [index] is not between 0-6 or no more tiles can
+         * be filled in that column
+         */
+        fun addTile(index: Int, isPlayerOne: Boolean): Int {
+            return if (index in 0..6) {
+                val row = getRow(index)
+                row.forEach {
+                    if (it.possessor == null)
+                        it.possessor = if (isPlayerOne) playerOne else playerTwo
+                    if (checkWin()) return 1
+                    else return 0
+                }
+                -1
+            } else -1
+        }
+
+        override fun toString(): String {
+            val builder = StringBuilder()
+            tiles.forEachIndexed { index, tile ->
+                if (index % 7 == 0) builder.append("\n")
+                if (tile.possessor == null) builder.append("○")
+                else if (tile.possessor == playerOne) builder.append("\uD83D\uDD35")
+                else builder.append("\uD83D\uDD34")
+            }
+            return builder.toString()
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as GameBoard
+            if (state != other.state) return false
+            if (!Arrays.equals(tiles, other.tiles)) return false
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = state.hashCode()
+            result = 31 * result + Arrays.hashCode(tiles)
+            return result
+        }
+    }
+
+    enum class GameState {
+        WAITING_PLAYER_ONE, WAITING_PLAYER_TWO
+    }
+}
+
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val member = event.member
@@ -447,6 +542,23 @@ class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of bl
     }
 }
 
+class Connect4Command : Command(Category.GAMES, "connect4", "start connect 4 games - inside Discord!") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val member = event.member
+        val channel = event.textChannel
+        if (member.isInGameOrLobby()) channel.send("${member.user.asMention}, You're already in game! You can't create another game!")
+        else if (event.guild.hasGameType(GameType.CONNECT_4) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+            channel.send("There can only be one Connect 4 game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
+                    "https://ardentbot.com/patreon to start more than one game per type at a time**")
+        } else {
+            channel.send("${event.member.asMention}, use **/gameinvite @User** to invite someone to your game")
+            val game = Connect4Game(channel, member.id())
+            gamesInLobby.add(game)
+        }
+
+    }
+}
+
 class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play against friends or compete for the leaderboards in these addicting games") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         withHelp("/gamelist", "lists all games that are waiting for players or setting up to start")
@@ -458,6 +570,9 @@ class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play
                 .withHelp("/leavegame", "leave a game or its lobby (this could trigger your resignation from the game if it has already started)")
                 .withHelp("/bet", "start a betting game")
                 .withHelp("/blackjack", "start a blackjack game")
+                .withHelp("/trivia", "start a trivia game")
+                .withHelp("/connect4", "start a connect-4 game")
+
                 .displayHelp(event.channel, event.member)
         return
     }
