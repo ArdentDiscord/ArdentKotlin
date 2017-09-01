@@ -47,7 +47,7 @@ dependencies {
         }
     }
     compile group: 'com.google.apis', name: 'google-api-services-sheets', version: 'v4-rev483-1.22.0'
-    compile 'net.dv8tion:JDA:3.2.0_251'
+    compile 'net.dv8tion:JDA:3.2.0_254'
     compile 'com.sedmelluq:jda-nas:1.0.3'
     compile 'com.sedmelluq:lavaplayer:1.2.42'
     compile 'com.github.jonasfugedi:spotify-web-api-java:browse-SNAPSHOT'

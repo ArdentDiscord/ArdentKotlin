@@ -108,7 +108,7 @@ class Gamelist : Command(Category.GAMES, "gamelist", "show a list of all current
                 builder.append("\n\n ")
                 if (it.isPublic) builder.append(Emoji.LARGE_GREEN_CIRCLE)
                 else builder.append(Emoji.LARGE_RED_CIRCLE)
-                builder.append("  **${it.type.readable}** [**${it.players.size}** / **${it.playerCount}**] created by __${it.creator.toUser()!!.withDiscrim()}__ | ${it.players.toUsers()}")
+                builder.append("  **${it.type.readable}** [**${it.players.size}** / **${it.playerCount}**] created by __${it.creator.toUser()?.withDiscrim()}__ | ${it.players.toUsers()}")
             }
             builder.append("\n\n__Take Note__: You can run only one game of each type at a time in this server")
             event.channel.send(embed.setDescription(builder.toString()))

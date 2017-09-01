@@ -173,8 +173,8 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
                 .appendDescription("*This shows the state of the queue at the current moment*\n")
         val remaining = manager.scheduler.manager.queue.size - 10
         val show: Int
-        if (remaining > 0) show = 9
-        else show = remaining + 9
+        show = if (remaining > 0) 9
+        else remaining + 9
         val queue = manager.scheduler.manager.queueAsList
         (0..show).forEach { number ->
             val track = queue[number]

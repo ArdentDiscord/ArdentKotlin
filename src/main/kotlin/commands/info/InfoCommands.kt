@@ -254,7 +254,6 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
                     .addField("# with role", event.guild.members.filter { it.roles.contains(role) }.count().toString() + " members", true)
                     .addField("Role ID", role.id, true)
                     .addField("Creation Date", (role.creationTime.toEpochSecond() / 1000).readableDate(), true)
-                    .addField("Hex Color", "#${Integer.toHexString(role.color.rgb).substring(2).toUpperCase()}", true)
                     .addField("Permissions", role.permissions.map { it.getName() }.concat(), true)
             )
         }

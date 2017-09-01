@@ -38,7 +38,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                     cancel(creator.toUser()!!)
                 } else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
-        } else {
+        } else if (type != GameType.BLACKJACK && type != GameType.BETTING){
             creator.toUser()!!.openPrivateChannel().queue { ch ->
                 ch.sendMessage("You successfully created a __private__ game of **${type.readable}**. " +
                         "Invite members by typing **/gameinvite @User** - Choose wisely, because you can't get rid of players once they've accepted!").queue()
@@ -109,7 +109,6 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
      */
     fun cleanup(gameData: GameData) {
         activeGames.remove(this)
-        val user = creator.toUser()!!
         if (r.table("${type.readable}Data").get(gameId).run<Any?>(conn) == null) {
             gameData.id = gameId
             gameData.insert("${type.readable}Data")

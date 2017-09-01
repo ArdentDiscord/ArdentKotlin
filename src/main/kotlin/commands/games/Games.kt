@@ -12,6 +12,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
+
 val invites = ConcurrentHashMap<String, Game>()
 val questions = mutableListOf<TriviaQuestion>()
 
@@ -402,90 +403,80 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
 
     }
 
-    data class Tile(val x: Int, val y: Int, var possessor: String? = null)
-    data class GameBoard(val state: GameState = GameState.WAITING_PLAYER_ONE, val playerOne: String, val playerTwo: String) {
-        val tiles: Array<Tile>
-
-        init {
-            var x = 0
-            var y = 0
-            tiles = Array(49, { _ ->
-                if (y < 7) {
-                    Tile(x, y++)
-                } else {
-                    y = 1
-                    Tile(x++, y)
-                }
-            })
-        }
-
-        fun getRow(index: Int): Array<Tile> {
-            val row = Array(7, { _ -> Tile(0, 0, null) })
-            var current = -1
-            tiles.forEach { if (it.y == index) row[current++] = it }
-            return row
-        }
-
-        fun checkWin(): Boolean {
-            var currentStreak = 0
-            var currentPossesor: String? = null
-            tiles.forEachIndexed { index, tile ->
-                if (index % 7 == 0) currentStreak = 0
-                if (tile.possessor == currentPossesor) {
-                    currentStreak++
-                }
-                else currentPossesor = tile.possessor
-                if (currentStreak == 4) return true
-                else {
-                    currentStreak = 0
-
-                }
-            }
-        }
-
-        /**
-         * Returns <b>1</b> if this causes a 4 tile connection,
-         * <b>0</b> if game should continue, or
-         * <b>-1</b> if [index] is not between 0-6 or no more tiles can
-         * be filled in that column
-         */
-        fun addTile(index: Int, isPlayerOne: Boolean): Int {
-            return if (index in 0..6) {
-                val row = getRow(index)
-                row.forEach {
-                    if (it.possessor == null)
-                        it.possessor = if (isPlayerOne) playerOne else playerTwo
-                    if (checkWin()) return 1
-                    else return 0
-                }
-                -1
-            } else -1
-        }
-
-        override fun toString(): String {
-            val builder = StringBuilder()
-            tiles.forEachIndexed { index, tile ->
-                if (index % 7 == 0) builder.append("\n")
-                if (tile.possessor == null) builder.append("○")
-                else if (tile.possessor == playerOne) builder.append("\uD83D\uDD35")
-                else builder.append("\uD83D\uDD34")
-            }
-            return builder.toString()
-        }
-
+    data class Column(val game: GameBoard, val number: Int, val tiles: Array<Tile> = Array(6, { Tile(game, it, number) })) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
-            other as GameBoard
-            if (state != other.state) return false
+
+            other as Column
+
+            if (number != other.number) return false
             if (!Arrays.equals(tiles, other.tiles)) return false
+
             return true
         }
 
         override fun hashCode(): Int {
-            var result = state.hashCode()
+            var result = number
             result = 31 * result + Arrays.hashCode(tiles)
             return result
+        }
+    }
+
+    data class Tile(val game: GameBoard, val x: Int, val y: Int, var possessor: String? = null) {
+        override fun toString(): String {
+            return when (possessor) {
+                null -> "○"
+                game.playerOne -> "\uD83D\uDD35"
+                else -> "\uD83D\uDD34"
+            }
+        }
+    }
+
+    data class GameBoard(val playerOne: String, val playerTwo: String, val state: GameState = GameState.WAITING_PLAYER_ONE) {
+        private val grid: List<Column> = listOf(Column(this, 0), Column(this, 1), Column(this, 2), Column(this, 3), Column(this, 4), Column(this, 5), Column(this, 6))
+
+        fun put(column: Int, playerOne: Boolean): Boolean {
+            grid[column].tiles.forEach { tile ->
+                if (tile.possessor == null) {
+                    tile.possessor = if (playerOne) this.playerOne else playerTwo
+                    return true
+                }
+            }
+            return false
+        }
+
+        fun getRow(index: Int): ArrayList<Tile> {
+            if (index !in 0..5) throw IllegalArgumentException("Row does not exist at index $index")
+            else {
+                val row = arrayListOf<Tile>()
+                grid.forEach { column -> row.add(column.tiles[index]) }
+                return row
+            }
+        }
+
+        fun horizontal(): String? {
+            for (rowIndex in 0..5) {
+                var currentPlayer: String? = null
+                var counter = 0
+                val row = getRow(rowIndex)
+                row.forEach { tile ->
+                    if (tile.possessor == currentPlayer) counter++ else {
+                        counter = 0
+                        currentPlayer = tile.possessor
+                    }
+                }
+            }
+            return null
+        }
+
+        override fun toString(): String {
+            val builder = StringBuilder()
+            for (rowValue in 5 downTo 0) {
+                grid.forEach { builder.append(it.tiles[rowValue]) }
+                builder.append("\n")
+            }
+            return builder.toString()
         }
     }
 

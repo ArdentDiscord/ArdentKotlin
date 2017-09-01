@@ -250,7 +250,7 @@ fun MessageChannel.send(message: String) {
     }
 }
 
-fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: String): Message {
+fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: String): Message? {
     try {
         val message = sendMessage(embedBuilder.build()).complete()
         for (reaction in reactions) {
@@ -259,7 +259,7 @@ fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: Strin
         return message
     } catch (ex: PermissionException) {
     }
-    return MessageBuilder().build()
+    return null
 }
 
 fun Guild.getPrefix(): String {
