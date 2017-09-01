@@ -67,15 +67,6 @@ var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
 val sheets: Sheets = setupDrive()
 
 fun main(args: Array<String>) {
-    val game = Connect4Game.GameBoard("1", "2")
-    for (x in 0..1) {
-        println("Successfully placed: " + game.put(0, true))
-        println(game)
-    }
-    println(game.getRow(0))
-    println(game.getRow(1))
-    println(game.getRow(2))
-
     val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
             .execute()
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 50)) }
@@ -92,7 +83,6 @@ fun main(args: Array<String>) {
                 .useSharding(sh - 1, shards)
                 .setToken(config.getValue("token"))
                 .buildBlocking())
-        Thread.sleep(5000)
     }
 
     hangout = getGuildById("351220166018727936")
@@ -126,7 +116,6 @@ data class Config(val url: String) {
             }
         } catch (e: IOException) {
             println("Unable to load Config....")
-
             e.printStackTrace()
             System.exit(1)
         }
