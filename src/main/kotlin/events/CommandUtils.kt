@@ -2,6 +2,7 @@ package events
 
 import main.conn
 import main.r
+import main.test
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.MessageChannel
@@ -53,7 +54,7 @@ class CommandFactory {
             val prefix = event.guild.getPrefix()
 
             when (args[0]) {
-                "ardent" -> args.removeAt(0)
+                if (test) "test" else "ardent" -> args.removeAt(0)
                 "/" -> args[0] = args[0].removePrefix("/")
                 else -> {
                     if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "") else return

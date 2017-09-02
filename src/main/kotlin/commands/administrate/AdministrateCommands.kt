@@ -1,5 +1,6 @@
 package commands.administrate
 
+import commands.games.Connect4Game
 import events.Category
 import events.Command
 import main.config
@@ -224,6 +225,9 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                     return
                 }
                 when (arguments[0]) {
+                    "test" -> {
+                        event.channel.send(    Connect4Game.GameBoard("1", "2").toString())
+                    }
                     "eval" -> {
                         eval(arguments, event)
                     }

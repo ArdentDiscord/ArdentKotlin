@@ -18,7 +18,7 @@ class EventWaiter : EventListener {
     val executor = Executors.newScheduledThreadPool(50)
     val gameEvents = CopyOnWriteArrayList<Triple<String, Long, Pair<((Message) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
     val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
-    val reactionAddEvents = ConcurrentLinkedDeque<Pair<Settings, (MessageReaction) -> Unit>>()
+    val reactionAddEvents = CopyOnWriteArrayList<Pair<Settings, (MessageReaction) -> Unit>>()
 
     @SubscribeEvent
     fun onEvent(e: Event) {
@@ -54,22 +54,25 @@ class EventWaiter : EventListener {
                     if (settings.message != null && settings.message != e.messageId) cont = false
                     if (cont) {
                         rAE.second.invoke(e.reaction)
+                        reactionAddEvents.remove(rAE)
                     }
-                    reactionAddEvents.remove(rAE)
                 }
             }
         }
     }
 
-    fun waitForReaction(settings: Settings, consumer: (MessageReaction) -> Unit, time: Int = 60, unit: TimeUnit = TimeUnit.SECONDS, silentExpiration: Boolean = false): Pair<Settings, (MessageReaction) -> Unit> {
+    fun waitForReaction(settings: Settings, consumer: (MessageReaction) -> Unit, expirationConsumer: (() -> Unit)? = null, time: Int = 60, unit: TimeUnit = TimeUnit.SECONDS, silentExpiration: Boolean = false): Pair<Settings, (MessageReaction) -> Unit> {
         val pair = Pair(settings, consumer)
         reactionAddEvents.add(pair)
         executor.schedule({
             if (reactionAddEvents.contains(pair)) {
                 reactionAddEvents.remove(pair)
-                if (!silentExpiration) {
-                    val channel: TextChannel? = settings.channel?.toChannel()
-                    channel?.send("You took too long to add a reaction! [${unit.toSeconds(time.toLong())} seconds]")
+                if (expirationConsumer != null) expirationConsumer.invoke()
+                else {
+                    if (!silentExpiration) {
+                        val channel: TextChannel? = settings.channel?.toChannel()
+                        channel?.send("You took too long to add a reaction! [${unit.toSeconds(time.toLong())} seconds]")
+                    }
                 }
             }
         }, time.toLong(), unit)

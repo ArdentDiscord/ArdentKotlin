@@ -4,10 +4,12 @@ import events.Category
 import events.Command
 import main.test
 import main.waiter
+import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import java.awt.Color
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -398,12 +400,40 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
     data class Round(val won: Boolean, val betAmount: Double, val suit: BlackjackGame.Suit)
 }
 
-class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNECT_4, channel, creator, 4, false) {
+class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNECT_4, channel, creator, 2, false) {
     override fun onStart() {
-
+        val game = GameBoard(players[0], players[1])
+        doRound(game, channel.guild.getMemberById(players[0]))
     }
 
-    data class Column(val game: GameBoard, val number: Int, val tiles: Array<Tile> = Array(6, { Tile(game, it, number) })) {
+    private fun doRound(game: GameBoard, player: Member, cancelIfExpired: Boolean = false) {
+        val embed = channel.guild.selfMember.embed("Connect 4 Game Board", Color.BLUE)
+        embed.appendDescription("${player.asMention}, it's your turn ( ${if (players[0] == player.id()) ":red_circle:" else ":blue_circle:"} )! Click one of the buttons to add a chip to that column")
+        embed.appendDescription(game.toString())
+        channel.sendMessage(embed.build()).queue({ message ->
+            message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
+            message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
+            message.addReaction(Emoji.KEYCAP_DIGIT_THREE.symbol).queue()
+            message.addReaction(Emoji.KEYCAP_DIGIT_FOUR.symbol).queue()
+            message.addReaction(Emoji.KEYCAP_DIGIT_FIVE.symbol).queue()
+            message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
+            message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
+            waiter.waitForReaction(Settings(player.id(), channel.id), { messageReaction ->
+                println(messageReaction.emote.name)
+                channel.send("registered")
+                message.delete().queue()
+            }, {
+                if (cancelIfExpired) cancel(creator.toUser()!!)
+                else {
+                    channel.send("No input was received from ${player.asMention}. Retrying the round... If they don't respond this time, the game will be cancelled")
+                    message.delete().queue()
+                    doRound(game, player, true)
+                }
+            }, 40, TimeUnit.SECONDS, silentExpiration = true)
+        })
+    }
+
+    data class Column(val game: GameBoard, val number: Int, val tiles: Array<Tile> = Array(6, { Tile(game, number, it) })) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
@@ -426,9 +456,9 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
     data class Tile(val game: GameBoard, val x: Int, val y: Int, var possessor: String? = null) {
         override fun toString(): String {
             return when (possessor) {
-                null -> "○"
-                game.playerOne -> "\uD83D\uDD35"
-                else -> "\uD83D\uDD34"
+                null -> ":white_circle:"
+                game.playerOne -> ":red_circle:"
+                else -> ":blue_circle:"
             }
         }
     }
@@ -436,15 +466,15 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
     data class GameBoard(val playerOne: String, val playerTwo: String, val state: GameState = GameState.WAITING_PLAYER_ONE) {
         private val grid: List<Column> = listOf(Column(this, 0), Column(this, 1), Column(this, 2), Column(this, 3), Column(this, 4), Column(this, 5), Column(this, 6))
 
-        fun put(column: Int, playerOne: Boolean): Boolean {
-            if (column !in 0..5) return false
+        fun put(column: Int, playerOne: Boolean): Tile? {
+            if (column !in 0..6) return null
             grid[column].tiles.forEach { tile ->
                 if (tile.possessor == null) {
                     tile.possessor = if (playerOne) this.playerOne else playerTwo
-                    return true
+                    return tile
                 }
             }
-            return false
+            return null
         }
 
         fun getRow(index: Int): ArrayList<Tile> {
@@ -456,51 +486,69 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
             }
         }
 
-        fun getRows() {
-            val rows = arrayListOf<ArrayList<Tile>>()
-            grid.forEachIndexed { index, _ -> rows.add(getRow(index)) }
+        fun getTile(x: Int, y: Int): Tile? {
+            return grid.getOrNull(x)?.tiles?.getOrNull(y)
         }
 
-        fun checkWin(): String? {
-            println(this)
-            val horizontal = horizontal()
-            if (horizontal != null) return horizontal
-            val vertical = vertical()
-            if (vertical != null) return vertical
-            val diagonalLeft = diagonal(true)
+        fun getDiagonal(tile: Tile?, left: Boolean): MutableList<Tile> {
+            if (tile == null) return mutableListOf()
+            var xStart = tile.x
+            var yStart = tile.y
+            while (yStart > 0 && if (left) xStart > 0 else xStart < 6) {
+                if (left) xStart-- else xStart++
+                yStart--
+            }
+            val tiles = mutableListOf<Tile>()
+            var found = true
+            while (found) {
+                val t = getTile(xStart, yStart)
+                if (t == null) found = false
+                else {
+                    tiles.add(t)
+                    if (left) xStart++ else xStart--
+                    yStart++
+                }
+            }
+            return tiles
+        }
+
+        fun checkWin(tile: Tile): String? {
+            val row = getRow(tile.y)
+            var counter = 0
+            var currentOwner: String? = null
+            row.forEach { t ->
+                if (currentOwner == t.possessor && currentOwner != null) counter++ else {
+                    counter = 1
+                    currentOwner = t.possessor
+                }
+                if (counter == 4) return currentOwner
+            }
+            counter = 0
+            val column = grid[tile.x]
+            column.tiles.forEach { t ->
+                if (currentOwner == t.possessor && currentOwner != null) counter++ else {
+                    counter = 1
+                    currentOwner = t.possessor
+                }
+                if (counter == 4) return currentOwner
+            }
+            val diagonalLeft = diagonal(tile, true)
             if (diagonalLeft != null) return diagonalLeft
-            val diagonalRight = diagonal(false)
+            val diagonalRight = diagonal(tile, false)
             if (diagonalRight != null) return diagonalRight
             return null
         }
 
-        fun diagonal(direction: Boolean /* True is left, false is right */): String? {
-            grid.forEachIndexed { columnIndex, column ->
-                column.tiles.forEachIndexed { tileIndex, tile ->
-                    if (tileIndex != 5) {
-                        var counter = 1
-                        var currentPossessor: String? = null
-                        var tempIndex = tileIndex
-                        var tempColumn = columnIndex
-                        while (if (!direction) tempIndex < 5 && tempColumn < 5 else tempIndex > 0 && tempColumn > 0) {
-                            if (!direction) {
-                                tempColumn++
-                                tempIndex++
-                            } else {
-                                tempColumn--
-                                tempIndex--
-                            }
-                            println("$tempColumn $tempIndex")
-                            val currentTile = grid[tempColumn].tiles[tempIndex]
-                            if (currentTile.possessor == currentPossessor) counter++
-                            else {
-                                counter = 1
-                                currentPossessor = currentTile.possessor
-                            }
-                            if (counter == 4) return currentPossessor
-                        }
-                    }
+        fun diagonal(tile: Tile, direction: Boolean /* True is left, false is right */): String? {
+            val tiles = if (direction) getDiagonal(tile, true) else getDiagonal(tile, false)
+            var counter = 0
+            var currentOwner: String? = null
+            tiles.forEach { t ->
+                if (currentOwner == t.possessor && currentOwner != null) counter++ else {
+                    counter = 1
+                    currentOwner = t.possessor
                 }
+                if (counter == 4) return currentOwner
             }
             return null
         }
@@ -539,8 +587,16 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
 
         override fun toString(): String {
             val builder = StringBuilder()
+            builder.append(" ▬▬▬▬▬▬▬▬▬▬▬ ▬▬▬▬▬▬▬▬▬▬▬")
+            builder.append("\n")
             for (rowValue in 5 downTo 0) {
-                grid.forEach { builder.append(it.tiles[rowValue]) }
+                builder.append("▐ ")
+                grid.forEachIndexed { index, it ->
+                    builder.append(it.tiles[rowValue])
+                    if (index < grid.size - 1) builder.append(" ║ ")
+                }
+                builder.append("▐\n")
+                builder.append(" ▬▬▬▬▬▬▬▬▬▬▬ ▬▬▬▬▬▬▬▬▬▬▬")
                 builder.append("\n")
             }
             return builder.toString()
@@ -609,7 +665,6 @@ class Connect4Command : Command(Category.GAMES, "connect4", "start connect 4 gam
             channel.send("There can only be one Connect 4 game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
                     "https://ardentbot.com/patreon to start more than one game per type at a time**")
         } else {
-            channel.send("${event.member.asMention}, use **/gameinvite @User** to invite someone to your game")
             val game = Connect4Game(channel, member.id())
             gamesInLobby.add(game)
         }

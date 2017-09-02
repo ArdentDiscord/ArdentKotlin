@@ -39,10 +39,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 } else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
         } else if (type != GameType.BLACKJACK && type != GameType.BETTING){
-            creator.toUser()!!.openPrivateChannel().queue { ch ->
-                ch.sendMessage("You successfully created a __private__ game of **${type.readable}**. " +
-                        "Invite members by typing **/gameinvite @User** - Choose wisely, because you can't get rid of players once they've accepted!").queue()
-            }
+            channel.send("${creator.toUser()!!.asMention}, use **/gameinvite @User** to invite someone to your game")
         }
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
@@ -123,21 +120,11 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     }
 
     private fun announceCreation() {
-        if (players.size > 1) {
+        if (players.size > 1 && isPublic) {
             val prefix = channel.guild.getPrefix()
-            val user = creator.toUser()!!
             if (isPublic) {
                 channel.send("You successfully created a **Public ${type.readable}** game with ID #__${gameId}__!\n" +
                         "Anyone in this server can join by typing *${prefix}minigames join #$gameId*")
-            } else {
-                try {
-                    user.openPrivateChannel().queue { privateChannel ->
-                        privateChannel.send("You successfully created a **__private__** game of **${type.readable}**. Invite members " +
-                                "by typing __${prefix}minigames invite @User__ - Choose wisely, because you can't get rid of them once they've accepted!")
-                    }
-                } catch (e: Exception) {
-                    channel.send("${user.asMention}, you need to allow messages from me! If you don't remember how to invite people, I'd cancel the game")
-                }
             }
         }
     }
