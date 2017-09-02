@@ -40,7 +40,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = false
+val test = true
 
 var hangout: Guild? = null
 
@@ -67,6 +67,15 @@ var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
 val sheets: Sheets = setupDrive()
 
 fun main(args: Array<String>) {
+    val game = Connect4Game.GameBoard("1", "2")
+    while (true) {
+        val indexes = readLine()?.split(" ")
+        if (indexes != null && indexes[0] != null && indexes[1] != null) {
+            game.put(indexes[0].toInt(), indexes[1].toInt() == 0)
+            println(game)
+            println(game.checkWin())
+        }
+    }
     val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
             .execute()
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 50)) }

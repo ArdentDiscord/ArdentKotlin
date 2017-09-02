@@ -56,6 +56,9 @@ class Web {
             map.put("title", "404 Not Found")
             handlebars.render(ModelAndView(map, "404.hbs"))
         })
+        get("loaderio-e3ef11264fafdf32447808f46a5757b2.html", { _, _ ->
+            "loaderio-e3ef11264fafdf32447808f46a5757b2"
+        })
         get("/", { request, response ->
             val map = hashMapOf<String, Any>()
             handle(request, map)

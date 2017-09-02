@@ -89,11 +89,11 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
         }
         val name = arguments.concat()
         var found = false
-        data.iamList.forEach {
-            if (it.name.equals(name, true)) {
-                val role = it.roleId.toRole(event.guild)
+        data.iamList.forEach { iterator, current ->
+            if (current.name.equals(name, true)) {
+                val role = current.roleId.toRole(event.guild)
                 if (role == null) {
-                    data.iamList.remove(it)
+                    iterator.remove()
                     data.update()
                 } else {
                     try {
@@ -114,6 +114,7 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
             }
         }
         if (!found) event.channel.send("An autorole with that name wasn't found. Please type **${data.prefix}iam** to get a full list")
+
     }
 }
 

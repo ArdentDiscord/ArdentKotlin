@@ -147,7 +147,7 @@ enum class GameType(val readable: String, val description: String, val id: Int) 
     BLACKJACK("Blackjack", "this is a placeholder", 2),
     TRIVIA("Trivia", "this is a placeholder", 3),
     BETTING("Betting", "this is a placeholder", 4),
-    CONNECT_4("Connect-4", "this is a placeholder", 5)
+    CONNECT_4("Connect_4", "this is a placeholder", 5)
     ;
     //CONNECT_FOUR("Connect-Four", "this is a placeholder", 4);
 

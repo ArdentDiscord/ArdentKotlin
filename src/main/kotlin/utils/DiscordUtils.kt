@@ -347,7 +347,7 @@ data class LoggedCommand(val commandId: String, val userId: String, val executio
 
 class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0, val reminders: MutableList<Reminder> = mutableListOf()) {
     fun canCollect(): Boolean {
-        return ((System.currentTimeMillis() - collected) / 1000 / 60 / 60 / 24) >= 1
+        return ((System.currentTimeMillis() - collected) / 1000 / 60 / 24) >= 1
     }
 
     fun collectionTime(): String {
@@ -357,7 +357,7 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
     fun collect(): Int {
         val amount = random.nextInt(500) + 1
         gold += amount
-        collected = System.currentTimeMillis() + (1000 * 60 * 60 * 24)
+        collected = System.currentTimeMillis() + (1000 * 60 * 24)
         update()
         return amount
     }

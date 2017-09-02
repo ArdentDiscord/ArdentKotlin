@@ -151,8 +151,8 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
         if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null) {
-            val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
             try {
+                val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
                 val get = songSearch.get()
                 if (get.items.size == 0) {
                     channel?.send("Couldn't find this song in the Spotify database, no autoplay available.")
@@ -161,7 +161,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                 val songId = get.items[0].id
                 spotifyApi.getRecommendations().tracks(mutableListOf(songId)).build().get()[0].name.load(guild.selfMember,
                         channel ?: guild.publicChannel, null, false, autoplay = true)
-            } catch (e: Exception) {
+            } catch (ignored: Exception) {
             }
         } else manager.nextTrack()
     }

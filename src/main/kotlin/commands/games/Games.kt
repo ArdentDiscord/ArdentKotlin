@@ -437,6 +437,7 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
         private val grid: List<Column> = listOf(Column(this, 0), Column(this, 1), Column(this, 2), Column(this, 3), Column(this, 4), Column(this, 5), Column(this, 6))
 
         fun put(column: Int, playerOne: Boolean): Boolean {
+            if (column !in 0..5) return false
             grid[column].tiles.forEach { tile ->
                 if (tile.possessor == null) {
                     tile.possessor = if (playerOne) this.playerOne else playerTwo
@@ -455,6 +456,71 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
             }
         }
 
+        fun getRows() {
+            val rows = arrayListOf<ArrayList<Tile>>()
+            grid.forEachIndexed { index, _ -> rows.add(getRow(index)) }
+        }
+
+        fun checkWin(): String? {
+            println(this)
+            val horizontal = horizontal()
+            if (horizontal != null) return horizontal
+            val vertical = vertical()
+            if (vertical != null) return vertical
+            val diagonalLeft = diagonal(true)
+            if (diagonalLeft != null) return diagonalLeft
+            val diagonalRight = diagonal(false)
+            if (diagonalRight != null) return diagonalRight
+            return null
+        }
+
+        fun diagonal(direction: Boolean /* True is left, false is right */): String? {
+            grid.forEachIndexed { columnIndex, column ->
+                column.tiles.forEachIndexed { tileIndex, tile ->
+                    if (tileIndex != 5) {
+                        var counter = 1
+                        var currentPossessor: String? = null
+                        var tempIndex = tileIndex
+                        var tempColumn = columnIndex
+                        while (if (!direction) tempIndex < 5 && tempColumn < 5 else tempIndex > 0 && tempColumn > 0) {
+                            if (!direction) {
+                                tempColumn++
+                                tempIndex++
+                            } else {
+                                tempColumn--
+                                tempIndex--
+                            }
+                            println("$tempColumn $tempIndex")
+                            val currentTile = grid[tempColumn].tiles[tempIndex]
+                            if (currentTile.possessor == currentPossessor) counter++
+                            else {
+                                counter = 1
+                                currentPossessor = currentTile.possessor
+                            }
+                            if (counter == 4) return currentPossessor
+                        }
+                    }
+                }
+            }
+            return null
+        }
+
+        fun vertical(): String? {
+            grid.forEach { column ->
+                var currentPlayer: String? = null
+                var counter = 0
+                column.tiles.forEach { tile ->
+                    if (tile.possessor == currentPlayer) counter++
+                    else {
+                        counter = 1
+                        currentPlayer = tile.possessor
+                    }
+                    if (counter == 4) return currentPlayer
+                }
+            }
+            return null
+        }
+
         fun horizontal(): String? {
             for (rowIndex in 0..5) {
                 var currentPlayer: String? = null
@@ -462,9 +528,10 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
                 val row = getRow(rowIndex)
                 row.forEach { tile ->
                     if (tile.possessor == currentPlayer) counter++ else {
-                        counter = 0
+                        counter = 1
                         currentPlayer = tile.possessor
                     }
+                    if (counter == 4) return tile.possessor
                 }
             }
             return null

@@ -96,6 +96,11 @@ fun String.shortenIf(numChars: Int): String {
     else substring(0, numChars)
 }
 
+fun <K> MutableList<K>.forEach(consumer: (MutableIterator<K>, current: K) -> Unit) {
+    val iterator = iterator()
+    while (iterator.hasNext()) consumer.invoke(iterator, iterator.next())
+}
+
 fun <K> MutableMap<K, Int>.incrementValue(key: K): Int {
     val value = putIfAbsent(key, 0) ?: 0
     replace(key, value + 1)
