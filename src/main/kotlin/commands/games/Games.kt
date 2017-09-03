@@ -407,41 +407,49 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
     }
 
     private fun doRound(game: GameBoard, player: Member, cancelIfExpired: Boolean = false) {
-        val embed = channel.guild.selfMember.embed("Connect 4 Game Board", Color.BLUE)
-        embed.appendDescription("${player.asMention}, it's your turn ${if (players[0] == player.id()) "\uD83D\uDD34" else "\uD83D\uDD35"} - React to place your chip\n")
-        embed.appendDescription(game.toString())
-        channel.sendMessage(embed.build()).queue({ message ->
-            message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
-            message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
-            message.addReaction(Emoji.KEYCAP_DIGIT_THREE.symbol).queue()
-            message.addReaction(Emoji.KEYCAP_DIGIT_FOUR.symbol).queue()
-            message.addReaction(Emoji.KEYCAP_DIGIT_FIVE.symbol).queue()
-            message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
-            message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
-            waiter.waitForReaction(Settings(player.id(), channel.id), { messageReaction ->
-                when (messageReaction.emote.name) {
-                    Emoji.KEYCAP_DIGIT_ONE.symbol -> place(0, game, player)
-                    Emoji.KEYCAP_DIGIT_TWO.symbol -> place(1, game, player)
-                    Emoji.KEYCAP_DIGIT_THREE.symbol -> place(2, game, player)
-                    Emoji.KEYCAP_DIGIT_FOUR.symbol -> place(3, game, player)
-                    Emoji.KEYCAP_DIGIT_FIVE.symbol -> place(4, game, player)
-                    Emoji.KEYCAP_DIGIT_SIX.symbol -> place(5, game, player)
-                    Emoji.KEYCAP_DIGIT_SEVEN.symbol -> place(6, game, player)
-                    else -> {
-                        channel.send("An unidentified reaction was received from ${player.asMention}. Retrying the round... If they don't respond this time, the game will be cancelled")
+        if (game.full()) {
+            channel.send("All tiles have been placed without a winner :thinking: Therefore, I choose ${player.asMention} as the winner! (They will not get any gold for winning this game)")
+            val embed = channel.guild.selfMember.embed("Connect 4 | Results", Color.BLUE)
+            embed.appendDescription("${player.asMention} has won (technically) in a tied game!\n$game")
+            channel.send(embed)
+            cleanup(GameDataConnect4(gameId, creator, startTime!!, player.id(), if (player.id() == players[0]) players[1] else players[0], game.toString()))
+        } else {
+            val embed = channel.guild.selfMember.embed("Connect 4 Game Board", Color.BLUE)
+            embed.appendDescription("${player.asMention}, it's your turn ${if (players[0] == player.id()) "\uD83D\uDD34" else "\uD83D\uDD35"} - React to place your chip\n")
+            embed.appendDescription(game.toString())
+            channel.sendMessage(embed.build()).queue({ message ->
+                message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
+                message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
+                message.addReaction(Emoji.KEYCAP_DIGIT_THREE.symbol).queue()
+                message.addReaction(Emoji.KEYCAP_DIGIT_FOUR.symbol).queue()
+                message.addReaction(Emoji.KEYCAP_DIGIT_FIVE.symbol).queue()
+                message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
+                message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
+                waiter.waitForReaction(Settings(player.id(), channel.id), { messageReaction ->
+                    when (messageReaction.emote.name) {
+                        Emoji.KEYCAP_DIGIT_ONE.symbol -> place(0, game, player)
+                        Emoji.KEYCAP_DIGIT_TWO.symbol -> place(1, game, player)
+                        Emoji.KEYCAP_DIGIT_THREE.symbol -> place(2, game, player)
+                        Emoji.KEYCAP_DIGIT_FOUR.symbol -> place(3, game, player)
+                        Emoji.KEYCAP_DIGIT_FIVE.symbol -> place(4, game, player)
+                        Emoji.KEYCAP_DIGIT_SIX.symbol -> place(5, game, player)
+                        Emoji.KEYCAP_DIGIT_SEVEN.symbol -> place(6, game, player)
+                        else -> {
+                            channel.send("An unidentified reaction was received from ${player.asMention}. Retrying the round... If they don't respond this time, the game will be cancelled")
+                            doRound(game, player, true)
+                        }
+                    }
+                    message.delete().queue()
+                }, {
+                    if (cancelIfExpired) cancel(creator.toUser()!!)
+                    else {
+                        channel.send("No input was received from ${player.asMention}. Retrying the round... If they don't respond this time, the game will be cancelled")
+                        message.delete().queue()
                         doRound(game, player, true)
                     }
-                }
-                message.delete().queue()
-            }, {
-                if (cancelIfExpired) cancel(creator.toUser()!!)
-                else {
-                    channel.send("No input was received from ${player.asMention}. Retrying the round... If they don't respond this time, the game will be cancelled")
-                    message.delete().queue()
-                    doRound(game, player, true)
-                }
-            }, 40, TimeUnit.SECONDS, silentExpiration = true)
-        })
+                }, 40, TimeUnit.SECONDS, silentExpiration = true)
+            })
+        }
     }
 
     private fun place(column: Int, game: GameBoard, player: Member) {
@@ -498,6 +506,11 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
 
     data class GameBoard(val playerOne: String, val playerTwo: String, val state: GameState = GameState.WAITING_PLAYER_ONE) {
         private val grid: List<Column> = listOf(Column(this, 0), Column(this, 1), Column(this, 2), Column(this, 3), Column(this, 4), Column(this, 5), Column(this, 6))
+
+        fun full(): Boolean {
+            grid.forEach { grid -> grid.tiles.forEach { tile -> if (tile.possessor == null) return false } }
+            return true
+        }
 
         fun put(column: Int, playerOne: Boolean): Tile? {
             if (column !in 0..6) return null
