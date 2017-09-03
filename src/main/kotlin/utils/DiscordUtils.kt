@@ -433,6 +433,8 @@ class Internals {
 
     init {
         waiterExecutor.scheduleAtFixedRate({
+            loadedMusicPlayers = 0
+            queueLength = 0
             messagesReceived = factory.messagesReceived.get()
             commandsReceived = factory.commandsReceived().toLong()
             commandCount = factory.commands.size
