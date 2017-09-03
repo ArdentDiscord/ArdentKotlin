@@ -138,7 +138,7 @@ class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to you
                     return
                 }
                 val mentionedUsers = event.message.mentionedUsers
-                if (mentionedUsers.size == 0) event.channel.send("You need to mention at least one member to invite them")
+                if (mentionedUsers.size == 0 || mentionedUsers[0].isBot) event.channel.send("You need to mention at least one member to invite them")
                 else {
                     mentionedUsers.forEach { toInvite ->
                         when {

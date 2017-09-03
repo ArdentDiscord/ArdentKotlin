@@ -3,28 +3,24 @@ package commands.info
 import events.Category
 import events.Command
 import main.factory
-import main.waiter
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.OnlineStatus
-import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
-import utils.Settings
 import java.awt.Color
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
-
 
 val formatter = DecimalFormat("#,###")
 
 class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command was gonna do?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val currentTime = System.currentTimeMillis()
-        event.channel.sendReceive("I'll calculate my ping to Discord using this message")
-                ?.editMessage("**Socket Ping**: *${System.currentTimeMillis() - currentTime} milliseconds*")?.queue()
-        waiter.waitForMessage(Settings(event.author.id), { message: Message -> println(message.content) })
+        event.channel.sendMessage("I'll calculate my ping to Discord using this message").queue({ m ->
+            m.editMessage("**Socket Ping**: *${System.currentTimeMillis() - currentTime} milliseconds*")?.queue()
+        })
     }
 }
 
@@ -103,8 +99,7 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                             event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
                                     "to give you roles!**")
                         })
-                    }
-                    catch(e: PermissionException) {
+                    } catch (e: PermissionException) {
                         event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
                                 "to give you roles!**")
                     }
