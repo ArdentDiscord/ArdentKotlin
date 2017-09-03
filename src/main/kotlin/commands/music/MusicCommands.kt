@@ -6,33 +6,50 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import events.Category
 import events.Command
-import main.managers
 import main.playerManager
 import main.spotifyApi
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
 
-class Radio : Command(Category.MUSIC, "radio", "play a radio station live from a list of provided options. this is a **patron-only** feature", "pr") {
-    private val stations = hashMapOf(Pair("977hits", "http://19353.live.streamtheworld.com/977_HITS_SC"),
-            Pair("Jamendo Lounge", "http://streaming.radionomy.com/JamendoLounge?lang=en-US%2cen%3bq%3d0.8"),
-            Pair("Radio Rock Mix", "http://streaming.hotmixradio.fr/hotmixradio-rock-128.mp3?lang=en-US%2cen%3bq%3d0.8%2cru%3bq%3d0.6"))
+class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio station live from a list of provided options. this is a **patron-only** feature", "pr") {
+    private val stations = mutableListOf(
+            "Spotify **Today's Top Hits**",
+            "Spotify **Rap Caviar**",
+            "Spotify **Power Gaming**",
+            "Spotify **Teen Party**")
 
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
-            withHelp("start", "view and select from the list of current radio stations")
+            withHelp("start", "view and select from a curated list of Spotify playlists")
                     .withHelp("request [name of radio station]", "send a request to the developers to add a specific radio station")
                     .displayHelp(event.channel, event.member)
             return
         }
         if (arguments[0].equals("start", true)) {
-            val keys = stations.keys.toMutableList()
-            event.channel.selectFromList(event.member, "Select the radio station that you want to listen to", keys, { selection ->
+            event.channel.selectFromList(event.member, "Select the playlist that you want to listen to", stations, { selection ->
                 if (event.channel.requires(event.member, DonationLevel.BASIC)) {
-                    stations.values.toList()[selection].load(event.member, event.textChannel, event.message, radioName = keys[selection])
+                    when (selection) {
+                        0 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M"
+                        1 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd"
+                        2 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj"
+                        3 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p"
+                        else -> ""
+                    }.getSpotifyPlaylist(event.textChannel, event.member)
                 }
             })
             return
+        }
+    }
+}
+
+class RemoveAt : Command(Category.MUSIC, "removeat", "remove a song from the queue by typing its place", "remove") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (event.member.hasOverride(event.textChannel, true, djCommand = true)) {
+            if (!event.member.checkSameChannel(event.textChannel)) return
+            if (event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.removeAt(arguments.getOrNull(0)?.toIntOrNull())) {
+                event.channel.send("Removed song from the queue :thumbs_up:")
+            } else event.channel.send("Failed to remove track... check the number in the queue?")
         }
     }
 }
@@ -52,10 +69,10 @@ class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel
         if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
         val guild = event.guild
         val manager = guild.getGuildAudioPlayer(event.textChannel).scheduler.manager
+        guild.audioManager.closeAudioConnection()
         manager.resetQueue()
         manager.nextTrack()
         val vc = guild.audioManager.connectedChannel
-        guild.audioManager.closeAudioConnection()
         if (vc != null) event.channel.send("Successfully disconnected from **${vc.name}** ${Emoji.MULTIPLE_MUSICAL_NOTES}")
     }
 }
@@ -192,7 +209,6 @@ class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq"
             event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.resetQueue()
             event.channel.send("Cleared the queue ${Emoji.BALLOT_BOX_WITH_CHECK}")
         }
-
     }
 }
 
@@ -219,6 +235,14 @@ fun VoiceChannel.connect(member: Member, textChannel: TextChannel) {
     }
 }
 
+fun play(channel: TextChannel, member: Member, track: ArdentTrack) {
+    if (!member.guild.audioManager.isConnected) {
+        if (member.voiceState.channel != null) member.guild.audioManager.openAudioConnection(member.voiceChannel())
+        else return
+    }
+    member.guild.getGuildAudioPlayer(channel).scheduler.manager.addToQueue(track)
+}
+
 fun play(member: Member, guild: Guild, channel: VoiceChannel, musicManager: GuildMusicManager, track: AudioTrack, textChannel: TextChannel) {
     if (!guild.audioManager.isConnected) {
         guild.audioManager.openAudioConnection(channel)
@@ -243,6 +267,24 @@ fun Member.checkSameChannel(textChannel: TextChannel): Boolean {
     return true
 }
 
+fun String.getSingleTrack(guild: Guild, foundConsumer: (AudioTrack) -> (Unit), soundcloud: Boolean = false) {
+    val string = this
+    playerManager.loadItemOrdered(guild.getGuildAudioPlayer(null), "${if (soundcloud) "scsearch" else "ytsearch"}:$this", object : AudioLoadResultHandler {
+        override fun loadFailed(exception: FriendlyException) {
+            string.getSingleTrack(guild, foundConsumer, true)
+        }
+
+        override fun trackLoaded(track: AudioTrack) {
+            foundConsumer.invoke(track)
+        }
+
+        override fun noMatches() {}
+        override fun playlistLoaded(playlist: AudioPlaylist) {
+            if (playlist.isSearchResult) foundConsumer.invoke(playlist.tracks[0])
+        }
+    })
+}
+
 fun String.load(member: Member, textChannel: TextChannel, message: Message?, search: Boolean = false, radioName: String? = null, autoplay: Boolean = false) {
     if (member.voiceState.channel == null) {
         textChannel.send("${Emoji.CROSS_MARK} You need to be connected to a voice channel")
@@ -256,7 +298,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
     if (this.contains("spotify")) {
         val tr = spotifyApi.getTrack(this.removePrefix("https://open.spotify.com/track/")).build().get()
         if (tr != null && tr.name != null) {
-            tr.name.load(member, textChannel, message, search, radioName,autoplay)
+            tr.name.load(member, textChannel, message, search, radioName, autoplay)
             return
         }
     }
@@ -311,8 +353,8 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
             } else {
                 val selectFrom = mutableListOf<String>()
                 val num: Int
-                if (playlist.tracks.size >= 7) num = 7
-                else num = playlist.tracks.size
+                num = if (playlist.tracks.size >= 7) 7
+                else playlist.tracks.size
                 (1..num)
                         .map { playlist.tracks[it - 1] }
                         .map { it.info }

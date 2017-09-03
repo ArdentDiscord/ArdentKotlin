@@ -59,7 +59,6 @@ class CommandFactory {
                     if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "") else return
                 }
             }
-
             commands.forEach { cmd ->
                 if (cmd.containsAlias(args[0])) {
                     args.removeAt(0)
@@ -78,6 +77,7 @@ class CommandFactory {
                                     "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
                         }
                     }
+                    return
                 }
             }
         }

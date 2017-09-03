@@ -116,23 +116,39 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
     }
     if (footerText != null) builder.append("\n$footerText\n")
-    builder.append("\n__Please type the number corresponding with the choice you want to select, or write the option__\n")
-    val msg = sendReceive(embed.setDescription(builder))
-    waiter.waitForMessage(Settings(member.user.id, id, member.guild.id), { message ->
-        val option: Int? = message.rawContent.toIntOrNull()?.minus(1) ?:
-                if (options.map { it.toLowerCase() }.contains(message.rawContent.toLowerCase()))
-                    options.map { it.toLowerCase() }.indexOf(message.rawContent.toLowerCase())
-                else null
-        if (option == null || (option < 0 || option >= options.size)) {
-            if (failure == null) send("You sent an invalid response; you had to respond with the **number** or **text** of an option")
-            else failure.invoke()
-            return@waitForMessage
+    builder.append("\n__Please select the number corresponding with the choice that you'd like to select__\n")
+    sendMessage(embed.setDescription(builder).build()).queue { message ->
+        for (x in 1..options.size) {
+            message.addReaction(when (x) {
+                1 -> Emoji.KEYCAP_DIGIT_ONE
+                2 -> Emoji.KEYCAP_DIGIT_TWO
+                3 -> Emoji.KEYCAP_DIGIT_THREE
+                4 -> Emoji.KEYCAP_DIGIT_FOUR
+                5 -> Emoji.KEYCAP_DIGIT_FIVE
+                6 -> Emoji.KEYCAP_DIGIT_SIX
+                7 -> Emoji.KEYCAP_DIGIT_SEVEN
+                8 -> Emoji.KEYCAP_DIGIT_EIGHT
+                9 -> Emoji.KEYCAP_DIGIT_NINE
+                10 -> Emoji.KEYCAP_TEN
+                else -> Emoji.HEAVY_CHECK_MARK
+            }.symbol).queue()
         }
-        msg?.delete()?.reason("Unnecessary Selection List")?.queue()
-        try {
-            message.delete().reason("Selection Option").queue()
-        } catch (ignored: Exception) {
-        }
-        consumer.invoke(option)
-    }, failure)
+        waiter.waitForReaction(Settings(member.user.id, id, member.guild.id), { messageReaction ->
+            val chosen = when (messageReaction.emote.name) {
+                Emoji.KEYCAP_DIGIT_ONE.symbol -> 1
+                Emoji.KEYCAP_DIGIT_TWO.symbol -> 2
+                Emoji.KEYCAP_DIGIT_THREE.symbol -> 3
+                Emoji.KEYCAP_DIGIT_FOUR.symbol -> 4
+                Emoji.KEYCAP_DIGIT_FIVE.symbol -> 5
+                Emoji.KEYCAP_DIGIT_SIX.symbol -> 6
+                Emoji.KEYCAP_DIGIT_SEVEN.symbol -> 7
+                Emoji.KEYCAP_DIGIT_EIGHT.symbol -> 8
+                Emoji.KEYCAP_DIGIT_NINE.symbol -> 9
+                Emoji.KEYCAP_TEN.symbol -> 10
+                else -> 69999999
+            } - 1
+            if (chosen in 0..(options.size - 1)) consumer.invoke(chosen)
+            else send("You specified an invalid reaction, cancelling selection")
+        }, time = 25, silentExpiration = false)
+    }
 }

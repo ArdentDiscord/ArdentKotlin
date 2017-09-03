@@ -40,7 +40,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = true
+val test = false
 
 var hangout: Guild? = null
 
@@ -130,7 +130,7 @@ fun addCommands() {
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
             Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
-            MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats())
+            MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt())
 }
 
 fun setupDrive(): Sheets {

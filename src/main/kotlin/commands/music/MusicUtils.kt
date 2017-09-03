@@ -12,6 +12,7 @@ import main.playerManager
 import main.spotifyApi
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import utils.*
@@ -36,7 +37,7 @@ class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHa
     }
 }
 
-class ArdentTrack(val author: String, val channel: String, var track: AudioTrack) {
+data class ArdentTrack(val author: String, val channel: String?, var track: AudioTrack) {
     private val votedToSkip = ArrayList<String>()
 
     fun addSkipVote(user: User): Boolean {
@@ -131,13 +132,20 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
         track.track = track.track.makeClone()
         queue.addFirst(track)
     }
+
+    fun removeAt(num: Int?): Boolean {
+        if (num == null) return false
+        val track = queue.toList().getOrNull(num) ?: return false
+        queue.removeFirstOccurrence(track)
+        return true
+    }
 }
 
 class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: Guild) : AudioEventAdapter() {
     var manager: ArdentMusicManager = ArdentMusicManager(player, channel?.id)
 
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
-        if (channel!!.guild.getData().musicSettings.announceNewMusic) {
+        if (channel?.guild?.getData()?.musicSettings?.announceNewMusic == true) {
             val builder = guild.selfMember.embed("Now Playing: ${track.info.title}")
             builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
             builder.addField("Title", track.info.title, true)
@@ -246,4 +254,77 @@ fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
         }
     }
     return musicManager
+}
+
+val teenParty = mutableListOf<AudioTrack>()
+val todaysTopHits = mutableListOf<AudioTrack>()
+val rapCaviar = mutableListOf<AudioTrack>()
+val powerGaming = mutableListOf<AudioTrack>()
+
+fun String.getSpotifyPlaylist(channel: TextChannel, member: Member) {
+    when (this) {
+        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M" -> {
+            if (todaysTopHits.size > 0) todaysTopHits.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it)) }
+            else searchAndLoadPlaylists(channel, member)
+        }
+        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd" -> {
+            if (rapCaviar.size > 0) rapCaviar.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it)) }
+            else searchAndLoadPlaylists(channel, member)
+        }
+        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj" -> {
+            if (powerGaming.size > 0) powerGaming.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it)) }
+            else searchAndLoadPlaylists(channel, member)
+        }
+        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p" -> {
+            if (teenParty.size > 0) teenParty.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it)) }
+            else searchAndLoadPlaylists(channel, member)
+        }
+        else -> searchAndLoadPlaylists(channel, member)
+    }
+}
+
+fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
+    val info = this.removePrefix("https://open.spotify.com/user/").split("/playlist/")
+    val playlist = spotifyApi.getPlaylist(info[0], info[1]).build().get()
+    if (playlist == null || playlist.tracks.items.size == 0) channel.send("No playlist was found with this query")
+    else {
+        channel.sendMessage("Beginning track loading from Spotify playlist **${playlist.name}**... This could take a few minutes. I'll add progress bars as the " +
+                "playlist is processed")
+                .queue { message ->
+                    var percentage = 0.1
+                    var current = 0
+                    playlist.tracks.items.forEach { playlistTrack ->
+                        "${playlistTrack.track.name} ${playlistTrack.track.artists[0].name}".getSingleTrack(member.guild, { foundTrack ->
+                            current++
+                            val ardentTrack = ArdentTrack(member.id(), channel.id, foundTrack)
+                            play(channel, member, ardentTrack)
+                            when (this) {
+                                "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M" -> todaysTopHits.add(foundTrack)
+                                "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd" -> rapCaviar.add(foundTrack)
+                                "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj" -> powerGaming.add(foundTrack)
+                                "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p" -> teenParty.add(foundTrack)
+                            }
+                            if (current / playlist.tracks.items.size.toDouble() >= percentage && percentage <= 1) {
+                                percentage += 0.1
+                                when (percentage) {
+                                    0.1 -> message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
+                                    0.2 -> message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
+                                    0.3 -> message.addReaction(Emoji.KEYCAP_DIGIT_THREE.symbol).queue()
+                                    0.4 -> message.addReaction(Emoji.KEYCAP_DIGIT_FOUR.symbol).queue()
+                                    0.5 -> message.addReaction(Emoji.KEYCAP_DIGIT_FIVE.symbol).queue()
+                                    0.6 -> message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
+                                    0.7 -> message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
+                                    0.8 -> message.addReaction(Emoji.KEYCAP_DIGIT_EIGHT.symbol).queue()
+                                    0.9 -> message.addReaction(Emoji.KEYCAP_DIGIT_NINE.symbol).queue()
+                                    1.0 -> message.addReaction(Emoji.KEYCAP_TEN.symbol).queue()
+                                }
+                            }
+                            if (current / playlist.tracks.items.size.toDouble() == 1.0) {
+                                message.addReaction(Emoji.HEAVY_CHECK_MARK.symbol).queue()
+                            }
+                            Thread.sleep(750)
+                        })
+                    }
+                }
+    }
 }

@@ -45,9 +45,9 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-sheets:v4-rev483-1.22.0" level="project" />
-    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.2.0_254" level="project" />
+    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.2.0_251" level="project" />
     <orderEntry type="library" name="Gradle: com.sedmelluq:jda-nas:1.0.3" level="project" />
-    <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer:1.2.42" level="project" />
+    <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer:1.2.43" level="project" />
     <orderEntry type="library" name="Gradle: com.github.jonasfugedi:spotify-web-api-java:browse-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Gradle: com.rethinkdb:rethinkdb-driver:2.3.3" level="project" />
     <orderEntry type="library" name="Gradle: org.codehaus.groovy:groovy-jsr223:2.4.9" level="project" />
