@@ -231,7 +231,9 @@ class Web {
             r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { games.add(Pair(GameType.BLACKJACK, it!!)) }
             r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { games.add(Pair(GameType.BETTING, it!!)) }
             r.table("TriviaData").run<Any>(conn).queryAsArrayList(GameDataTrivia::class.java).forEach { games.add(Pair(GameType.TRIVIA, it!!)) }
+            r.table("Connect_4Data").run<Any>(conn).queryAsArrayList(GameDataConnect4::class.java).forEach { games.add(Pair(GameType.CONNECT_4, it!!)) }
             games.sortByDescending { it.second.endTime }
+            map.put("total", games.size)
             games.removeIf { it.second.creator.toUser() == null }
             map.put("recentGames", games.map {
                 SanitizedGame(it.second.creator.toUser()!!.withDiscrim(), it.second.endTime.readableDate(), it.first.readable, "https://ardentbot.com/games/${it.first.readable.toLowerCase()}/${it.second.id}")
@@ -274,6 +276,27 @@ class Web {
                         map.put("date", game.startTime.readableDate())
                         map.put("data", user.getData())
                         ModelAndView(map, "blackjack.hbs")
+                    }
+                }
+                "connect_4" -> {
+                    val id = request.splat()[1].toIntOrNull() ?: 999999999
+                    val game = asPojo(r.table("Connect_4Data").get(id).run(conn), GameDataConnect4::class.java)
+                    if (game == null) {
+                        map.put("showSnackbar", true)
+                        map.put("snackbarMessage", "No game with that id was found!")
+                        map.put("title", "Gamemode not found")
+                        ModelAndView(map, "404.hbs")
+                    } else {
+                        val user = game.creator.toUser()!!
+                        map.put("title", "Connect 4 Game #$id")
+                        map.put("game", game)
+                        map.put("board", game.game.replace("\n", "<br />").replace("⚪", "◯"))
+                        map.put("winner", game.winner.toUser()!!)
+                        map.put("loser", game.loser.toUser()!!)
+                        map.put("user", user)
+                        map.put("date", game.startTime.readableDate())
+                        map.put("data", user.getData())
+                        ModelAndView(map, "connect_4.hbs")
                     }
                 }
                 "trivia" -> {

@@ -187,6 +187,8 @@ abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: 
     }
 }
 
+class GameDataConnect4(gameId: Long, creator: String, startTime: Long, val winner: String, val loser: String, val game: String) : GameData(gameId, creator, startTime)
+
 class GameDataBetting(gameId: Long, creator: String, startTime: Long, val rounds: List<BetGame.Round>) : GameData(gameId, creator, startTime)
 
 class GameDataBlackjack(gameId: Long, creator: String, startTime: Long, val rounds: List<BlackjackGame.Round>) : GameData(gameId, creator, startTime)

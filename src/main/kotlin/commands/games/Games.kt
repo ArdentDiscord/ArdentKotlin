@@ -408,7 +408,7 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
 
     private fun doRound(game: GameBoard, player: Member, cancelIfExpired: Boolean = false) {
         val embed = channel.guild.selfMember.embed("Connect 4 Game Board", Color.BLUE)
-        embed.appendDescription("${player.asMention}, it's your turn ( ${if (players[0] == player.id()) ":red_circle:" else ":blue_circle:"} )! Click one of the buttons to add a chip to that column")
+        embed.appendDescription("${player.asMention}, it's your turn ${if (players[0] == player.id()) "\uD83D\uDD34" else "\uD83D\uDD35"} - React to place your chip\n")
         embed.appendDescription(game.toString())
         channel.sendMessage(embed.build()).queue({ message ->
             message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
@@ -419,8 +419,19 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
             message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
             message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
             waiter.waitForReaction(Settings(player.id(), channel.id), { messageReaction ->
-                println(messageReaction.emote.name)
-                channel.send("registered")
+                when (messageReaction.emote.name) {
+                    Emoji.KEYCAP_DIGIT_ONE.symbol -> place(0, game, player)
+                    Emoji.KEYCAP_DIGIT_TWO.symbol -> place(1, game, player)
+                    Emoji.KEYCAP_DIGIT_THREE.symbol -> place(2, game, player)
+                    Emoji.KEYCAP_DIGIT_FOUR.symbol -> place(3, game, player)
+                    Emoji.KEYCAP_DIGIT_FIVE.symbol -> place(4, game, player)
+                    Emoji.KEYCAP_DIGIT_SIX.symbol -> place(5, game, player)
+                    Emoji.KEYCAP_DIGIT_SEVEN.symbol -> place(6, game, player)
+                    else -> {
+                        channel.send("An unidentified reaction was received from ${player.asMention}. Retrying the round... If they don't respond this time, the game will be cancelled")
+                        doRound(game, player, true)
+                    }
+                }
                 message.delete().queue()
             }, {
                 if (cancelIfExpired) cancel(creator.toUser()!!)
@@ -431,6 +442,28 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
                 }
             }, 40, TimeUnit.SECONDS, silentExpiration = true)
         })
+    }
+
+    private fun place(column: Int, game: GameBoard, player: Member) {
+        val tile = game.put(column, player.id() == players[0])
+        if (tile == null) {
+            channel.send("${player.asMention}, you specified an invalid column: Please retry.. :(")
+            doRound(game, player, false)
+        } else {
+            val winnerId = game.checkWin(tile)
+            if (winnerId == null) doRound(game, if (player.id() == players[0]) channel.guild.getMemberById(players[1]) else channel.guild.getMemberById(players[0]))
+            else {
+                val winner = channel.guild.getMemberById(winnerId)
+                val embed = channel.guild.selfMember.embed("Connect 4 | Results", Color.BLUE)
+                embed.appendDescription("${winner.asMention} has won and got **500 gold**!\n")
+                embed.appendDescription(game.toString())
+                channel.send(embed)
+                val data = winner.data()
+                data.gold += 500
+                data.update()
+                cleanup(GameDataConnect4(gameId, creator, startTime!!, winner.id(), if (winnerId == players[0]) players[1] else players[0], game.toString()))
+            }
+        }
     }
 
     data class Column(val game: GameBoard, val number: Int, val tiles: Array<Tile> = Array(6, { Tile(game, number, it) })) {
@@ -456,9 +489,9 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
     data class Tile(val game: GameBoard, val x: Int, val y: Int, var possessor: String? = null) {
         override fun toString(): String {
             return when (possessor) {
-                null -> ":white_circle:"
-                game.playerOne -> ":red_circle:"
-                else -> ":blue_circle:"
+                null -> "⚪"
+                game.playerOne -> "\uD83D\uDD34"
+                else -> "\uD83D\uDD35"
             }
         }
     }
@@ -549,38 +582,6 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
                     currentOwner = t.possessor
                 }
                 if (counter == 4) return currentOwner
-            }
-            return null
-        }
-
-        fun vertical(): String? {
-            grid.forEach { column ->
-                var currentPlayer: String? = null
-                var counter = 0
-                column.tiles.forEach { tile ->
-                    if (tile.possessor == currentPlayer) counter++
-                    else {
-                        counter = 1
-                        currentPlayer = tile.possessor
-                    }
-                    if (counter == 4) return currentPlayer
-                }
-            }
-            return null
-        }
-
-        fun horizontal(): String? {
-            for (rowIndex in 0..5) {
-                var currentPlayer: String? = null
-                var counter = 0
-                val row = getRow(rowIndex)
-                row.forEach { tile ->
-                    if (tile.possessor == currentPlayer) counter++ else {
-                        counter = 1
-                        currentPlayer = tile.possessor
-                    }
-                    if (counter == 4) return tile.possessor
-                }
             }
             return null
         }

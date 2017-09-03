@@ -49,7 +49,7 @@ class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation
         if (event.member.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first")
         else {
             gamesInLobby.forEach { game ->
-                if (!checkInvite(event, game)) if (!checkInvite(event, game)) event.channel.send("You must be invited by the creator of this game to join this __private__ game!")
+                if (!checkInvite(event, game)) if (!checkInvite(event, game)) event.channel.send("You must be invited by the creator of this game to join this game!")
             }
         }
     }
@@ -72,7 +72,7 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
                             event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
                                     "Players in lobby: *${game.players.toUsers()}*")
                         } else {
-                            if (!checkInvite(event, game)) event.channel.send("You must be invited by the creator of this game to join this __private__ game!")
+                            if (!checkInvite(event, game)) event.channel.send("You must be invited by the creator of this game to join this game!")
                         }
                     }
                     return
@@ -171,7 +171,7 @@ fun checkInvite(event: MessageReceivedEvent, game: Game): Boolean {
     return if (invites.containsKey(event.author.id) && invites[event.author.id]!!.gameId == game.gameId) {
         invites.remove(event.author.id)
         game.players.add(event.author.id)
-        event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s *private* game of ${game.type.readable}\n" +
+        event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
                 "Players in lobby: *${game.players.toUsers()}*")
         true
     } else false
