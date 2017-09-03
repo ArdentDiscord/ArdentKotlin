@@ -49,8 +49,9 @@ class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation
         if (event.member.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first")
         else {
             gamesInLobby.forEach { game ->
-                if (!checkInvite(event, game)) if (!checkInvite(event, game)) event.channel.send("You must be invited by the creator of this game to join this game!")
+                if (checkInvite(event, game)) return
             }
+            event.channel.send("You must be invited by the creator of this game to join this game!")
         }
     }
 }
@@ -67,12 +68,11 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
                 if (game.channel.guild == event.guild) {
                     if (event.member.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first")
                     else {
-                        if (game.isPublic) {
+                        if (game.isPublic || checkInvite(event, game)) {
                             game.players.add(event.author.id)
                             event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
                                     "Players in lobby: *${game.players.toUsers()}*")
-                        } else {
-                            if (!checkInvite(event, game)) event.channel.send("You must be invited by the creator of this game to join this game!")
+                            return
                         }
                     }
                     return
