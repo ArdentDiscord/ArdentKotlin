@@ -50,7 +50,7 @@ class AdministrativeDaemon : Runnable {
                 }
             }
         }
-        val stats = Internals()
+        val stats = internals
         try {
             println(Jsoup.connect("https://discordbots.org/api/bots/339101087569281045/stats")
                     .header("Authorization", config.getValue("discordbotsorg"))

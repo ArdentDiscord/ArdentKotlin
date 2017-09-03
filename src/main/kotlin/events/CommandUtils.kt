@@ -6,7 +6,6 @@ import main.test
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.MessageChannel
-import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -28,8 +27,8 @@ class CommandFactory {
         return temp
     }
 
-    fun addCommand(command: Command): CommandFactory {
-        commands.add(command)
+    fun addCommands(vararg inputCommands: Command): CommandFactory {
+        inputCommands.forEach { commands.add(it) }
         return this
     }
 
@@ -79,7 +78,6 @@ class CommandFactory {
                                     "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
                         }
                     }
-                    return
                 }
             }
         }
@@ -128,15 +126,15 @@ abstract class Command(val category: Category, val name: String, val description
 }
 
 fun String.toCategory(): Category {
-    when (this) {
-        "Music" -> return Category.MUSIC
-        "BotInfo" -> return Category.BOT_INFO
-        "ServerInfo" -> return Category.SERVER_INFO
-        "Administrate" -> return Category.ADMINISTRATE
-        "Games" -> return Category.GAMES
-        "Fun" -> return Category.FUN
-        "RPG" -> return Category.RPG
-        else -> return Category.BOT_INFO
+    return when (this) {
+        "Music" -> Category.MUSIC
+        "BotInfo" -> Category.BOT_INFO
+        "ServerInfo" -> Category.SERVER_INFO
+        "Administrate" -> Category.ADMINISTRATE
+        "Games" -> Category.GAMES
+        "Fun" -> Category.FUN
+        "RPG" -> Category.RPG
+        else -> Category.BOT_INFO
     }
 }
 
@@ -147,8 +145,7 @@ enum class Category(val fancyName: String, val description: String) {
     SERVER_INFO("ServerInfo", "Check current information about different aspects of your server"),
     ADMINISTRATE("Administrate", "Administrate your server: this category includes commands like warnings and mutes"),
     FUN("Fun", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
-    RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!")
-    ;
+    RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!");
 
     override fun toString(): String {
         return fancyName

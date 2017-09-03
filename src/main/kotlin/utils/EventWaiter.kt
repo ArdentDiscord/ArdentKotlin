@@ -49,9 +49,9 @@ class EventWaiter : EventListener {
                     val settings = rAE.first
                     var cont = true
                     if (settings.channel != null && settings.channel != e.channel.id) cont = false
-                    if (settings.id != null && settings.id != e.user.id) cont = false
-                    if (settings.guild != null && settings.guild != e.guild.id) cont = false
-                    if (settings.message != null && settings.message != e.messageId) cont = false
+                    else if (settings.id != null && settings.id != e.user.id) cont = false
+                    else if (settings.guild != null && settings.guild != e.guild.id) cont = false
+                    else if (settings.message != null && settings.message != e.messageId) cont = false
                     if (cont) {
                         rAE.second.invoke(e.reaction)
                         reactionAddEvents.remove(rAE)

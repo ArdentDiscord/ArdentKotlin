@@ -269,7 +269,6 @@ class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for A
 
 class Status : Command(Category.BOT_INFO, "status", "check realtime statistics about the bot") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val internals = Internals()
         event.channel.send(event.member.embed("Ardent Realtime Status")
                 .addField("Loaded Commands", internals.commandCount.toString(), true)
                 .addField("Messages Received", formatter.format(internals.messagesReceived), true)

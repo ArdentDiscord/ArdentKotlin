@@ -7,7 +7,6 @@ import commands.games.*
 import commands.music.getGuildAudioPlayer
 import main.*
 import net.dv8tion.jda.core.EmbedBuilder
-import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.exceptions.PermissionException
@@ -15,6 +14,8 @@ import java.awt.Color
 import java.lang.management.ManagementFactory
 import java.util.*
 import java.util.concurrent.TimeUnit
+
+var internals = Internals()
 
 data class SanitizedTriviaRound(val hasWinner: Boolean, val winner: User?, val losers: List<User?>, val question: TriviaQuestion)
 data class SanitizedTrivia(val creator: User?, val id: Long?, val winner: User?, val losers: List<User?>, val scores: List<Pair<String, Int>>, val rounds: List<SanitizedTriviaRound>)
@@ -87,14 +88,6 @@ fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, fa
 
 private fun Member.hasOverride(): Boolean {
     return isOwner || hasPermission(Permission.ADMINISTRATOR) || hasPermission(Permission.MANAGE_CHANNEL)
-}
-
-fun Member.getMarriage(): User? {
-    return getMarriageModeled()?.second
-}
-
-fun Member.getMarriageModeled(): Pair<Marriage, User?>? {
-    return user.getMarriageModeled()
 }
 
 fun User.getMarriage(): User? {
@@ -263,9 +256,7 @@ fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: Strin
 }
 
 fun Guild.getPrefix(): String {
-    val prefix = this.getData().prefix
-    return if (prefix == null) "/"
-    else prefix
+    return getData().prefix ?: "/"
 }
 
 enum class DonationLevel(val readable: String, val level: Int) {
@@ -406,14 +397,13 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
                 game.rounds.forEach { round ->
                     val currentQuestion = round.question
                     if (!correctByCategory.containsKey(currentQuestion.category)) correctByCategory.put(currentQuestion.category, Pair(0, 0))
-                   if (round.winners.contains(id)) {
-                       data.questionsCorrect++
-                       correctByCategory.replace(currentQuestion.category, Pair(correctByCategory[currentQuestion.category]!!.first + 1, correctByCategory[currentQuestion.category]!!.second))
-                   }
-                    else {
-                       data.questionsWrong++
-                       correctByCategory.replace(currentQuestion.category, Pair(correctByCategory[currentQuestion.category]!!.first, correctByCategory[currentQuestion.category]!!.second + 1))
-                   }
+                    if (round.winners.contains(id)) {
+                        data.questionsCorrect++
+                        correctByCategory.replace(currentQuestion.category, Pair(correctByCategory[currentQuestion.category]!!.first + 1, correctByCategory[currentQuestion.category]!!.second))
+                    } else {
+                        data.questionsWrong++
+                        correctByCategory.replace(currentQuestion.category, Pair(correctByCategory[currentQuestion.category]!!.first, correctByCategory[currentQuestion.category]!!.second + 1))
+                    }
                 }
             }
         }
@@ -424,56 +414,65 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
 }
 
 class Internals {
-    val messagesReceived: Long = factory.messagesReceived.get()
-    val commandsReceived: Long = factory.commandsReceived().toLong()
-    val commandCount: Int = factory.commands.size
-    val commandDistribution: HashMap<String, Int> = factory.commandsById
-    val guilds: Int = utils.guilds().size
-    val users: Int = users().size
-    val cpuUsage: Double = getProcessCpuLoad()
-    val ramUsage: Pair<Long /* Used RAM in MB */, Long /* Available RAM in MB */>
+    var messagesReceived: Long = 0
+    var commandsReceived: Long = 0
+    var commandCount: Int = 0
+    var commandDistribution: HashMap<String, Int> = hashMapOf()
+    var guilds: Int = 0
+    var users: Int = 0
+    var cpuUsage: Double = 0.0
+    var ramUsage: Pair<Long /* Used RAM in MB */, Long /* Available RAM in MB */> = Pair(0, 0)
     var roleCount: Long = 0
     var channelCount: Long = 0
     var voiceCount: Long = 0
     var loadedMusicPlayers: Int = 0
     var queueLength: Int = 0
-    val uptime: Long
-    val uptimeFancy: String
+    var uptime: Long = 0
+    var uptimeFancy: String = ""
     var apiCalls: Long = 0
 
     init {
-        val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
-        ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)
-        guilds().forEach { guild ->
-            roleCount += guild.roles.size
-            channelCount += guild.textChannels.size
-            voiceCount += guild.voiceChannels.size
-        }
-        managers.forEach { _, u ->
-            queueLength += u.scheduler.manager.queue.size
-            if (u.player.playingTrack != null) {
-                queueLength++
-                loadedMusicPlayers++
+        waiterExecutor.scheduleAtFixedRate({
+            messagesReceived = factory.messagesReceived.get()
+            commandsReceived = factory.commandsReceived().toLong()
+            commandCount = factory.commands.size
+            commandDistribution = factory.commandsById
+            guilds = utils.guilds().size
+            users = users().size
+            cpuUsage = getProcessCpuLoad()
+            val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
+            ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)
+            guilds().forEach { guild ->
+                roleCount += guild.roles.size
+                channelCount += guild.textChannels.size
+                voiceCount += guild.voiceChannels.size
             }
-        }
-        jdas.forEach { apiCalls += it.responseTotal }
-        uptime = ManagementFactory.getRuntimeMXBean().uptime
-        val seconds = (uptime / 1000) % 60
-        val minutes = (uptime / (1000 * 60)) % 60
-        val hours = (uptime / (1000 * 60 * 60)) % 24
-        val days = (uptime / (1000 * 60 * 60 * 24))
-        val builder = StringBuilder()
-        if (days == 1.toLong()) builder.append("$days day, ")
-        else if (days > 1.toLong()) builder.append("$days days, ")
+            managers.forEach { _, u ->
+                queueLength += u.scheduler.manager.queue.size
+                if (u.player.playingTrack != null) {
+                    queueLength++
+                    loadedMusicPlayers++
+                }
+            }
+            jdas.forEach { apiCalls += it.responseTotal }
+            uptime = ManagementFactory.getRuntimeMXBean().uptime
+            val seconds = (uptime / 1000) % 60
+            val minutes = (uptime / (1000 * 60)) % 60
+            val hours = (uptime / (1000 * 60 * 60)) % 24
+            val days = (uptime / (1000 * 60 * 60 * 24))
+            val builder = StringBuilder()
+            if (days == 1.toLong()) builder.append("$days day, ")
+            else if (days > 1.toLong()) builder.append("$days days, ")
 
-        if (hours == 1.toLong()) builder.append("$hours hour, ")
-        else if (hours > 1.toLong()) builder.append("$hours hours, ")
+            if (hours == 1.toLong()) builder.append("$hours hour, ")
+            else if (hours > 1.toLong()) builder.append("$hours hours, ")
 
-        if (minutes == 1.toLong()) builder.append("$minutes minute, ")
-        else if (minutes > 1.toLong()) builder.append("$minutes minutes, ")
+            if (minutes == 1.toLong()) builder.append("$minutes minute, ")
+            else if (minutes > 1.toLong()) builder.append("$minutes minutes, ")
 
-        if (seconds == 1.toLong()) builder.append("$minutes second")
-        else builder.append("$seconds seconds")
-        uptimeFancy = builder.toString()
+            if (seconds == 1.toLong()) builder.append("$minutes second")
+            else builder.append("$seconds seconds")
+            uptimeFancy = builder.toString()
+        }, 0, 5, TimeUnit.SECONDS)
     }
 }

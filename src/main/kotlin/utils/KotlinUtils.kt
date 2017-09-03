@@ -16,8 +16,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.management.Attribute
 import javax.management.ObjectName
-import kotlin.collections.HashMap
-
 
 class Pair2(val first1: Any?, val second1: Any?)
 
@@ -44,6 +42,9 @@ fun <E> MutableList<E>.shuffle(): MutableList<E> {
     return this
 }
 
+/**
+ * Append [List] items using a comma to seperate them
+ */
 fun List<String>.stringify(): String {
     if (size == 0) return "none"
     val builder = StringBuilder()
@@ -51,6 +52,9 @@ fun List<String>.stringify(): String {
     return builder.removeSuffix(", ").toString()
 }
 
+/**
+ * Creates an equivalent string out of the constituent strings
+ */
 fun List<String>.concat(): String {
     val builder = StringBuilder()
     forEach { builder.append("$it ") }
@@ -60,7 +64,6 @@ fun List<String>.concat(): String {
 fun Any.insert(table: String) {
     r.table(table).insert(r.json(getGson().toJson(this))).runNoReply(conn)
 }
-
 
 fun <T> asPojo(map: HashMap<*, *>?, tClass: Class<T>): T? {
     return getGson().fromJson(JSONObject.toJSONString(map), tClass)
@@ -131,7 +134,7 @@ fun after(consumer: () -> Unit, time: Int, unit: TimeUnit = TimeUnit.SECONDS) {
     waiterExecutor.schedule({ consumer.invoke() }, time.toLong(), unit)
 }
 
-fun <E> List<E>.limit(int: Int) : List<E> {
+fun <E> List<E>.limit(int: Int): List<E> {
     return if (size <= int) this
     else subList(0, int - 1)
 }
@@ -169,7 +172,6 @@ fun List<String>.containsEq(string: String): Boolean {
 /**
  * Full credit goes to http://stackoverflow.com/questions/18489273/how-to-get-percentage-of-cpu-usage-of-os-from-java
  */
-@Throws(Exception::class)
 fun getProcessCpuLoad(): Double {
     val mbs = ManagementFactory.getPlatformMBeanServer()
     val name = ObjectName.getInstance("java.lang:type=OperatingSystem")
@@ -184,35 +186,6 @@ fun getProcessCpuLoad(): Double {
     if (value == -1.0) return Double.NaN
     // returns a percentage value with 1 decimal point precision
     return (value * 1000).toInt() / 10.0
-}
-
-/**
- * Credit mfulton26 @ https://stackoverflow.com/questions/34498368/kotlin-convert-large-list-to-sublist-of-set-partition-size
- */
-fun <T> List<T>.collate(size: Int): List<List<T>> {
-    require(size > 0)
-    return if (isEmpty()) {
-        emptyList()
-    } else {
-        (0..lastIndex / size).map {
-            val fromIndex = it * size
-            val toIndex = Math.min(fromIndex + size, this.size)
-            subList(fromIndex, toIndex)
-        }
-    }
-}
-
-fun replaceAll(builder: StringBuilder, from: String, to: String) {
-    var cont = true
-    while (cont) {
-        val temp = builder.indexOf(from)
-        if (temp != -1) builder.replace(temp, temp + from.length, to)
-        else cont = false
-    }
-}
-
-fun replaceFirst(text: String, searchString: String, replacement: String): String {
-    return org.apache.commons.lang3.StringUtils.replaceOnce(text, searchString, replacement)
 }
 
 /**

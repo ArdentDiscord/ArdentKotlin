@@ -45,39 +45,33 @@ class Web {
         settings.add(Setting("/joinmessage", "Join Message", "Set or remove the message displayed when a member joins your server"))
         settings.add(Setting("/leavemessage", "Leave Message", "Set or remove the message displayed when a member joins your server"))
         settings.add(Setting("/music/announcenewmusic", "Announce Songs at Start", "Choose whether you want to allow "))
-
         staticFiles.location("/public")
 
-
-        notFound({ request, response ->
+        notFound({ request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
             map.put("title", "404 Not Found")
             handlebars.render(ModelAndView(map, "404.hbs"))
         })
-        get("loaderio-e3ef11264fafdf32447808f46a5757b2.html", { _, _ ->
-            "loaderio-e3ef11264fafdf32447808f46a5757b2"
-        })
-        get("/", { request, response ->
+        get("/", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
             map.put("title", "Home")
             ModelAndView(map, "index.hbs")
         }, handlebars)
-        get("/welcome", { request, response ->
+        get("/welcome", { request, _ ->
             val map = hashMapOf<String, Any>()
             map.put("showSnackbar", false)
             handle(request, map)
-            map.put("title", "Welcome!")
+            map.put("title", "Welcome to Ardent!")
             ModelAndView(map, "welcome.hbs")
         }, handlebars)
-        get("/status", { request, response ->
+        get("/status", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
-            val internals = Internals()
             map.put("title", "Status")
             map.put("usedRam", internals.ramUsage.first)
             map.put("totalRam", internals.ramUsage.second)
@@ -93,7 +87,7 @@ class Web {
             map.put("uptime", internals.uptimeFancy)
             ModelAndView(map, "status.hbs")
         }, handlebars)
-        get("/staff", { request, response ->
+        get("/staff", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
@@ -103,7 +97,7 @@ class Web {
             map.put("helpers", staff.filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
             ModelAndView(map, "staff.hbs")
         }, handlebars)
-        get("/patrons", { request, response ->
+        get("/patrons", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
@@ -111,7 +105,7 @@ class Web {
             map.put("patrons", r.table("patrons").run<Any>(conn).queryAsArrayList(Patron::class.java).filter { it != null }.map { it!!.id.toUser() })
             ModelAndView(map, "patrons.hbs")
         }, handlebars)
-        get("/commands", { request, response ->
+        get("/commands", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
@@ -167,7 +161,7 @@ class Web {
                 handle(request, map)
                 map.put("showSnackbar", false)
                 if (guild.getMember(user).hasOverride(guild.textChannels[0], failQuietly = true)) {
-                    manage(request, map, guild)
+                    manage(map, guild)
                     ModelAndView(map, "manageGuild.hbs")
                 } else {
                     map.put("showSnackbar", true)
@@ -195,7 +189,7 @@ class Web {
             } else null
         }, handlebars)
         path("/translation", {
-            get("/languages", { request, response ->
+            get("/languages", { request, _ ->
                 val map = hashMapOf<String, Any>()
                 handle(request, map)
                 map.put("title", "Language List")
@@ -206,24 +200,24 @@ class Web {
         })
         get("/support", { _, response -> response.redirect("https://discord.gg/VebBB5z") })
         get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=$loginRedirect&response_type=code") })
-        get("/login", { request, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") })
-        get("/patreon", { request, response -> response.redirect("https://patreon.com/ardent") })
+        get("/login", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") })
+        get("/patreon", { _, response -> response.redirect("https://patreon.com/ardent") })
         path("/guides", {
-            get("/identifier", { request, response ->
+            get("/identifier", { request, _ ->
                 val map = hashMapOf<String, Any>()
                 handle(request, map)
                 map.put("title", "How to find Discord IDs")
                 ModelAndView(map, "findid.hbs")
             }, handlebars)
         })
-        get("/404", { request, response ->
+        get("/404", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
             map.put("title", "404 Not Found")
             ModelAndView(map, "404.hbs")
         }, handlebars)
-        get("/games/recent", { request, response ->
+        get("/games/recent", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("title", "Recent Games")
@@ -241,14 +235,14 @@ class Web {
             ModelAndView(map, "recentgames.hbs")
 
         }, handlebars)
-        get("/fail", { request, response ->
+        get("/fail", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
             map.put("title", "No Permission")
             ModelAndView(map, "fail.hbs")
         }, handlebars)
-        get("/announcements", { request, response ->
+        get("/announcements", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
@@ -256,7 +250,7 @@ class Web {
             map.put("announcements", getAnnouncements())
             ModelAndView(map, "announcements.hbs")
         }, handlebars)
-        get("/games/*/*", { request, response ->
+        get("/games/*/*", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             when (request.splat()[0]) {
@@ -343,13 +337,12 @@ class Web {
                 }
             }
         }, handlebars)
-        get("/tickets", { request, response ->
+        get("/tickets", { _, response ->
             response.redirect("/tickets/")
         })
         get("/tickets/*", { request, response ->
             val session = request.session()
             val user: User? = session.attribute<User>("user")
-            val role: Staff? = session.attribute<Staff>("role")
             if (user == null) {
                 response.redirect("/login")
                 null
@@ -872,7 +865,7 @@ class Web {
                                 }
                             }
                             data.update()
-                            manage(request, map, guild)
+                            manage(map, guild)
                             ModelAndView(map, "manageGuild.hbs")
                         } else {
                             map.put("showSnackbar", true)
@@ -906,12 +899,10 @@ class Web {
                         }
                     }
                 }, handlebars)
-                post("/login", { request, response ->
-                    response.redirect("/welcome")
-                })
+                post("/login", { _, response -> response.redirect("/welcome") })
             })
             path("/public", {
-                get("/status", { _, _ -> Internals().toJson() })
+                get("/status", { _, _ -> internals.toJson() })
                 get("/commands", { _, _ -> factory.commands })
                 get("/staff", { _, _ -> staff.toJson() })
                 path("/data", {
@@ -924,17 +915,15 @@ class Web {
                             else {
                                 val member = guild.getMemberById(id)
                                 if (member == null) Failure("invalid user specified")
-                                else {
-                                    GuildMemberModel(id, member.effectiveName, member.roles.map { it.name },
-                                            member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
-                                }
+                                else GuildMemberModel(id, member.effectiveName, member.roles.map { it.name }, member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
+
                             }
                         })
                     })
                 })
             })
         })
-        internalServerError { request, response ->
+        internalServerError { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)
@@ -958,7 +947,7 @@ fun isAdministrator(request: Request, response: Response): Boolean {
     return true
 }
 
-fun manage(request: Request, map: HashMap<String, Any>, guild: Guild) {
+fun manage(map: HashMap<String, Any>, guild: Guild) {
     map.put("title", "Management Center")
     val data = guild.getData()
     map.put("announceMusic", data.musicSettings.announceNewMusic)
@@ -1005,19 +994,19 @@ fun handle(request: Request, map: HashMap<String, Any>) {
     } else {
         map.put("validSession", true)
         map.put("user", user)
-    }
-    val role = session.attribute<Staff>("role")
-    if (role == null) {
-        map.put("isStaff", false)
-        map.put("isAdmin", false)
-        map.put("hasWhitelists", false)
-    } else {
-        val whitelisted = user.whitelisted()
-        map.put("hasWhitelists", whitelisted.isNotEmpty())
-        map.put("whitelisted", whitelisted.filter { it != null }.map { it!!.id.toUser()!! })
-        map.put("isAdmin", role.role == Staff.StaffRole.ADMINISTRATOR)
-        map.put("isStaff", true)
-        map.put("role", role.role)
+        val role = session.attribute<Staff>("role")
+        if (role == null) {
+            map.put("isStaff", false)
+            map.put("isAdmin", false)
+            map.put("hasWhitelists", false)
+        } else {
+            val whitelisted = user.whitelisted()
+            map.put("hasWhitelists", whitelisted.isNotEmpty())
+            map.put("whitelisted", whitelisted.filter { it != null }.map { it!!.id.toUser()!! })
+            map.put("isAdmin", role.role == Staff.StaffRole.ADMINISTRATOR)
+            map.put("isStaff", true)
+            map.put("role", role.role)
+        }
     }
 }
 

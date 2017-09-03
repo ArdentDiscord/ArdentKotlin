@@ -59,7 +59,6 @@ val managers = hashMapOf<Long, GuildMusicManager>()
 val spotifyApi: Api = Api.builder().clientId("79d455af5aea45c094c5cea04d167ac1").clientSecret(config.getValue("spotifySecret"))
         .redirectURI("https://ardentbot.com").build()
 
-val shards = 2
 
 var transport: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
 var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
@@ -71,8 +70,9 @@ fun main(args: Array<String>) {
             .execute()
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 50)) }
     Web()
+    val shards = 2
     for (sh in 1..shards) {
-        jdas.add(JDABuilder(AccountType.BOT)
+        val tempJda = JDABuilder(AccountType.BOT)
                 .setCorePoolSize(10)
                 .setGame(Game.of("Try out /trivia!", "https://twitch.tv/ "))
                 .addEventListener(waiter)
@@ -82,22 +82,18 @@ fun main(args: Array<String>) {
                 .setEventManager(AnnotatedEventManager())
                 .useSharding(sh - 1, shards)
                 .setToken(config.getValue("token"))
-                .buildBlocking())
-    }
-
-    hangout = getGuildById("351220166018727936")
-
-    jdas.forEach {
-        val logCh: TextChannel? = it.getTextChannelById("351368131639246848")
+                .buildBlocking()
+        val logCh: TextChannel? = tempJda.getTextChannelById("351368131639246848")
         if (logCh != null) logChannel = logCh
+        jdas.add(tempJda)
     }
+    hangout = getGuildById("351220166018727936")
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
     playerManager.registerSourceManager(SoundCloudAudioSourceManager())
     playerManager.useRemoteNodes(config.getValue("node1"), config.getValue("node2"))
     AudioSourceManagers.registerRemoteSources(playerManager)
     AudioSourceManagers.registerLocalSource(playerManager)
-
     addCommands()
     startAdministrativeDaemon()
     println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")
@@ -128,74 +124,13 @@ data class Config(val url: String) {
 }
 
 fun addCommands() {
-    factory.addCommand(Play())
-            .addCommand(Radio())
-            .addCommand(Stop())
-            .addCommand(Pause())
-            .addCommand(Resume())
-            .addCommand(SongUrl())
-            .addCommand(Ping())
-            .addCommand(Help())
-            .addCommand(Volume())
-            .addCommand(Playing())
-            .addCommand(Repeat())
-            .addCommand(Shuffle())
-            .addCommand(Queue())
-            .addCommand(RemoveFrom())
-            .addCommand(Skip())
-            .addCommand(Prefix())
-            .addCommand(Leave())
-            .addCommand(Games())
-            .addCommand(Decline())
-            .addCommand(InviteToGame())
-            .addCommand(Gamelist())
-            .addCommand(LeaveGame())
-            .addCommand(JoinGame())
-            .addCommand(Cancel())
-            .addCommand(Forcestart())
-            .addCommand(Invite())
-            .addCommand(Settings())
-            .addCommand(About())
-            .addCommand(Donate())
-            .addCommand(UserInfo())
-            .addCommand(ServerInfo())
-            .addCommand(RoleInfo())
-            .addCommand(Roll())
-            .addCommand(UrbanDictionary())
-            .addCommand(UnixFortune())
-            .addCommand(EightBall())
-            .addCommand(FML())
-            .addCommand(Translate())
-            .addCommand(IsStreaming())
-            .addCommand(Status())
-            .addCommand(Clear())
-            .addCommand(Tempban())
-            .addCommand(Automessages())
-            .addCommand(Mute())
-            .addCommand(Unmute())
-            .addCommand(Punishments())
-            .addCommand(Nono())
-            .addCommand(GiveAll())
-            .addCommand(WebsiteCommand())
-            .addCommand(GetId())
-            .addCommand(Support())
-            .addCommand(ClearQueue())
-            .addCommand(WebPanel())
-            .addCommand(IamCommand())
-            .addCommand(IamnotCommand())
-            .addCommand(BlackjackCommand())
-            .addCommand(Connect4Command())
-            .addCommand(BetCommand())
-            .addCommand(TriviaCommand())
-            .addCommand(TopMoney())
-            .addCommand(TopMoneyServer())
-            .addCommand(ProfileCommand())
-            .addCommand(MarryCommand())
-            .addCommand(DivorceCommand())
-            .addCommand(Daily())
-            .addCommand(Balance())
-            .addCommand(AcceptInvitation())
-            .addCommand(TriviaStats())
+    factory.addCommands(Play(), Radio(), Stop(), Pause(), Resume(), SongUrl(), Ping(), Help(), Volume(), Playing(), Repeat(),
+            Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), Games(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
+            JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
+            UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
+            Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
+            IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
+            MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats())
 }
 
 fun setupDrive(): Sheets {
