@@ -4,6 +4,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import com.wrapper.spotify.exceptions.BadRequestException
 import events.Category
 import events.Command
 import main.playerManager
@@ -17,7 +18,11 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
             "Spotify **Today's Top Hits**",
             "Spotify **Rap Caviar**",
             "Spotify **Power Gaming**",
-            "Spotify **Teen Party**")
+            "Spotify **Teen Party**",
+            "Spotify **USA Top 50**",
+            "Spotify **Viva Latino Top 50**",
+            "Spotify **Hot Country**"
+    )
 
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
@@ -34,6 +39,9 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
                         1 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd"
                         2 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj"
                         3 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p"
+                        4 -> "https://open.spotify.com/user/spotifycharts/playlist/37i9dQZEVXbLRQDuF5jeBp"
+                        5 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva"
+                        6 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda"
                         else -> ""
                     }.getSpotifyPlaylist(event.textChannel, event.member)
                 }
@@ -114,6 +122,7 @@ class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tra
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
+        manager.scheduler.autoplay = false
         manager.player.stopTrack()
         manager.scheduler.manager.resetQueue()
         event.channel.send("Stopped and reset the player ${Emoji.WHITE_HEAVY_CHECKMARK}")
@@ -206,7 +215,9 @@ class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq"
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (event.member.hasOverride(event.textChannel, true, djCommand = true)) {
             if (!event.member.checkSameChannel(event.textChannel)) return
-            event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.resetQueue()
+            val scheduler = event.guild.getGuildAudioPlayer(event.textChannel).scheduler
+            scheduler.autoplay = false
+            scheduler.manager.resetQueue()
             event.channel.send("Cleared the queue ${Emoji.BALLOT_BOX_WITH_CHECK}")
         }
     }
@@ -296,10 +307,20 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
     }
     val musicManager = member.guild.getGuildAudioPlayer(textChannel)
     if (this.contains("spotify")) {
-        val tr = spotifyApi.getTrack(this.removePrefix("https://open.spotify.com/track/")).build().get()
-        if (tr != null && tr.name != null) {
-            tr.name.load(member, textChannel, message, search, radioName, autoplay)
-            return
+        try {
+            val tr = spotifyApi.getTrack(this.removePrefix("https://open.spotify.com/track/")).build().get()
+            if (tr != null && tr.name != null) {
+                tr.name.load(member, textChannel, message, search, radioName, autoplay)
+                return
+            } else {
+                textChannel.send("You specified an invalid url.. Please try again after checking the link")
+                return
+            }
+        } catch (e: BadRequestException) {
+            if (member.hasDonationLevel(textChannel, DonationLevel.INTERMEDIATE, false)) {
+                this.getSpotifyPlaylist(textChannel, member)
+                return
+            }
         }
     }
     playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {

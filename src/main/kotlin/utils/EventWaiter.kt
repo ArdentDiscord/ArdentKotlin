@@ -116,7 +116,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
     }
     if (footerText != null) builder.append("\n$footerText\n")
-    builder.append("\n__Please select the number corresponding with the choice that you'd like to select__\n")
+    builder.append("\n__Please select the number corresponding with the choice that you'd like to select or X to cancel__\n")
     sendMessage(embed.setDescription(builder).build()).queue { message ->
         for (x in 1..options.size) {
             message.addReaction(when (x) {
@@ -133,6 +133,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 else -> Emoji.HEAVY_CHECK_MARK
             }.symbol).queue()
         }
+        message.addReaction(Emoji.HEAVY_MULTIPLICATION_X.symbol).queue()
         waiter.waitForReaction(Settings(member.user.id, id, member.guild.id), { messageReaction ->
             val chosen = when (messageReaction.emote.name) {
                 Emoji.KEYCAP_DIGIT_ONE.symbol -> 1
@@ -145,10 +146,11 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 Emoji.KEYCAP_DIGIT_EIGHT.symbol -> 8
                 Emoji.KEYCAP_DIGIT_NINE.symbol -> 9
                 Emoji.KEYCAP_TEN.symbol -> 10
+                Emoji.HEAVY_MULTIPLICATION_X.symbol -> 69
                 else -> 69999999
             } - 1
             if (chosen in 0..(options.size - 1)) consumer.invoke(chosen)
-            else send("You specified an invalid reaction, cancelling selection")
+            else if (chosen != 68) send("You specified an invalid reaction, cancelling selection")
         }, time = 25, silentExpiration = false)
     }
 }
