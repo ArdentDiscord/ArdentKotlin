@@ -8,7 +8,6 @@ import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -164,8 +163,9 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
             if (chosen in 0..(options.size - 1)) {
                 invoked = true
                 consumer.invoke(chosen, message)
-            }
-            else if (chosen != 68 && !invoked) send("You specified an invalid reaction or response, cancelling selection")
+            } else if (chosen != 68) send("You specified an invalid reaction or response, cancelling selection")
+        }, {
+            if (!invoked) send("You didn't specify a reaction or response, cancelling selection")
         }, time = 25, silentExpiration = true)
     }
 }
