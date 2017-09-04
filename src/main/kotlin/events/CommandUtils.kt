@@ -46,6 +46,17 @@ class CommandFactory {
                 }
             }
         }
+        if (event.channel.id == "351370317731594241") {
+            if (event.message.rawContent.equals("/helpme", true)) {
+                event.channel.send("${event.guild.getRolesByName("Staff", true)[0].asMention}, please message ${event.author.asMention}")
+                event.channel.send("${event.author.asMention}, when a staff member messages you, please send them a temporary server invite so they can get more detail")
+            } else if (!event.author.isStaff()) {
+                event.message.delete().queue()
+                event.author.openPrivateChannel().queue { privateChannel ->
+                    privateChannel.send("Please type **/helpme** and a staff member will message you soon.")
+                }
+            }
+        }
         messagesReceived.getAndIncrement()
         if (cont) {
             val member = event.member

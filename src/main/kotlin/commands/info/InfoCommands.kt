@@ -3,7 +3,6 @@ package commands.info
 import events.Category
 import events.Command
 import main.factory
-import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.exceptions.PermissionException
@@ -149,37 +148,21 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
 
 class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val embed: EmbedBuilder
-        if (arguments.size == 0) {
-            embed = event.member.embed("Help | General", Color.DARK_GRAY)
-                    .setThumbnail("https://cdn.pixabay.com/photo/2016/10/18/18/19/question-mark-1750942_960_720.png")
-            Category.values().forEachIndexed { index, category ->
-                embed.appendDescription("${Emoji.SMALL_ORANGE_DIAMOND} [**${index + 1}**] ${category.fancyName}: *${category.description}*\n")
-            }
-            embed.appendDescription("\n**Type _${event.guild.getPrefix()}help category-name or category-number_ to see a category-specific command list**")
-        } else {
-            var categoryIndex: Int = -1
-            val name = arguments.concat()
-            val tempIndex = name.toIntOrNull()
-            if (tempIndex != null && tempIndex in 1..(Category.values().size)) categoryIndex = tempIndex - 1
-            else Category.values().forEachIndexed { index, category -> if (name.equals(category.fancyName, true)) categoryIndex = index }
-            if (categoryIndex == -1) {
-                event.channel.send("Unable to find the category you specified... Type **${event.guild.getPrefix()}help** to see a list")
-                return
-            } else {
-                val category = Category.values()[categoryIndex]
-                embed = event.member.embed("${category.fancyName} | Command List", Color.DARK_GRAY)
-                factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
-                    embed.appendDescription("\n${if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: ${command.description}")
-                    if (command.aliases.isNotEmpty()) {
-                        if (command.aliases.size > 1) embed.appendDescription("         __aliases: [${command.aliases.toList().stringify()}]__")
-                        else embed.appendDescription("   (__alias: ${command.aliases.toList().stringify()}__)")
-                    }
+        event.channel.selectFromList(event.member, "Ardent | Commands", Category.values().map { "${it.fancyName}: *${it.description}*" }.toMutableList(), { selected, selectionMessage ->
+            val category = Category.values()[selected]
+            val embed = event.member.embed("${category.fancyName} | Command List", Color.DARK_GRAY)
+            factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
+                embed.appendDescription("\n${if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: ${command.description}")
+                if (command.aliases.isNotEmpty()) {
+                    if (command.aliases.size > 1) embed.appendDescription("         __aliases: [${command.aliases.toList().stringify()}]__")
+                    else embed.appendDescription("   (__alias: ${command.aliases.toList().stringify()}__)")
                 }
-                embed.appendDescription("\n\n*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
             }
-        }
-        event.channel.send(embed)
+            embed.appendDescription("\n\n*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
+            selectionMessage.editMessage(embed.build()).queue()
+        }, failure = {
+            event.channel.send("You need to type the number or click the reaction that corresponded to the category you wanted to select :(")
+        })
     }
 }
 

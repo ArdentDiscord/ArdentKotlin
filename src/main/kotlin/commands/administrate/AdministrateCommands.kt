@@ -226,7 +226,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                 }
                 when (arguments[0]) {
                     "test" -> {
-                        event.channel.send(    Connect4Game.GameBoard("1", "2").toString())
+                        event.channel.send(Connect4Game.GameBoard("1", "2").toString())
                     }
                     "eval" -> {
                         eval(arguments, event)

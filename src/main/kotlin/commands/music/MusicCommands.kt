@@ -32,21 +32,24 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
             return
         }
         if (arguments[0].equals("start", true)) {
-            event.channel.selectFromList(event.member, "Select the playlist that you want to listen to", stations, { selection ->
-                if (event.channel.requires(event.member, DonationLevel.BASIC)) {
-                    when (selection) {
-                        0 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M"
-                        1 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd"
-                        2 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj"
-                        3 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p"
-                        4 -> "https://open.spotify.com/user/spotifycharts/playlist/37i9dQZEVXbLRQDuF5jeBp"
-                        5 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva"
-                        6 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda"
-                        else -> ""
-                    }.getSpotifyPlaylist(event.textChannel, event.member)
-                }
-            })
-            return
+            if (event.member.voiceChannel() == null) event.channel.send("You need to be in a voice channel!")
+            else {
+                event.channel.selectFromList(event.member, "Select the playlist that you want to listen to", stations, { selection, _ ->
+                    if (event.channel.requires(event.member, DonationLevel.BASIC)) {
+                        when (selection) {
+                            0 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M"
+                            1 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd"
+                            2 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj"
+                            3 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p"
+                            4 -> "https://open.spotify.com/user/spotifycharts/playlist/37i9dQZEVXbLRQDuF5jeBp"
+                            5 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva"
+                            6 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda"
+                            else -> ""
+                        }.getSpotifyPlaylist(event.textChannel, event.member)
+                    }
+                })
+                return
+            }
         }
     }
 }
@@ -79,7 +82,6 @@ class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel
         val manager = guild.getGuildAudioPlayer(event.textChannel).scheduler.manager
         guild.audioManager.closeAudioConnection()
         manager.resetQueue()
-        manager.nextTrack()
         val vc = guild.audioManager.connectedChannel
         if (vc != null) event.channel.send("Successfully disconnected from **${vc.name}** ${Emoji.MULTIPLE_MUSICAL_NOTES}")
     }
@@ -192,7 +194,7 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
         if (manager.scheduler.manager.queue.size == 0) {
-            event.channel.send("${Emoji.MULTIPLE_MUSICAL_NOTES} There are no songs in the queue currently!")
+            event.channel.send("${Emoji.MULTIPLE_MUSICAL_NOTES} There aren't any songs in the queue at the moment!")
             return
         }
         val embed = event.member.embed("Current Queue: ${event.guild.name}")
@@ -373,14 +375,13 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
                 }
             } else {
                 val selectFrom = mutableListOf<String>()
-                val num: Int
-                num = if (playlist.tracks.size >= 7) 7
+                val num: Int = if (playlist.tracks.size >= 7) 7
                 else playlist.tracks.size
                 (1..num)
                         .map { playlist.tracks[it - 1] }
                         .map { it.info }
                         .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
-                textChannel.selectFromList(member, "Select Song", selectFrom, { response ->
+                textChannel.selectFromList(member, "Select Song", selectFrom, { response, _ ->
                     val track = playlist.tracks[response]
                     play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
                     textChannel.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")

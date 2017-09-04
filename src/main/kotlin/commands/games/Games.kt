@@ -343,7 +343,7 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
                         channel.send("You specified an invalid bet amount! Please retry or type `cancel` to cancel the game")
                         doRound(user)
                     } else {
-                        channel.selectFromList(channel.guild.getMember(user), "What color will the next card I draw be?", mutableListOf("Black", "Red"), { selection ->
+                        channel.selectFromList(channel.guild.getMember(user), "What color will the next card I draw be?", mutableListOf("Black", "Red"), { selection, _ ->
                             val suit = BlackjackGame.Hand(false, end = false).generate().suit
                             val won = when (suit) {
                                 BlackjackGame.Suit.HEART, BlackjackGame.Suit.DIAMOND -> selection == 1
@@ -621,6 +621,15 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
         WAITING_PLAYER_ONE, WAITING_PLAYER_TWO
     }
 }
+class SlotsGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.SLOTS, channel, creator, playerCount, isPublic) {
+    override fun onStart() {
+
+    }
+
+    class Round {
+
+    }
+}
 
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -639,7 +648,7 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
             channel.send("There can only be one trivia game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
                     "https://ardentbot.com/patreon to start more than one game per type at a time**")
         } else {
-            channel.selectFromList(member, "Would you like this game of ${GameType.TRIVIA.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), { public ->
+            channel.selectFromList(member, "Would you like this game of ${GameType.TRIVIA.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), { public, _ ->
                 val isPublic = public == 0
                 channel.send("How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
                 waiter.waitForMessage(Settings(member.user.id, channel.id, event.guild.id), { playerCount ->
@@ -654,6 +663,20 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
         }
     }
 
+}
+
+class SlotsCommand : Command(Category.GAMES, "slots", "start slots games") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val member = event.member
+        val channel = event.textChannel
+        if (member.isInGameOrLobby()) channel.send("${member.user.asMention}, You're already in game! You can't create another game!")
+        else if (event.guild.hasGameType(GameType.SLOTS) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+            channel.send("There can only be one slots game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
+                    "https://ardentbot.com/patreon to start more than one game per type at a time**")
+        } else {
+            SlotsGame(channel, member.id(), 1, false).startEvent()
+        }
+    }
 }
 
 class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of blackjack") {

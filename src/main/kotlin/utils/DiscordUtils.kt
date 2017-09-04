@@ -302,8 +302,8 @@ fun User.donationLevel(): DonationLevel {
     return asPojo(r.table("patrons").get(id).run(conn), Patron::class.java)?.donationLevel ?: DonationLevel.NONE
 }
 
-fun Member.hasDonationLevel(channel: MessageChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
-    if (user.donationLevel().level >= donationLevel.level || guild.donationLevel().level >= donationLevel.level) return true
+fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
+    if (user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
     if (!failQuietly) channel.requires(this, donationLevel)
     return false
 }
