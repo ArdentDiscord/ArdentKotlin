@@ -60,7 +60,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 .setFooter("Ardent Game Engine - Adam#9261", member.user.avatarUrl)
                 .setDescription("This lobby has been active for ${((System.currentTimeMillis() - creation) / 1000).formatMinSec()}\n" +
                         "It currently has **${players.size}** of **$playerCount** players required to start | ${players.toUsers()}\n" +
-                        "To start, the host can also type *${prefix}minigames forcestart*\n\n" +
+                        "To start, the host can also type *${prefix}forcestart*\n\n" +
                         "This game was created by __${creator.toUser()?.withDiscrim()}__")
         val m = channel.sendReceive(embed)
         channel.send("Join by typing **${prefix}join #$gameId**\n" +

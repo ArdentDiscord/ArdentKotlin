@@ -75,7 +75,6 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
                             return
                         }
                     }
-                    return
                 }
             }
             event.channel.send("There's not a game in lobby with the ID of **#$id**")
