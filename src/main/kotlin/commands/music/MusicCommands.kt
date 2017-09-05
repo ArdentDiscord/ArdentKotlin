@@ -34,7 +34,7 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
         if (arguments[0].equals("start", true)) {
             if (event.member.voiceChannel() == null) event.channel.send("You need to be in a voice channel!")
             else {
-                event.channel.selectFromList(event.member, "Select the playlist that you want to listen to", stations, { selection, _ ->
+                event.channel.selectFromList(event.message, event.member, "Select the playlist that you want to listen to", stations, { selection, _ ->
                     if (event.channel.requires(event.member, DonationLevel.BASIC)) {
                         when (selection) {
                             0 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M"
@@ -381,7 +381,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
                         .map { playlist.tracks[it - 1] }
                         .map { it.info }
                         .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
-                textChannel.selectFromList(member, "Select Song", selectFrom, { response, _ ->
+                textChannel.selectFromList(message!!, member, "Select Song", selectFrom, { response, _ ->
                     val track = playlist.tracks[response]
                     play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
                     textChannel.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")

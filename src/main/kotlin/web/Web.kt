@@ -226,6 +226,7 @@ class Web {
             r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { games.add(Pair(GameType.BETTING, it!!)) }
             r.table("TriviaData").run<Any>(conn).queryAsArrayList(GameDataTrivia::class.java).forEach { games.add(Pair(GameType.TRIVIA, it!!)) }
             r.table("Connect_4Data").run<Any>(conn).queryAsArrayList(GameDataConnect4::class.java).forEach { games.add(Pair(GameType.CONNECT_4, it!!)) }
+            r.table("SlotsData").run<Any>(conn).queryAsArrayList(GameDataSlots::class.java).forEach { games.add(Pair(GameType.SLOTS, it!!)) }
             games.sortByDescending { it.second.endTime }
             map.put("total", games.size)
             games.removeIf { it.second.creator.toUser() == null }
@@ -270,6 +271,24 @@ class Web {
                         map.put("date", game.startTime.readableDate())
                         map.put("data", user.getData())
                         ModelAndView(map, "blackjack.hbs")
+                    }
+                }
+                "slots" -> {
+                    val id = request.splat()[1].toIntOrNull() ?: 999999999
+                    val game = asPojo(r.table("SlotsData").get(id).run(conn), GameDataSlots::class.java)
+                    if (game == null) {
+                        map.put("showSnackbar", true)
+                        map.put("snackbarMessage", "No game with that id was found!")
+                        map.put("title", "Gamemode not found")
+                        ModelAndView(map, "404.hbs")
+                    } else {
+                        val user = game.creator.toUser()!!
+                        map.put("title", "Slots Game #$id")
+                        map.put("game", game)
+                        map.put("user", user)
+                        map.put("date", game.startTime.readableDate())
+                        map.put("data", user.getData())
+                        ModelAndView(map, "slots.hbs")
                     }
                 }
                 "connect_4" -> {

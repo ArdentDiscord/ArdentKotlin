@@ -1,0 +1,25 @@
+{{> header.hbs }}
+{{#with game}}
+    <!-- Main -->
+    <section id="main" class="container 75%">
+        <header>
+            <h2>{{user.name}}#{{user.discriminator}}'s Slots game</h2>
+            <p>Game ID: #{{id}} - Started at {{date}}</p>
+        </header>
+        {{#each rounds}}
+            <div class="box">
+                <div>
+                    <h3 class="alignleft">Round {{@index_1}}</h3>
+                    <h3 class="alignright">Result: {{#if won}}<span style="color: green;">Won</span>{{else}}<span style="color: red;">Lost</span>{{/if}}</h3>
+                    <div style="clear: both;"></div>
+                    <br/>
+                </div>
+                <p>Result: <br/>
+                    {{& game}}</p>
+                <p>User Bet: <b>{{bet}}</b></p>
+            </div>
+        {{/each}}
+    </section>
+{{/with}}
+
+{{> footer.hbs }}

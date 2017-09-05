@@ -343,7 +343,7 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
                         channel.send("You specified an invalid bet amount! Please retry or type `cancel` to cancel the game")
                         doRound(user)
                     } else {
-                        channel.selectFromList(channel.guild.getMember(user), "What color will the next card I draw be?", mutableListOf("Black", "Red"), { selection, _ ->
+                        channel.selectFromList(message, channel.guild.getMember(user), "What color will the next card I draw be?", mutableListOf("Black", "Red"), { selection, _ ->
                             val suit = BlackjackGame.Hand(false, end = false).generate().suit
                             val won = when (suit) {
                                 BlackjackGame.Suit.HEART, BlackjackGame.Suit.DIAMOND -> selection == 1
@@ -621,14 +621,94 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
         WAITING_PLAYER_ONE, WAITING_PLAYER_TWO
     }
 }
+
 class SlotsGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.SLOTS, channel, creator, playerCount, isPublic) {
+    private val rounds = mutableListOf<Round>()
     override fun onStart() {
-
+        doRound(channel.guild.getMemberById(creator))
     }
 
-    class Round {
-
+    private fun doRound(member: Member) {
+        val data = member.data()
+        channel.send("How much would you like to bet? You currently have **${data.gold} gold**")
+        waiter.waitForMessage(Settings(member.id(), channel.id, channel.guild.id), { message ->
+            val bet = message.rawContent.toIntOrNull()
+            if (bet == null || bet <= 0 || bet > data.gold) {
+                channel.send("You specified an invalid bet, please retry...")
+                doRound(member)
+            } else {
+                Thread.sleep(500)
+                var slots = SlotsGame()
+                if (!slots.won()) slots = SlotsGame()
+                channel.send(member.embed("Slots Results").setDescription("${if (slots.won())"Congrats, you won **$bet** gold" else "Darn, you lost **$bet** gold :("}\n$slots)"))
+                if (slots.won()) data.gold += bet
+                else data.gold -= bet
+                data.update()
+                rounds.add(Round(bet, slots.won(), slots.toString().replace("\n", "<br />")))
+                Thread.sleep(1500)
+                channel.selectFromList(message, member, "Do you want to go again?", mutableListOf("Yes", "No"), { goAgainMessage, selectionMessage ->
+                    if (goAgainMessage == 0) doRound(member)
+                    else finish(member)
+                    selectionMessage.delete().queue()
+                }, failure = {
+                    channel.send("You didn't respond in time, so I'll end the game now")
+                    finish(member)
+                })
+            }
+        }, {
+            channel.send("You didn't respond in time, so I'll end the game now")
+            finish(member)
+        })
     }
+
+    private fun finish(member: Member) {
+        if (rounds.size == 0) cancel(member)
+        else {
+            cleanup(GameDataSlots(gameId, creator, startTime!!, rounds))
+        }
+    }
+
+    data class SlotsGame(val slots: ArrayList<String> = arrayListOf()) {
+        init {
+            for (i in 1..9) {
+                slots.add(when (random.nextInt(4)) {
+                    0 -> Emoji.RED_APPLE
+                    1 -> Emoji.BANANA
+                    2 -> Emoji.FRENCH_FRIES
+                    else -> Emoji.STRAWBERRY
+                }.symbol)
+            }
+        }
+
+        fun won(): Boolean {
+            val emoji = slots[3]
+            return slots[4] == emoji && slots[5] == emoji
+        }
+
+        override fun toString(): String {
+            val builder = StringBuilder()
+            slots.forEachIndexed { index, s ->
+                if (index % 3 == 0 && index != 0) builder.append("\n")
+                builder.append("$s ")
+                if (index == 5) builder.append(Emoji.LEFTWARDS_BLACK_ARROW.symbol)
+            }
+            return builder.toString()
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as SlotsGame
+            if (slots != other.slots) return false
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return slots.hashCode()
+        }
+    }
+
+    data class Round(val bet: Int, val won: Boolean, val game: String)
 }
 
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
@@ -648,7 +728,7 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
             channel.send("There can only be one trivia game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
                     "https://ardentbot.com/patreon to start more than one game per type at a time**")
         } else {
-            channel.selectFromList(member, "Would you like this game of ${GameType.TRIVIA.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), { public, _ ->
+            channel.selectFromList(event.message, member, "Would you like this game of ${GameType.TRIVIA.readable} to be open to everyone to join?", mutableListOf("Yes", "No"), { public, _ ->
                 val isPublic = public == 0
                 channel.send("How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
                 waiter.waitForMessage(Settings(member.user.id, channel.id, event.guild.id), { playerCount ->

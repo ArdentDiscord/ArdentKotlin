@@ -369,6 +369,17 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
         return data
     }
 
+    fun connect4Data(): Connect4PlayerData {
+        val data = Connect4PlayerData()
+        r.table("Connect_4Data").run<Any>(conn).queryAsArrayList(GameDataConnect4::class.java).forEach { game ->
+            if (game != null && game.creator == id) {
+                if (game.winner == id) data.wins++
+                else data.losses++
+            }
+        }
+        return data
+    }
+
     fun bettingData(): BettingPlayerData {
         val data = BettingPlayerData()
         r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { game ->
@@ -380,6 +391,24 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
                     } else {
                         data.losses++
                         data.netWinnings -= round.betAmount
+                    }
+                }
+            }
+        }
+        return data
+    }
+
+    fun slotsData(): SlotsPlayerData {
+        val data = SlotsPlayerData()
+        r.table("SlotsData").run<Any>(conn).queryAsArrayList(GameDataSlots::class.java).forEach { game ->
+            if (game != null && game.creator == id) {
+                game.rounds.forEach { round ->
+                    if (round.won) {
+                        data.wins++
+                        data.netWinnings += round.bet
+                    } else {
+                        data.losses++
+                        data.netWinnings -= round.bet
                     }
                 }
             }

@@ -35,7 +35,7 @@ class TriviaStats : Command(Category.RPG, "triviastats", "see your or others' tr
         event.channel.send(event.member.embed("${user.name}'s Trivia Stats", Color.CYAN)
                 .setThumbnail("https://pbs.twimg.com/profile_images/526480510747299840/L54TjKO2.jpeg")
                 .setDescription("Wins: **${triviaData.wins}**\nLosses: **${triviaData.losses}**\n" +
-                        "Questions Correct: **${triviaData.questionsCorrect}** of **${triviaData.questionsWrong + triviaData.questionsCorrect}** _(${triviaData.overallCorrectPercent}%)_\n\n" +
+                        "Questions Correct: **${triviaData.questionsCorrect}** of **${triviaData.questionsWrong + triviaData.questionsCorrect}** _(${triviaData.overallCorrectPercent.toInt()}%)_\n\n" +
                         "**Percentage Won by Category**: \n${triviaData.percentagesFancy()}"))
     }
 
@@ -47,15 +47,18 @@ class ProfileCommand : Command(Category.RPG, "profile", "see your or others' pro
         val data = profiled.getData()
         val blackjackData = data.blackjackData()
         val bettingData = data.bettingData()
-        val triviaData = data.triviaData()
+        val slotsData = data.slotsData()
+        val connect4Data = data.connect4Data()
         val spouse = profiled.getMarriage()
         val embed = event.member.embed("${profiled.withDiscrim()}'s Profile")
                 .setThumbnail(profiled.effectiveAvatarUrl)
-        if (event.author.isStaff()) embed.addField("Staff Member", "True", true)
+        if (profiled.isStaff()) embed.addField("Ardent Status", "Staff Member", true)
         else embed.addField("Patron Level", data.donationLevel.readable, true)
         embed.addField("Money", "**${data.gold}** gold", true)
                 .addField("Blackjack Stats", "Wins: **${blackjackData.wins}**\nTies: **${blackjackData.ties}**\nLosses: **${blackjackData.losses}**", true)
                 .addField("Betting Stats", "Wins: **${bettingData.wins}**\nLosses: **${bettingData.ties}**\nNet Winnings: **${bettingData.netWinnings}** gold", true)
+                .addField("Slots Stats", "Wins: **${slotsData.wins}**\nLosses: **${slotsData.losses}**\nNet Winnings: **${slotsData.netWinnings}** gold", true)
+                .addField("Connect 4 Stats", "Wins: **${connect4Data.wins}**\nLosses: **${connect4Data.losses}**", true)
                 .addField("Trivia Stats", "**Use ${event.guild.getPrefix()}triviastats @User**", true)
                 .addField("Married To", spouse?.withDiscrim() ?: "Nobody :(", true)
         event.channel.send(embed)

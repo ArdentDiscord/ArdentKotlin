@@ -170,7 +170,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                 }
                 val songId = get.items[0].id
                 spotifyApi.getRecommendations().tracks(mutableListOf(songId)).build().get()[0].name.load(guild.selfMember,
-                        channel ?: guild.publicChannel, null, false, autoplay = true)
+                        channel ?: guild.defaultChannel!!, null, false, autoplay = true)
             } catch (ignored: Exception) {
             }
         } else manager.nextTrack()

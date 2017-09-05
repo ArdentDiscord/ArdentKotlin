@@ -26,14 +26,14 @@ class EventWaiter : EventListener {
                 is GuildMessageReceivedEvent -> {
                     if (e.author.isBot) return@execute
                     messageEvents.forEach { mE ->
-                        var cont: Boolean = true
+                        var cont = true
                         val settings = mE.first
                         if (settings.channel != null && settings.channel != e.channel.id) cont = false
                         if (settings.id != null && settings.id != e.author.id) cont = false
                         if (settings.guild != null && settings.guild != e.guild.id) cont = false
                         if (cont) {
-                            mE.second.invoke(e.message)
                             messageEvents.remove(mE)
+                            mE.second.invoke(e.message)
                         }
                     }
                     gameEvents.forEach { game ->
@@ -99,11 +99,10 @@ class EventWaiter : EventListener {
         }, time.toLong(), unit)
     }
 
-    fun cancel(pair: Pair<Settings, (Message) -> Unit>) {
-        messageEvents.remove(pair)
-        // TODO("add expiration consumer invocation here")
+    fun cancel(settings: Settings) {
+        reactionAddEvents.removeIf { it.first ==  settings }
+        messageEvents.removeIf { it.first ==  settings }
     }
-
 }
 
 data class Settings(val id: String? = null, val channel: String? = null, val guild: String? = null, val message: String? = null)
@@ -111,7 +110,7 @@ data class Settings(val id: String? = null, val channel: String? = null, val gui
 /**
  * Message in the consumer is the list selection message
  */
-fun MessageChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
+fun MessageChannel.selectFromList(originalMessage: Message, member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
     val embed = member.embed(title)
     val builder = StringBuilder()
     for ((index, value) in options.iterator().withIndex()) {
@@ -137,15 +136,16 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
         }
         message.addReaction(Emoji.HEAVY_MULTIPLICATION_X.symbol).queue()
         var invoked = false
-        waiter.waitForMessage(Settings(member.user.id, id, member.guild.id), { response ->
+        waiter.waitForMessage(Settings(member.user.id, id, member.guild.id, message.id), { response ->
             val responseInt = response.rawContent.toIntOrNull()?.minus(1)
-            if (responseInt == null || responseInt !in 0..(options.size - 1)) send("You specified an invalid response!")
+            if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) send("You specified an invalid response!")
             else {
                 invoked = true
                 consumer.invoke(responseInt, message)
+                waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
             }
         }, silentExpiration = true)
-        waiter.waitForReaction(Settings(member.user.id, id, member.guild.id), { messageReaction ->
+        waiter.waitForReaction(Settings(member.user.id, id, member.guild.id, message.id), { messageReaction ->
             val chosen = when (messageReaction.emote.name) {
                 Emoji.KEYCAP_DIGIT_ONE.symbol -> 1
                 Emoji.KEYCAP_DIGIT_TWO.symbol -> 2
@@ -160,10 +160,15 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 Emoji.HEAVY_MULTIPLICATION_X.symbol -> 69
                 else -> 69999999
             } - 1
-            if (chosen in 0..(options.size - 1)) {
-                invoked = true
-                consumer.invoke(chosen, message)
-            } else if (chosen != 68) send("You specified an invalid reaction or response, cancelling selection")
+            when {
+                chosen in 0..(options.size - 1) -> {
+                    invoked = true
+                    consumer.invoke(chosen, message)
+                    waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
+                }
+                chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection")
+                else -> failure?.invoke()
+            }
         }, {
             if (!invoked) send("You didn't specify a reaction or response, cancelling selection")
         }, time = 25, silentExpiration = true)

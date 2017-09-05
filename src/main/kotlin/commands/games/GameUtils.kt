@@ -38,7 +38,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                     cancel(creator.toUser()!!)
                 } else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
-        } else if (type != GameType.BLACKJACK && type != GameType.BETTING){
+        } else if (type != GameType.BLACKJACK && type != GameType.BETTING && playerCount > 1){
             channel.send("${creator.toUser()!!.asMention}, use **/gameinvite @User** to invite someone to your game")
         }
         scheduledExecutor.scheduleWithFixedDelay({
@@ -172,10 +172,14 @@ fun User.isInGameOrLobby(): Boolean {
 class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0, var overallCorrectPercent: Double = 0.0, var percentageCorrect: HashMap<String, Double> = hashMapOf()) {
     fun percentagesFancy(): String {
         val builder = StringBuilder()
-        percentageCorrect.forEach { category, percent ->  builder.append("  ${Emoji.SMALL_ORANGE_DIAMOND} $category: *$percent*%\n")}
+        percentageCorrect.forEach { category, percent ->  builder.append("  ${Emoji.SMALL_ORANGE_DIAMOND} $category: *${percent.toInt()}*%\n")}
         return builder.toString()
     }
 }
+
+class SlotsPlayerData(wins: Int = 0, losses: Int = 0, var netWinnings: Double = 0.0) : PlayerGameData(wins, losses)
+
+class Connect4PlayerData(wins: Int = 0, losses: Int = 0) : PlayerGameData(wins, losses, 0)
 
 class BlackjackPlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0) : PlayerGameData(wins, losses, ties)
 

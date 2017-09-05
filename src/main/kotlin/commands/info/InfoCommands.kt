@@ -148,7 +148,7 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
 
 class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.selectFromList(event.member, "Ardent | Commands", Category.values().map { "${it.fancyName}: *${it.description}*" }.toMutableList(), { selected, selectionMessage ->
+        event.channel.selectFromList(event.message, event.member, "Ardent | Commands", Category.values().map { "${it.fancyName}: *${it.description}*" }.toMutableList(), { selected, selectionMessage ->
             val category = Category.values()[selected]
             val embed = event.member.embed("${category.fancyName} | Command List", Color.DARK_GRAY)
             factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
