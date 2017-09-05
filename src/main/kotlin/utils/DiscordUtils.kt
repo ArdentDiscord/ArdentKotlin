@@ -372,7 +372,7 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
     fun connect4Data(): Connect4PlayerData {
         val data = Connect4PlayerData()
         r.table("Connect_4Data").run<Any>(conn).queryAsArrayList(GameDataConnect4::class.java).forEach { game ->
-            if (game != null && game.creator == id) {
+            if (game != null && (game.loser == id || game.winner == id)) {
                 if (game.winner == id) data.wins++
                 else data.losses++
             }
