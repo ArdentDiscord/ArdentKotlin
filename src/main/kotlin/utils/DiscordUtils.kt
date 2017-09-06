@@ -10,6 +10,8 @@ import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.exceptions.PermissionException
+import translation.ArdentLanguage
+import translation.toLanguage
 import java.awt.Color
 import java.lang.management.ManagementFactory
 import java.util.*
@@ -168,7 +170,7 @@ fun Guild.getData(): GuildData {
     val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
     return if (guildData != null) guildData
     else {
-        val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>())
+        val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>(), language = "en".toLanguage()!!)
         data.insert("guilds")
         data
     }
