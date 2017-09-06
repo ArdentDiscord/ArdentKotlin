@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit
 class EventWaiter : EventListener {
     val executor = Executors.newScheduledThreadPool(50)
     val gameEvents = CopyOnWriteArrayList<Triple<String, Long, Pair<((Message) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
+    val reactionEvents = CopyOnWriteArrayList<Quadruple<String, String, /* Message ID */ Long, Pair<((User, MessageReaction) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
     val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
     val reactionAddEvents = CopyOnWriteArrayList<Pair<Settings, (MessageReaction) -> Unit>>()
 
@@ -44,16 +45,25 @@ class EventWaiter : EventListener {
                         }
                     }
                 }
-                is MessageReactionAddEvent -> reactionAddEvents.forEach { rAE ->
-                    val settings = rAE.first
-                    var cont = true
-                    if (settings.channel != null && settings.channel != e.channel.id) cont = false
-                    else if (settings.id != null && settings.id != e.user.id) cont = false
-                    else if (settings.guild != null && settings.guild != e.guild.id) cont = false
-                    else if (settings.message != null && settings.message != e.messageId) cont = false
-                    if (cont) {
-                        rAE.second.invoke(e.reaction)
-                        reactionAddEvents.remove(rAE)
+                is MessageReactionAddEvent -> {
+                    reactionAddEvents.forEach { rAE ->
+                        val settings = rAE.first
+                        var cont = true
+                        if (settings.channel != null && settings.channel != e.channel.id) cont = false
+                        else if (settings.id != null && settings.id != e.user.id) cont = false
+                        else if (settings.guild != null && settings.guild != e.guild.id) cont = false
+                        else if (settings.message != null && settings.message != e.messageId) cont = false
+                        if (cont) {
+                            rAE.second.invoke(e.reaction)
+                            reactionAddEvents.remove(rAE)
+                        }
+                    }
+                    reactionEvents.forEach { game ->
+                        if (e.channel.id == game.first && e.messageId == game.second) {
+                            if (System.currentTimeMillis() < game.third) {
+                                factory.executor.execute { game.fourth.first(e.user, e.reaction) }
+                            } else reactionEvents.remove(game)
+                        }
                     }
                 }
             }
@@ -78,6 +88,15 @@ class EventWaiter : EventListener {
         return pair
     }
 
+    fun gameReactionWait(message: Message, consumer: (User, MessageReaction) -> Unit, expirationConsumer: (() -> Unit)? = null, time: Int = 10, unit: TimeUnit = TimeUnit.SECONDS) {
+        val game = Quadruple(message.channel.id, message.id, System.currentTimeMillis() + unit.toMillis(time.toLong()), Pair(consumer, expirationConsumer))
+        reactionEvents.add(game)
+        executor.schedule({
+            if (reactionEvents.contains(game)) game.fourth.second?.invoke()
+        }, time.toLong(), unit)
+
+    }
+
     fun gameChannelWait(channel: String, consumer: (Message) -> Unit, expirationConsumer: (() -> Unit)? = null, time: Int = 10, unit: TimeUnit = TimeUnit.SECONDS) {
         val game = Triple(channel, System.currentTimeMillis() + unit.toMillis(time.toLong()), Pair(consumer, expirationConsumer))
         gameEvents.add(game)
@@ -100,8 +119,8 @@ class EventWaiter : EventListener {
     }
 
     fun cancel(settings: Settings) {
-        reactionAddEvents.removeIf { it.first ==  settings }
-        messageEvents.removeIf { it.first ==  settings }
+        reactionAddEvents.removeIf { it.first == settings }
+        messageEvents.removeIf { it.first == settings }
     }
 }
 
@@ -110,7 +129,7 @@ data class Settings(val id: String? = null, val channel: String? = null, val gui
 /**
  * Message in the consumer is the list selection message
  */
-fun MessageChannel.selectFromList(originalMessage: Message, member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
+fun MessageChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
     val embed = member.embed(title)
     val builder = StringBuilder()
     for ((index, value) in options.iterator().withIndex()) {

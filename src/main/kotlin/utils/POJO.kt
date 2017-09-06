@@ -4,6 +4,7 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.User
 import org.apache.commons.lang3.text.WordUtils
+import translation.ArdentLanguage
 
 data class TriviaCategory(val title: String, val created_at: String, val updated_at: String, val clues_count: Int) {
     fun getCategoryName(): String {
@@ -25,7 +26,7 @@ data class AnnouncementModel(var date: Long, var writer: String, var content: St
     }
 }
 
-data class GuildData(val id: String, var prefix: String?, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var iamList: MutableList<Iam> = mutableListOf(), var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole: String? = null, var allowGlobalOverride: Boolean = false)
+data class GuildData(val id: String, var prefix: String?, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var iamList: MutableList<Iam> = mutableListOf(), var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole: String? = null, var allowGlobalOverride: Boolean = false, val language: ArdentLanguage)
 data class Iam(var name: String, var roleId: String)
 data class MusicSettings(var announceNewMusic: Boolean = false, var singleSongInQueueForMembers: Boolean = false, var membersCanMoveBot: Boolean = true,
                          var membersCanSkipSongs: Boolean = false, var autoQueueSongs: Boolean = false)

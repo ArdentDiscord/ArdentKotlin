@@ -9,6 +9,7 @@ import events.Category
 import events.Command
 import main.playerManager
 import main.spotifyApi
+import main.waiter
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
@@ -27,14 +28,14 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             withHelp("start", "view and select from a curated list of Spotify playlists")
-                    .withHelp("request [name of radio station]", "send a request to the developers to add a specific radio station")
+                    .withHelp("artist [Artist Name]", "select tracks from an author")
                     .displayHelp(event.channel, event.member)
             return
         }
         if (arguments[0].equals("start", true)) {
             if (event.member.voiceChannel() == null) event.channel.send("You need to be in a voice channel!")
             else {
-                event.channel.selectFromList(event.message, event.member, "Select the playlist that you want to listen to", stations, { selection, _ ->
+                event.channel.selectFromList(event.member, "Select the playlist that you want to listen to", stations, { selection, _ ->
                     if (event.channel.requires(event.member, DonationLevel.BASIC)) {
                         when (selection) {
                             0 -> "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M"
@@ -49,6 +50,87 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
                     }
                 })
                 return
+            }
+        }
+    }
+}
+
+class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs by the authors' names", "artistsearch", "artist") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (event.member.voiceChannel() == null) {
+            event.channel.send("You need to be in a voice channel to use this command!")
+            return
+        }
+        val artistName = arguments.concat()
+        if (artistName.isEmpty()) event.channel.send("You need to include an author!")
+        else {
+            if (event.channel.requires(event.member, DonationLevel.BASIC)) {
+                try {
+                    val searchResults = spotifyApi.searchArtists(artistName).build().get().items
+                    if (searchResults.size == 0) {
+                        event.channel.send("No author name was found with that query :(")
+                        println(artistName)
+                    } else {
+                        val options = searchResults
+                                .asSequence()
+                                .sortedByDescending { it.popularity }
+                                .toMutableList().limit(7)
+                        event.channel.selectFromList(event.member, "Select the artist you want", options.map { "${it.name} *Popularity: ${it.popularity}*" }.toMutableList(), { option, selectionMessage ->
+                            selectionMessage.delete().queue()
+                            val artist = options[option]
+                            val tracks = spotifyApi.getTopTracksForArtist(artist.id, "us").build().get()
+                            if (tracks.size == 0) event.channel.send("No tracks were found with that author :(")
+                            else {
+                                val embed = event.member.embed("Top tracks for ${artist.name}")
+                                        .appendDescription("**Select reactions corresponding to the choices you want to add those songs to the queue**")
+                                var current = 0
+                                while (current < 7 && tracks.size > current) {
+                                    embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND} [**${current + 1}**] ${tracks[current].name}")
+                                    current++
+                                }
+                                event.channel.sendMessage(embed.build()).queue { embedMessage ->
+                                    for (x in 1..(if (tracks.size > 7) 7 else tracks.size)) {
+                                        embedMessage.addReaction(when (x) {
+                                            1 -> Emoji.KEYCAP_DIGIT_ONE
+                                            2 -> Emoji.KEYCAP_DIGIT_TWO
+                                            3 -> Emoji.KEYCAP_DIGIT_THREE
+                                            4 -> Emoji.KEYCAP_DIGIT_FOUR
+                                            5 -> Emoji.KEYCAP_DIGIT_FIVE
+                                            6 -> Emoji.KEYCAP_DIGIT_SIX
+                                            else -> Emoji.KEYCAP_DIGIT_SEVEN
+                                        }.symbol).queue()
+                                    }
+                                    val songsToQueue = mutableListOf<String>()
+                                    waiter.gameReactionWait(embedMessage, { author, messageReaction ->
+                                        if (author.id == event.author.id) {
+                                            when (messageReaction.emote.name) {
+                                                Emoji.KEYCAP_DIGIT_ONE.symbol -> songsToQueue.addIfNotExists(tracks[0].name)
+                                                Emoji.KEYCAP_DIGIT_TWO.symbol -> songsToQueue.addIfNotExists(tracks[1].name)
+                                                Emoji.KEYCAP_DIGIT_THREE.symbol -> songsToQueue.addIfNotExists(tracks[2].name)
+                                                Emoji.KEYCAP_DIGIT_FOUR.symbol -> songsToQueue.addIfNotExists(tracks[3].name)
+                                                Emoji.KEYCAP_DIGIT_FIVE.symbol -> songsToQueue.addIfNotExists(tracks[4].name)
+                                                Emoji.KEYCAP_DIGIT_SIX.symbol -> songsToQueue.addIfNotExists(tracks[5].name)
+                                                Emoji.KEYCAP_DIGIT_SEVEN.symbol -> songsToQueue.addIfNotExists(tracks[6].name)
+                                            }
+                                        }
+                                    }, {
+                                        if (songsToQueue.size == 0) event.channel.send("You didn't select any songs!")
+                                        else {
+                                            event.channel.send("**Adding __${songsToQueue.size}__ songs to the queue by __${artist.name}__!**")
+                                            songsToQueue.forEach {
+                                                it.getSingleTrack(event.guild, { foundTrack ->
+                                                    play(event.textChannel, event.member, ArdentTrack(event.author.id, event.channel.id, foundTrack))
+                                                })
+                                            }
+                                        }
+                                    })
+                                }
+                            }
+                        })
+                    }
+                } catch (e: BadRequestException) {
+                    event.channel.send("You provided an invalid author name :(")
+                }
             }
         }
     }
@@ -381,7 +463,7 @@ fun String.load(member: Member, textChannel: TextChannel, message: Message?, sea
                         .map { playlist.tracks[it - 1] }
                         .map { it.info }
                         .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
-                textChannel.selectFromList(message!!, member, "Select Song", selectFrom, { response, _ ->
+                textChannel.selectFromList(member, "Select Song", selectFrom, { response, _ ->
                     val track = playlist.tracks[response]
                     play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
                     textChannel.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")

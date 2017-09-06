@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 import javax.management.Attribute
 import javax.management.ObjectName
 
+class Quadruple<A, B, C, D>(var first: A, var second: B, var third: C, var fourth: D)
 class Pair2(val first1: Any?, val second1: Any?)
 
 var logChannel: TextChannel? = null
@@ -59,6 +60,10 @@ fun List<String>.concat(): String {
     val builder = StringBuilder()
     forEach { builder.append("$it ") }
     return builder.removeSuffix(" ").toString()
+}
+
+fun <E> MutableList<E>.addIfNotExists(e: E) {
+    if (!contains(e)) add(e)
 }
 
 fun Any.insert(table: String) {
@@ -161,7 +166,7 @@ fun <T> MutableList<T>.without(t: T): MutableList<T> {
     val n = mutableListOf<T>()
     n.addAll(this)
     n.remove(t)
-    return this
+    return n
 }
 
 fun List<String>.containsEq(string: String): Boolean {
