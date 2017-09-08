@@ -6,6 +6,45 @@
         <h2>Admin Zone</h2>
     </header>
     <div class="box">
+        <h3>Add a translation</h3>
+        <form action="/api/internal/administrators/translations/add">
+            <div class="row uniform 50%">
+                <div class="5u">
+                    <div class="select-wrapper">
+                        <select name="command" id="command">
+                            {{#each commands}}
+                                <option value="{{name}}">{{name}}</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                </div>
+                <div class="8u">
+                    <textarea name="content" id="content" rows="2" placeholder="Write here.."></textarea>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Add" class="alt"/>
+                </div>
+            </div>
+        </form>
+        <h3>Delete an existing translation</h3>
+        <form action="/api/internal/administrators/translations/remove">
+            <div class="row uniform 50%">
+                <div class="5u">
+                    <div class="select-wrapper">
+                        <select name="content" id="content">
+                            {{#each phrases}}
+                                <option value="{{english}}||{{command}}">{{english}} ({{command}})</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Remove" class="alt"/>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="box">
         <h3>Open Support Tickets</h3>
         {{#if noOpenTickets}}
             <p>Good job team! There aren't any open tickets</p>
@@ -71,29 +110,29 @@
                 </div>
             </form>
         </div>
-            <h5><b>Remove Staff Members</b></h5>
-            <div class="table-wrapper">
-                <div class="6u">
-                    <table class="alt">
-                        <thead>
+        <h5><b>Remove Staff Members</b></h5>
+        <div class="table-wrapper">
+            <div class="6u">
+                <table class="alt">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Remove</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{#each staffMembers}}
                         <tr>
-                            <th>Name</th>
-                            <th>Remove</th>
+                            <td>{{name}}#{{discriminator}}</td>
+                            <td><a href="/api/internal/administrators/removeStaff?id={{id}}"><img height="16" width="16"
+                                                                                                  src="/images/x_button.png"></a>
+                            </td>
                         </tr>
-                        </thead>
-                        <tbody>
-                        {{#each staffMembers}}
-                            <tr>
-                                <td>{{name}}#{{discriminator}}</td>
-                                <td><a href="/api/internal/administrators/removeStaff?id={{id}}"><img height="16" width="16"
-                                                                                                 src="/images/x_button.png"></a>
-                                </td>
-                            </tr>
-                        {{/each}}
-                        </tbody>
-                    </table>
-                </div>
+                    {{/each}}
+                    </tbody>
+                </table>
             </div>
+        </div>
         <h3>Manage your 3 whitelists (gives highest patron permissions)</h3>
         <h5><b>Add someone by Discord ID</b><br/>
             Don't know how to get someone's Discord ID? Click <a href="/guides/identifier">here</a> for help</h5>

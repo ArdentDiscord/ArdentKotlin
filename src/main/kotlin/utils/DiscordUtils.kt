@@ -9,6 +9,8 @@ import main.*
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
+import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import translation.ArdentLanguage
 import translation.Languages
 import translation.toLanguage
@@ -330,6 +332,10 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
 
 fun String.translateTo(language: ArdentLanguage): String {
     return language.translate(this)
+}
+
+fun String.translateTo(messageReceivedEvent: MessageReceivedEvent): String {
+    return translateTo(messageReceivedEvent.guild)
 }
 
 fun String.translateTo(guild: Guild): String {

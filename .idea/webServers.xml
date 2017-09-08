@@ -2,8 +2,8 @@
 <project version="4">
   <component name="WebServers">
     <option name="servers">
-      <webServer id="b6052f78-2e53-403d-ad36-a8d3a0de947c" name="Ardent" url="http://ardentbot.com">
-        <fileTransfer host="ardentbot.com" port="22" accessType="SFTP">
+      <webServer id="b6052f78-2e53-403d-ad36-a8d3a0de947c" name="Ardent" url="http://158.69.214.251">
+        <fileTransfer host="158.69.214.251" port="22" accessType="SFTP">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" />
           </advancedOptions>

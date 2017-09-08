@@ -6,9 +6,11 @@ import com.rethinkdb.net.Cursor
 import commands.info.formatter
 import main.conn
 import main.r
+import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject
+import translation.Languages
 import java.lang.management.ManagementFactory
 import java.time.Instant
 import java.util.*
@@ -140,7 +142,20 @@ fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }
 
-fun String.replaceParam(param: Int, new: String): String {
+fun String.trReplace(guild: Guild, param: Int, new: String): String {
+    val split = split("{$param}")
+    when (guild.getLanguage()) {
+        Languages.FRENCH.language -> {
+            if (split[0].endsWith(" le ", true) || split[0].endsWith(" la ", true)
+                    || split[0].endsWith(" le **", true) || split[0].endsWith(" la **", true)
+                    || split[0].endsWith(" le *", true) || split[0].endsWith(" la *", true)
+                    &&
+                    (new.startsWith("a", true) || new.startsWith("e", true))) {
+                return split[0].replaceAfterLast(" le ", "l'${if (split[0].endsWith("**")) "**" else if (split[0].endsWith("*")) "*" else ""}$new${split[1]}")
+                        .replace(" le l'", " l'").replace(" la l'", " l'")
+            }
+        }
+    }
     return replace("{$param}", new)
 }
 

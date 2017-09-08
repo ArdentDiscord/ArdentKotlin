@@ -10,12 +10,14 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
+import org.apache.commons.lang.WordUtils
 import spark.ModelAndView
 import spark.Request
 import spark.Response
 import spark.Service
 import spark.Spark.*
 import spark.template.handlebars.HandlebarsTemplateEngine
+import translation.ArdentPhraseTranslation
 import translation.Languages
 import translation.toLanguage
 import translation.translationData
@@ -185,6 +187,8 @@ class Web {
             val openTickets = getOpenTickets()
             map.put("noOpenTickets", openTickets.isEmpty())
             map.put("openTickets", openTickets)
+            map.put("commands", factory.commands.sortedBy { it.name })
+            map.put("phrases", translationData.phrases.map { it.value })
             map.put("staffMembers", staff.filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
             if (isAdministrator(request, response)) {
                 map.put("showSnackbar", false)
@@ -255,8 +259,9 @@ class Web {
                                                     if (language == Languages.ENGLISH.language){
                                                         phrase.translations.replace("en", new)
                                                     }
-                                                    r.table("phrases").get(phrase.english).update(r.json(phrase.toJson())).runNoReply(conn)
-                                                    response.redirect("/translation/ar/${language.code}/view/${phrase.english}")
+                                                    r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
+                                                    "355817985052508160".toChannel()?.send("${user.asMention} just updated a **${language.readable}** translation!")
+                                                    response.redirect("/translation/ar/${language.code}/hi/guys")
                                                     null
                                                 }
                                             }
@@ -732,6 +737,45 @@ class Web {
                     }
                 }, handlebars)
                 path("/administrators", {
+                    get("/translations/*", { request, response ->
+                        val map = hashMapOf<String, Any>()
+                        handle(request, map)
+                        map.put("title", "Administrator Zone")
+                        if (isAdministrator(request, response)) {
+                            when (request.splat().getOrNull(0)) {
+                                "add" -> {
+                                    val command = request.queryParams("command")
+                                    val content = request.queryParams("content")
+                                    if (command == null || content == null || content.isEmpty()) response.redirect("/administrators")
+                                    else {
+                                        val phrase = ArdentPhraseTranslation(content, WordUtils.capitalize(command)).instantiate(content)
+                                        phrase.insert("phrases")
+                                        translationData.phrases.put(content, phrase)
+                                        response.redirect("/administrators")
+                                        "355817985052508160".toChannel()?.send("An administrator just added an english phrase!")
+                                    }
+                                }
+                                "remove" -> {
+                                    val content = request.queryParams("content")?.split("||")
+                                    if (content?.size == 2) {
+                                        val phrase = translationData.get(content[0], content[1])
+                                        if (phrase != null) {
+                                            translationData.phrases.forEach { t, u -> if (phrase == u) translationData.phrases.remove(t)}
+                                            "355817985052508160".toChannel()?.send("An administrator just removed an english phrase :(")
+                                            r.table("phrases").filter(r.hashMap("english", phrase.english)).delete().runNoReply(conn)
+                                        }
+                                    }
+                                    response.redirect("/administrators")
+                                }
+                                else -> response.redirect("/administrators")
+                            }
+                            null
+                        }
+                        else {
+                            response.redirect("/administrators")
+                            null
+                        }
+                    }, handlebars)
                     get("/announcements/*", { request, response ->
                         val map = hashMapOf<String, Any>()
                         handle(request, map)

@@ -14,6 +14,8 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import org.apache.commons.lang.WordUtils
 import translation.ArdentPhraseTranslation
+import translation.Languages
+import translation.toLanguage
 import utils.*
 import java.awt.Color
 import java.util.*
@@ -36,6 +38,26 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
             data.update()
             event.channel.send("The prefix has been updated to **${data.prefix}**")
         } else event.channel.send("${Emoji.NO_ENTRY_SIGN} Type **${data.prefix}prefix** to learn how to use this command")
+    }
+}
+
+class LanguageCommand : Command(Category.ADMINISTRATE, "language", "view or change Ardent's language on this server!", "lang") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size == 0 || !arguments[0].equals("set", true)) {
+            event.channel.send(("Your server language is **{0}** - You can change it by using {1}lang set **language** - Language list: {2}")
+                    .translateTo(event).trReplace(event.guild,0, event.guild.getLanguage().readable).trReplace(event.guild, 1, event.guild.getPrefix()).trReplace(event.guild, 2, Languages.values().map { "**${it.language.readable}**" }.stringify()))
+        }
+        else {
+            if (event.member.hasOverride(event.textChannel)) {
+                val lang = arguments.without(arguments[0]).concat().toLanguage()
+                if (lang == null) event.channel.send("You specified an invalid language! Remember: You must add accents if your language requires that. Type **{0}lang** to see a language list".translateTo(event).trReplace(event.guild, 0, event.guild.getPrefix()))
+                else {
+                    val guildData = event.guild.getData()
+                    guildData.language = lang
+                    guildData.update()
+                }
+            }
+        }
     }
 }
 
@@ -247,7 +269,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                         val phrase = split[1]
                         if (phrase.isEmpty()) event.channel.send("Include an english phrase")
                         else {
-                            ArdentPhraseTranslation(phrase, WordUtils.capitalize(split[0])).instantiate(phrase).insert("phrases")
+                            ArdentPhraseTranslation(phrase, WordUtils.capitalize(split[0])).insert("phrases")
                         }
                     }
                     else -> event.channel.send("You're an idiot")

@@ -18,7 +18,7 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val currentTime = System.currentTimeMillis()
         event.channel.sendMessage("I'll calculate my ping to Discord using this message".translateTo(event.guild)).queue({ m ->
-            m.editMessage("**Socket Ping**: *${System.currentTimeMillis() - currentTime} milliseconds*")?.queue()
+            m.editMessage("**Socket Ping**: *{0} milliseconds*".translateTo(event).trReplace(event.guild, 0, (System.currentTimeMillis() - currentTime).toString()))?.queue()
         })
     }
 }

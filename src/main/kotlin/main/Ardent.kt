@@ -130,7 +130,8 @@ fun addCommands() {
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
             Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
-            MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch())
+            MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
+            LanguageCommand())
 }
 
 fun setupDrive(): Sheets {

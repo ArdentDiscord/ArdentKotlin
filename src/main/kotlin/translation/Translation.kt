@@ -3,13 +3,14 @@ package translation
 import main.conn
 import main.r
 import utils.queryAsArrayList
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 val translationData = ArdentTranslationData()
 
-class ArdentTranslationData(val phrases: HashMap<String, ArdentPhraseTranslation> = hashMapOf(), executor: ScheduledExecutorService = Executors.newScheduledThreadPool(5)) {
+class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseTranslation> = ConcurrentHashMap(), executor: ScheduledExecutorService = Executors.newScheduledThreadPool(5)) {
     init {
         executor.scheduleAtFixedRate({
             update()
@@ -39,6 +40,11 @@ class ArdentTranslationData(val phrases: HashMap<String, ArdentPhraseTranslation
         phrases.forEach { if (it.value.english == string) return it.value}
         return null
     }
+
+    fun get(english: String, command: String): ArdentPhraseTranslation? {
+        phrases.forEach { if (it.value.english == english && command == it.value.command) return it.value}
+        return null
+    }
 }
 
 data class ArdentPhraseTranslation(var english: String, val command: String, val translations: HashMap<String /* language code */, String /* translated phrase */> = hashMapOf()) {
@@ -66,7 +72,7 @@ data class ArdentLanguage(val code: String, val readable: String, val maturity: 
 
     fun getNullTranslations(): MutableList<ArdentPhraseTranslation> {
         val phrases = mutableListOf<ArdentPhraseTranslation>()
-        translationData.phrases.forEach { english, u ->  if (!u.translations.containsKey(code) || u.translations[code]?.isEmpty() != false) phrases.add(u) }
+        translationData.phrases.forEach { _, u ->  if (!u.translations.containsKey(code) || u.translations[code]?.isEmpty() != false) phrases.add(u) }
         return phrases
     }
 
