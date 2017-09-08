@@ -9,8 +9,8 @@ import main.*
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
-import net.dv8tion.jda.core.exceptions.PermissionException
 import translation.ArdentLanguage
+import translation.Languages
 import translation.toLanguage
 import java.awt.Color
 import java.lang.management.ManagementFactory
@@ -58,10 +58,10 @@ fun Member.voiceChannel(): VoiceChannel? {
 }
 
 fun String.toRole(guild: Guild): Role? {
-    try {
-        return guild.getRoleById(this)
+    return try {
+        guild.getRoleById(this)
     } catch (e: Exception) {
-        return null
+        null
     }
 }
 
@@ -200,24 +200,6 @@ fun Member.punishments(): MutableList<Punishment?> {
     return punishments
 }
 
-@Deprecated("Inefficient - Use consumer rather than blocking logic")
-fun MessageChannel.sendReceive(embed: EmbedBuilder): Message? {
-    try {
-        return this.sendMessage(embed.build()).complete()
-    } catch (ex: Throwable) {
-    }
-    return null
-}
-
-@Deprecated("Inefficient - Use consumer rather than blocking logic")
-fun MessageChannel.sendReceive(message: String): Message? {
-    try {
-        return this.sendMessage(message).complete()
-    } catch (ex: PermissionException) {
-    }
-    return null
-}
-
 fun User.whitelisted(): List<SpecialPerson?> {
     return r.table("specialPeople").run<Any>(conn).queryAsArrayList(SpecialPerson::class.java).filter { it != null && it.backer == id }
 }
@@ -259,6 +241,16 @@ fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: Strin
 
 fun Guild.getPrefix(): String {
     return getData().prefix ?: "/"
+}
+
+fun Guild.getLanguage(): ArdentLanguage {
+    val data = getData()
+    val language = data.language
+    return if (language != null) language else {
+        data.language = Languages.ENGLISH.language
+        data.update()
+        Languages.ENGLISH.language
+    }
 }
 
 enum class DonationLevel(val readable: String, val level: Int) {
@@ -334,6 +326,14 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
     val servers = mutableListOf<Guild>()
     jdas.forEach { servers.addAll(it.getMutualGuilds(user)) }
     return servers
+}
+
+fun String.translateTo(language: ArdentLanguage): String {
+    return language.translate(this)
+}
+
+fun String.translateTo(guild: Guild): String {
+    return translateTo(guild.getLanguage())
 }
 
 data class LoggedCommand(val commandId: String, val userId: String, val executionTime: Long, val readableExecutionTime: String, val id: String = r.uuid().run(conn))
@@ -466,6 +466,7 @@ class Internals {
         waiterExecutor.scheduleAtFixedRate({
             loadedMusicPlayers = 0
             queueLength = 0
+            apiCalls = 0
             messagesReceived = factory.messagesReceived.get()
             commandsReceived = factory.commandsReceived().toLong()
             commandCount = factory.commands.size

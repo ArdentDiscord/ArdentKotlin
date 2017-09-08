@@ -156,12 +156,16 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
         message.addReaction(Emoji.HEAVY_MULTIPLICATION_X.symbol).queue()
         var invoked = false
         waiter.waitForMessage(Settings(member.user.id, id, member.guild.id, message.id), { response ->
+            invoked = true
             val responseInt = response.rawContent.toIntOrNull()?.minus(1)
             if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) send("You specified an invalid response!")
             else {
-                invoked = true
-                consumer.invoke(responseInt, message)
-                waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
+                if (options.containsEq(response.rawContent)) {
+                    consumer.invoke(options.get(response.rawContent)!!.first, message)
+                } else {
+                    consumer.invoke(responseInt, message)
+                    waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
+                }
             }
         }, silentExpiration = true)
         waiter.waitForReaction(Settings(member.user.id, id, member.guild.id, message.id), { messageReaction ->

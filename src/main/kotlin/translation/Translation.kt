@@ -61,7 +61,7 @@ data class ArdentPhraseTranslation(var english: String, val command: String, val
 
 data class ArdentLanguage(val code: String, val readable: String, val maturity: LanguageMaturity = LanguageMaturity.INFANCY) {
     fun translate(english: String?): String {
-        return translationData.phrases[english]?.translate(this) ?: "This translation doesn't exist yet in the database"
+        return translationData.getByEnglish(english)?.translate(this) ?: "This translation doesn't exist yet in the database"
     }
 
     fun getNullTranslations(): MutableList<ArdentPhraseTranslation> {

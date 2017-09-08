@@ -43,6 +43,12 @@ fun <E> MutableList<E>.shuffle(): MutableList<E> {
     return this
 }
 
+fun <E> List<E>.get(e: E): Pair<Int, E>? {
+    var index = 0
+    forEach { if (it == e) return Pair(index, it) else index++ }
+    return null
+}
+
 /**
  * Append [List] items using a comma to seperate them
  */
@@ -126,12 +132,16 @@ fun GuildData.update() {
 fun Long.formatMinSec(): String {
     val seconds = this % 60
     val minutes = (this % 3600) / 60
-    if (minutes.compareTo(0) == 0) return "$seconds seconds"
-    else return "$minutes minutes, $seconds seconds"
+    return if (minutes.compareTo(0) == 0) "$seconds seconds"
+    else "$minutes minutes, $seconds seconds"
 }
 
 fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
+}
+
+fun String.replaceParam(param: Int, new: String): String {
+    return replace("{$param}", new)
 }
 
 val waiterExecutor = Executors.newScheduledThreadPool(3)!!

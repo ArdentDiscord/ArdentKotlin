@@ -40,7 +40,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.*
 
-val test = true
+val test = false
 
 var hangout: Guild? = null
 

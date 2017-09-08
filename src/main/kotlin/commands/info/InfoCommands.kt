@@ -17,7 +17,7 @@ val formatter = DecimalFormat("#,###")
 class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command was gonna do?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val currentTime = System.currentTimeMillis()
-        event.channel.sendMessage("I'll calculate my ping to Discord using this message").queue({ m ->
+        event.channel.sendMessage("I'll calculate my ping to Discord using this message".translateTo(event.guild)).queue({ m ->
             m.editMessage("**Socket Ping**: *${System.currentTimeMillis() - currentTime} milliseconds*")?.queue()
         })
     }
@@ -136,8 +136,7 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
                                 event.channel.send("Failed to remove *${role.name}* - **please ask an administrator of this server to allow me " +
                                         "to manage roles!**")
                             })
-                        }
-                        catch (e: Exception) {
+                        } catch (e: Exception) {
                             event.channel.send("Failed to remove *${role.name}* - **please ask an administrator of this server to allow me " +
                                     "to manage roles!**")
                         }

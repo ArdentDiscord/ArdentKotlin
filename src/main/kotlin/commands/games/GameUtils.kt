@@ -9,7 +9,6 @@ import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.collections.HashMap
 
 val gamesInLobby = CopyOnWriteArrayList<Game>()
 val activeGames = CopyOnWriteArrayList<Game>()
@@ -38,7 +37,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                     cancel(creator.toUser()!!)
                 } else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
-        } else if (type != GameType.BLACKJACK && type != GameType.BETTING && playerCount > 1){
+        } else if (type != GameType.BLACKJACK && type != GameType.BETTING && playerCount > 1) {
             channel.send("${creator.toUser()!!.asMention}, use **/gameinvite @User** to invite someone to your game")
         }
         scheduledExecutor.scheduleWithFixedDelay({
@@ -62,10 +61,13 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                         "It currently has **${players.size}** of **$playerCount** players required to start | ${players.toUsers()}\n" +
                         "To start, the host can also type *${prefix}forcestart*\n\n" +
                         "This game was created by __${creator.toUser()?.withDiscrim()}__")
-        val m = channel.sendReceive(embed)
-        channel.send("Join by typing **${prefix}join #$gameId**\n" +
-                "*You can cancel this game by typing ${prefix}cancel*")
-        return m
+        var me: Message? = null
+        channel.sendMessage(embed.build()).queue { m ->
+            channel.send("Join by typing **${prefix}join #$gameId**\n" +
+                    "*You can cancel this game by typing ${prefix}cancel*")
+            me = m
+        }
+        return me
     }
 
     /**
@@ -172,7 +174,7 @@ fun User.isInGameOrLobby(): Boolean {
 class TriviaPlayerData(var wins: Int = 0, var losses: Int = 0, var questionsCorrect: Int = 0, var questionsWrong: Int = 0, var overallCorrectPercent: Double = 0.0, var percentageCorrect: HashMap<String, Double> = hashMapOf()) {
     fun percentagesFancy(): String {
         val builder = StringBuilder()
-        percentageCorrect.forEach { category, percent ->  builder.append("  ${Emoji.SMALL_ORANGE_DIAMOND} $category: *${percent.toInt()}*%\n")}
+        percentageCorrect.forEach { category, percent -> builder.append("  ${Emoji.SMALL_ORANGE_DIAMOND} $category: *${percent.toInt()}*%\n") }
         return builder.toString()
     }
 }
@@ -205,8 +207,10 @@ class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner:
         val scoresTemp = hashMapOf<String, Int>()
         scores.forEach { t, u -> scoresTemp.put(t.toUser()!!.withDiscrim(), u) }
         val roundsTemp = mutableListOf<SanitizedTriviaRound>()
-        rounds.forEach { r -> roundsTemp.add(SanitizedTriviaRound(r.winners.isNotEmpty(),
-                r.winners.getOrNull(0)?.toUser(), r.losers.map { it.toUser() }, r.question)) }
+        rounds.forEach { r ->
+            roundsTemp.add(SanitizedTriviaRound(r.winners.isNotEmpty(),
+                    r.winners.getOrNull(0)?.toUser(), r.losers.map { it.toUser() }, r.question))
+        }
         return SanitizedTrivia(creator.toUser()!!, id, winner.toUser()!!, losers.map { it.toUser()!! }, scoresTemp.sort(true).toList() as List<Pair<String, Int>>, roundsTemp)
     }
 }
