@@ -238,11 +238,17 @@ class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPubl
             val sc = getScores().first.sort(true) as MutableMap<String, Int>
             val winner = sc.toList()[0]
             val winnerUser = winner.first.toUser()!!
-            channel.send("Congrats to ${winnerUser.asMention} for winning with **${winner.second}** points! You'll receive that amount in gold as a prize!\n" +
-                    "**Cleaning game up..**")
-            val data = winnerUser.getData()
-            data.gold += winner.second
-            data.update()
+            if (players.size > 1) {
+                channel.send("Congrats to ${winnerUser.asMention} for winning with **${winner.second}** points! You'll receive that amount in gold as a prize!\n" +
+                        "**Cleaning game up..**")
+                val data = winnerUser.getData()
+                data.gold += winner.second
+                data.update()
+            }
+            else {
+                channel.send("Thanks for playing, ${winnerUser.asMention}!\n" +
+                        "**Cleaning game up..**")
+            }
             cleanup(GameDataTrivia(gameId, creator, startTime!!, winner.first, players.without(winner.first), sc, rounds))
         } else {
             if (currentRound == (roundTotal - 3)) channel.send("${Emoji.INFORMATION_SOURCE} There are only **3** rounds left!")
@@ -733,7 +739,7 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
                 channel.send("How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)")
                 waiter.waitForMessage(Settings(member.user.id, channel.id, event.guild.id), { playerCount ->
                     val count = playerCount.content.toIntOrNull() ?: 999
-                    if (count == 0 || count == 1) channel.send("Invalid number provided, cancelling setup")
+                    if (count == 0) channel.send("Invalid number provided, cancelling setup")
                     else {
                         val game = TriviaGame(channel, member.id(), count, isPublic)
                         gamesInLobby.add(game)

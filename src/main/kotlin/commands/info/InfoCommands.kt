@@ -129,12 +129,18 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
                     data.update()
                 } else {
                     if (event.member.roles.contains(role)) {
-                        event.guild.controller.removeRolesFromMember(event.member, role).reason("Ardent Autoroles - Removal").queue({
-                            event.channel.send("Successfully removed the **${role.name}** role!")
-                        }, {
+                        try {
+                            event.guild.controller.removeRolesFromMember(event.member, role).reason("Ardent Autoroles - Removal").queue({
+                                event.channel.send("Successfully removed the **${role.name}** role!")
+                            }, {
+                                event.channel.send("Failed to remove *${role.name}* - **please ask an administrator of this server to allow me " +
+                                        "to manage roles!**")
+                            })
+                        }
+                        catch (e: Exception) {
                             event.channel.send("Failed to remove *${role.name}* - **please ask an administrator of this server to allow me " +
                                     "to manage roles!**")
-                        })
+                        }
                     } else event.channel.send("You can't remove a role you don't have! :thinking:")
                 }
                 found = true

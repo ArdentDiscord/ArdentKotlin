@@ -1,0 +1,20 @@
+{{> header.hbs }}
+{{#if showSnackbar}}
+    <a href="#" style="margin: 50px auto 0 auto; width: 75%; display: block;"
+       class="button special small">{{snackbarMessage}}</a>
+{{/if}}
+<!-- Main -->
+<section id="main" class="container 75%" xmlns="http://www.w3.org/1999/html">
+    <header>
+        <h2>Translation Homepage</h2>
+    </header>
+    {{#each languages}}
+        {{#with language}}
+            <div class="box">
+                <h3 style="display: inline-block;"><a href="/translation/ar/{{code}}/hi/guys">{{readable}}</a></h3>
+            </div>
+        {{/with}}
+    {{/each}}
+</section>
+
+{{> footer.hbs }}

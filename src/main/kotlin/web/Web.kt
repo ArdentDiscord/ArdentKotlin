@@ -16,6 +16,9 @@ import spark.Response
 import spark.Service
 import spark.Spark.*
 import spark.template.handlebars.HandlebarsTemplateEngine
+import translation.Languages
+import translation.toLanguage
+import translation.translationData
 import utils.*
 
 val settings = mutableListOf<Setting>()
@@ -196,6 +199,100 @@ class Web {
                 map.put("languages_table_one", languages_table_one)
                 map.put("languages_table_two", languages_table_two)
                 ModelAndView(map, "languages.hbs")
+            }, handlebars)
+            path("/ar", {
+                get("/*/*/*", { request, response ->
+                    val session = request.session()
+                    val user: User? = session.attribute<User>("user")
+                    when {
+                        user == null -> {
+                            response.redirect("/login")
+                            null
+                        }
+                        session.attribute<Staff>("role") == null -> {
+                            response.redirect("/fail")
+                            null
+                        }
+                        else -> {
+                            val map = hashMapOf<String, Any>()
+                            handle(request, map)
+                            val language = request.splat().getOrNull(0)?.toLanguage()
+                            if (language == null) {
+                                response.redirect("/fail")
+                                println(request.splat().getOrNull(0))
+                                null
+                            } else {
+                                if (request.splat().getOrNull(1) == "hi" && request.splat().getOrNull(2) == "guys") {
+                                    map.put("nullTranslations", language.getNullTranslations())
+                                    map.put("completedTranslations", language.getNonNullTranslations())
+                                    map.put("language", language)
+                                    map.put("title", "${language.readable} Translations")
+                                    ModelAndView(map, "languageHome.hbs")
+                                } else {
+                                    map.put("title", "${language.readable} Translation")
+                                    val phrase = translationData.getByEnglish(request.splat().getOrNull(2))
+                                    if (phrase == null) {
+                                        println(request.uri())
+                                        response.redirect("/fail")
+                                        null
+                                    } else {
+                                        when (request.splat().getOrNull(1)) {
+                                            "view" -> {
+                                                val langTranslation = phrase.translations[language.code] ?: ""
+                                                map.put("english", phrase.translations["en"] ?: phrase.english)
+                                                map.put("langTranslation", langTranslation)
+                                                map.put("language", language)
+                                                map.put("original", phrase.english)
+                                                ModelAndView(map, "translationView.hbs")
+                                            }
+                                            "update" -> {
+                                                val new = request.queryParams("n")
+                                                if (new == null) {
+                                                    response.redirect("/translation/ar/${language.code}/hi/guys")
+                                                    null
+                                                } else {
+                                                    phrase.translations.putIfAbsent(language.code, new)
+                                                    if (language == Languages.ENGLISH.language){
+                                                        phrase.translations.replace("en", new)
+                                                    }
+                                                    r.table("phrases").get(phrase.english).update(r.json(phrase.toJson())).runNoReply(conn)
+                                                    response.redirect("/translation/ar/${language.code}/view/${phrase.english}")
+                                                    null
+                                                }
+                                            }
+                                            else -> {
+                                                response.redirect("/fail")
+                                                null
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }, handlebars)
+            })
+            get("/", { request, response ->
+                val session = request.session()
+                val user: User? = session.attribute<User>("user")
+                when {
+                    user == null -> {
+                        response.redirect("/login")
+                        null
+                    }
+                    session.attribute<Staff>("role") == null -> {
+                        response.redirect("/fail")
+                        null
+                    }
+                    else -> {
+                        val map = hashMapOf<String, Any>()
+                        handle(request, map)
+                        map.put("showSnackbar", false)
+                        map.put("title", "Translation Home")
+                        map.put("languages", Languages.values())
+                        ModelAndView(map, "translationHome.hbs")
+                    }
+                }
             }, handlebars)
         })
         get("/support", { _, response -> response.redirect("https://discord.gg/VebBB5z") })

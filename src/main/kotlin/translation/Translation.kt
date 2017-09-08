@@ -7,9 +7,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-private val translationData = ArdentTranslationData()
+val translationData = ArdentTranslationData()
 
-class ArdentTranslationData(val phrases: HashMap<String, ArdentPhraseTranslation> = hashMapOf(), private val executor: ScheduledExecutorService = Executors.newScheduledThreadPool(5)) {
+class ArdentTranslationData(val phrases: HashMap<String, ArdentPhraseTranslation> = hashMapOf(), executor: ScheduledExecutorService = Executors.newScheduledThreadPool(5)) {
     init {
         executor.scheduleAtFixedRate({
             update()
@@ -34,9 +34,18 @@ class ArdentTranslationData(val phrases: HashMap<String, ArdentPhraseTranslation
             }
         }
     }
+
+    fun getByEnglish(string: String?): ArdentPhraseTranslation? {
+        phrases.forEach { if (it.value.english == string) return it.value}
+        return null
+    }
 }
 
-data class ArdentPhraseTranslation(val translations: HashMap<String /* language code */, String /* translated phrase */>) {
+data class ArdentPhraseTranslation(var english: String, val command: String, val translations: HashMap<String /* language code */, String /* translated phrase */> = hashMapOf()) {
+    fun instantiate(englishPhrase: String): ArdentPhraseTranslation {
+        translations.put("en", englishPhrase)
+        return this
+    }
     fun translate(languages: Languages): String {
         return translate(languages.language)
     }
@@ -51,8 +60,20 @@ data class ArdentPhraseTranslation(val translations: HashMap<String /* language 
 }
 
 data class ArdentLanguage(val code: String, val readable: String, val maturity: LanguageMaturity = LanguageMaturity.INFANCY) {
-    fun translate(english: String): String {
+    fun translate(english: String?): String {
         return translationData.phrases[english]?.translate(this) ?: "This translation doesn't exist yet in the database"
+    }
+
+    fun getNullTranslations(): MutableList<ArdentPhraseTranslation> {
+        val phrases = mutableListOf<ArdentPhraseTranslation>()
+        translationData.phrases.forEach { english, u ->  if (!u.translations.containsKey(code) || u.translations[code]?.isEmpty() != false) phrases.add(u) }
+        return phrases
+    }
+
+    fun getNonNullTranslations(): MutableList<ArdentPhraseTranslation> {
+        val phrases = mutableListOf<ArdentPhraseTranslation>()
+        translationData.phrases.forEach { _, u ->  if (u.translations.containsKey(code) && u.translations[code]?.isEmpty() == false) phrases.add(u) }
+        return phrases
     }
 
     override fun toString(): String {
@@ -63,12 +84,16 @@ data class ArdentLanguage(val code: String, val readable: String, val maturity: 
 fun String.toLanguage(): ArdentLanguage? {
     return when (this) {
         "en" -> Languages.ENGLISH.language
+        "fr" -> Languages.FRENCH.language
+        "da" -> Languages.DANISH.language
         else -> null
     }
 }
 
 enum class Languages(val language: ArdentLanguage) {
-    ENGLISH(ArdentLanguage("en", "English", LanguageMaturity.DEVELOPMENT))
+    ENGLISH(ArdentLanguage("en", "English", LanguageMaturity.DEVELOPMENT)),
+    FRENCH(ArdentLanguage("fr", "Français")),
+    DANISH(ArdentLanguage("da", "Dansk"));
 }
 
 enum class LanguageMaturity(val readable: String) {

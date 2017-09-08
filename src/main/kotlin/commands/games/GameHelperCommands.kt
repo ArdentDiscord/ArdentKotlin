@@ -32,7 +32,7 @@ class Forcestart : Command(Category.GAMES, "start", "manually start a game", "fo
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id && game.channel.guild == event.guild) {
-                if (game.players.size == 1 && game.type == GameType.TRIVIA) event.channel.send("You can't force start a game with only **1** person!")
+                if (game.players.size == 1 && game.type != GameType.TRIVIA) event.channel.send("You can't force start a game with only **1** person!")
                 else {
                     game.startEvent()
                 }

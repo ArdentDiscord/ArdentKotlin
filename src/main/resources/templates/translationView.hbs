@@ -1,0 +1,29 @@
+{{> header.hbs }}
+{{#if showSnackbar}}
+    <a href="#" style="margin: 50px auto 0 auto; width: 75%; display: block;"
+       class="button special small">{{snackbarMessage}}</a>
+{{/if}}
+<!-- Main -->
+<section id="main" class="container 75%" xmlns="http://www.w3.org/1999/html">
+    <header>
+        <h2>{{language.readable}} Translation</h2>
+    </header>
+    <form action="/translation/ar/{{language.code}}/update/{{original}}">
+        <div class="row uniform 50%">
+            <div class="8u">
+                <h3>English</h3>
+                <textarea rows="2" disabled>{{english}}</textarea>
+            </div>
+            <div class="8u">
+                <h3>Translation</h3>
+                <textarea rows="2" id="n" name="n" placeholder="Write translation here...">{{langTranslation}}</textarea>
+            </div>
+            <br />
+            <div class="3u 12u(mobilep)">
+                <input type="submit" value="Update" class="alt"/>
+            </div>
+        </div>
+    </form>
+</section>
+
+{{> footer.hbs }}

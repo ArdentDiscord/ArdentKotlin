@@ -241,7 +241,7 @@ fun MessageChannel.send(message: String) {
             }
             i += 2000
         }
-    } catch (ex: PermissionException) {
+    } catch (ex: Exception) {
     }
 }
 
@@ -252,7 +252,7 @@ fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: Strin
             message.addReaction(EmojiParser.parseToUnicode(reaction)).queue()
         }
         return message
-    } catch (ex: PermissionException) {
+    } catch (ex: Exception) {
     }
     return null
 }

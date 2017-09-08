@@ -12,6 +12,8 @@ import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
+import org.apache.commons.lang.WordUtils
+import translation.ArdentPhraseTranslation
 import utils.*
 import java.awt.Color
 import java.util.*
@@ -235,6 +237,18 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                         event.channel.send("Shutting down now!")
                         jdas.forEach { it.shutdown() }
                         System.exit(0)
+                    }
+                    "ap" -> {
+                        if (arguments.size == 1) {
+                            event.channel.send("Syntax: /nono ap COMMAND_IDENTIFIER~ENGLISH_PHRASE_GOES_HERE")
+                            return
+                        }
+                        val split = arguments.without(arguments[0]).toList().concat().split("~")
+                        val phrase = split[1]
+                        if (phrase.isEmpty()) event.channel.send("Include an english phrase")
+                        else {
+                            ArdentPhraseTranslation(phrase, WordUtils.capitalize(split[0])).instantiate(phrase).insert("phrases")
+                        }
                     }
                     else -> event.channel.send("You're an idiot")
                 }
