@@ -3,6 +3,7 @@ package translation
 import main.conn
 import main.r
 import utils.queryAsArrayList
+import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -23,10 +24,14 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
         databaseTranslations.forEach { phrase ->
             if (phrase != null) {
                 val localPhrase = phrases[phrase.translate(Languages.ENGLISH)]
-                if (localPhrase == null) phrases.put(phrase.translate(Languages.ENGLISH), phrase)
+                if (localPhrase == null) {
+                    if (phrase.encoded == null) phrase.encoded = URLEncoder.encode(phrase.english)
+                    phrases.put(phrase.translate(Languages.ENGLISH), phrase)
+                }
                 else {
                     phrase.translations.forEach { languageCode, translation ->
                         if (localPhrase.translations[languageCode] != translation) {
+                            if (localPhrase.encoded == null) localPhrase.encoded = URLEncoder.encode(localPhrase.english)
                             if (!localPhrase.translations.containsKey(languageCode)) localPhrase.translations.put(languageCode, translation)
                             else localPhrase.translations.replace(languageCode, translation)
                         }
@@ -47,7 +52,7 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
     }
 }
 
-data class ArdentPhraseTranslation(var english: String, val command: String, val translations: HashMap<String /* language code */, String /* translated phrase */> = hashMapOf()) {
+data class ArdentPhraseTranslation(var english: String, val command: String, var encoded: String? = URLEncoder.encode(english), val translations: HashMap<String /* language code */, String /* translated phrase */> = hashMapOf()) {
     fun instantiate(englishPhrase: String): ArdentPhraseTranslation {
         translations.put("en", englishPhrase)
         return this
@@ -92,6 +97,7 @@ fun String.toLanguage(): ArdentLanguage? {
         "en" -> Languages.ENGLISH.language
         "fr" -> Languages.FRENCH.language
         "da" -> Languages.DANISH.language
+        "de" -> Languages.GERMAN.language
         else -> null
     }
 }
@@ -99,7 +105,10 @@ fun String.toLanguage(): ArdentLanguage? {
 enum class Languages(val language: ArdentLanguage) {
     ENGLISH(ArdentLanguage("en", "English", LanguageMaturity.DEVELOPMENT)),
     FRENCH(ArdentLanguage("fr", "Français")),
-    DANISH(ArdentLanguage("da", "Dansk"));
+    DANISH(ArdentLanguage("da", "Dansk")),
+    GERMAN(ArdentLanguage("de", "Deutsch"))
+
+    ;
 }
 
 enum class LanguageMaturity(val readable: String) {

@@ -35,7 +35,7 @@ class RanksDaemon : Runnable {
                         if (hangout != null) {
                             val patronRole = hangout!!.getRolesByName("Patron", true)[0]
                             hangout!!.members.forEach {
-                                if (it.id() == discordId && !it.roles.contains(patronRole)) {
+                                if (it.id() == discordId) {
                                     hangout!!.controller.addRolesToMember(hangout!!.getMemberById(it.id()), patronRole).queue()
                                 }
                             }

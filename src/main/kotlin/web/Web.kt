@@ -22,6 +22,8 @@ import translation.Languages
 import translation.toLanguage
 import translation.translationData
 import utils.*
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 val settings = mutableListOf<Setting>()
 
@@ -234,11 +236,9 @@ class Web {
                                     ModelAndView(map, "languageHome.hbs")
                                 } else {
                                     map.put("title", "${language.readable} Translation")
-                                    val phrase = translationData.getByEnglish(request.splat().getOrNull(2))
+                                    val phrase = translationData.getByEnglish(URLDecoder.decode(request.splat().getOrNull(2)))
                                     if (phrase == null) {
-                                        println(request.uri())
-                                        response.redirect("/fail")
-                                        null
+                                        ModelAndView(map, "404.hbs")
                                     } else {
                                         when (request.splat().getOrNull(1)) {
                                             "view" -> {
@@ -246,6 +246,7 @@ class Web {
                                                 map.put("english", phrase.translations["en"] ?: phrase.english)
                                                 map.put("langTranslation", langTranslation)
                                                 map.put("language", language)
+                                                map.put("encoded", phrase.encoded ?: "")
                                                 map.put("original", phrase.english)
                                                 ModelAndView(map, "translationView.hbs")
                                             }
@@ -258,6 +259,8 @@ class Web {
                                                     phrase.translations.putIfAbsent(language.code, new)
                                                     if (language == Languages.ENGLISH.language){
                                                         phrase.translations.replace("en", new)
+                                                        phrase.english = new
+                                                        phrase.encoded = URLEncoder.encode(new)
                                                     }
                                                     r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
                                                     "355817985052508160".toChannel()?.send("${user.asMention} just updated a **${language.readable}** translation!")

@@ -8,8 +8,10 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject
+import translation.ArdentLanguage
 import translation.Languages
 import java.lang.management.ManagementFactory
 import java.time.Instant
@@ -142,15 +144,33 @@ fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }
 
-fun String.trReplace(guild: Guild, param: Int, new: String): String {
+fun String.trReplace(event: MessageReceivedEvent, vararg new: String): String {
+    return trReplace(event.guild, *new)
+}
+
+fun String.trReplace(guild: Guild, vararg new: String): String {
+    return trReplace(guild.getLanguage(), *new)
+}
+
+fun String.trReplace(ardentLanguage: ArdentLanguage, vararg new: String): String {
+    var current = 0
+    var str = this
+    new.forEach {
+        str = str.trReplace(ardentLanguage, current, it)
+        println(str)
+        current++
+    }
+    return str
+}
+
+private fun String.trReplace(language: ArdentLanguage, param: Int, new: String): String {
     val split = split("{$param}")
-    when (guild.getLanguage()) {
+    when (language) {
         Languages.FRENCH.language -> {
-            if (split[0].endsWith(" le ", true) || split[0].endsWith(" la ", true)
+            if ((split[0].endsWith(" le ", true) || split[0].endsWith(" la ", true)
                     || split[0].endsWith(" le **", true) || split[0].endsWith(" la **", true)
-                    || split[0].endsWith(" le *", true) || split[0].endsWith(" la *", true)
-                    &&
-                    (new.startsWith("a", true) || new.startsWith("e", true))) {
+                    || split[0].endsWith(" le *", true) || split[0].endsWith(" la *", true))
+                    && (new.startsWith("a", true) || new.startsWith("e", true))) {
                 return split[0].replaceAfterLast(" le ", "l'${if (split[0].endsWith("**")) "**" else if (split[0].endsWith("*")) "*" else ""}$new${split[1]}")
                         .replace(" le l'", " l'").replace(" la l'", " l'")
             }

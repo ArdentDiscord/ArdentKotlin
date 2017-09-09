@@ -330,16 +330,16 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
     return servers
 }
 
-fun String.translateTo(language: ArdentLanguage): String {
-    return language.translate(this)
+fun String.translateTo(language: ArdentLanguage, vararg new: String): String {
+    return language.translate(this).trReplace(language, *new)
 }
 
-fun String.translateTo(messageReceivedEvent: MessageReceivedEvent): String {
-    return translateTo(messageReceivedEvent.guild)
+fun String.translateTo(messageReceivedEvent: MessageReceivedEvent, vararg new: String): String {
+    return translateTo(messageReceivedEvent.guild, *new)
 }
 
-fun String.translateTo(guild: Guild): String {
-    return translateTo(guild.getLanguage())
+fun String.translateTo(guild: Guild, vararg new: String): String {
+    return translateTo(guild.getLanguage(), *new)
 }
 
 data class LoggedCommand(val commandId: String, val userId: String, val executionTime: Long, val readableExecutionTime: String, val id: String = r.uuid().run(conn))

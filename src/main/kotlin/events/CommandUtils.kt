@@ -5,7 +5,7 @@ import main.r
 import main.test
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.MessageChannel
+import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -46,17 +46,6 @@ class CommandFactory {
                 }
             }
         }
-        if (event.channel.id == "351370317731594241") {
-            if (event.message.rawContent.equals("/helpme", true)) {
-                event.channel.send("${event.guild.getRolesByName("Staff", true)[0].asMention}, please message ${event.author.asMention}")
-                event.channel.send("${event.author.asMention}, when a staff member messages you, please send them a temporary server invite so they can get more detail")
-            } else if (!event.author.isStaff()) {
-                event.message.delete().queue()
-                event.author.openPrivateChannel().queue { privateChannel ->
-                    privateChannel.send("Please type **/helpme** and a staff member will message you soon.")
-                }
-            }
-        }
         messagesReceived.getAndIncrement()
         if (cont) {
             val member = event.member
@@ -84,8 +73,7 @@ class CommandFactory {
                                     LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                         } catch (e: Throwable) {
                             e.log()
-                            event.channel.send("There was an exception while trying to run this command. Please join https://ardentbot.com/support and " +
-                                    "share the following stacktrace:\n${ExceptionUtils.getStackTrace(e)}")
+                            event.channel.send("There was an exception while trying to run this command. Please join https://ardentbot.com/support and share the following stacktrace:\n{0}".translateTo(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
                         }
                     }
                     return
@@ -107,20 +95,20 @@ abstract class Command(val category: Category, val name: String, val description
 
     abstract fun execute(arguments: MutableList<String>, event: MessageReceivedEvent)
 
-    fun withHelp(syntax: String, description: String): Command {
-        help.add(Pair(syntax, description))
+    fun withHelp(syntax: String, description: String, event: MessageReceivedEvent): Command {
+        help.add(Pair(syntax.translateTo(event), description.translateTo(event)))
         return this
     }
 
-    fun displayHelp(channel: MessageChannel, member: Member) {
+    fun displayHelp(channel: TextChannel, member: Member) {
         val prefix = member.guild.getPrefix()
-        val embed = member.embed("How can I use $prefix$name ?", Color.BLACK)
+        val embed = member.embed("How can I use {0}?".translateTo(channel.guild).trReplace(channel.guild, "$prefix$name"), Color.BLACK)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
-                .setFooter("Aliases: ${aliases.toList().stringify()}", member.user.avatarUrl)
-                .appendDescription("*$description*\n")
+                .setFooter("Aliases: {0}".translateTo(channel.guild).trReplace(channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
+                .appendDescription("*${description.translateTo(channel.guild)}*\n")
         help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first}**: *${it.second}*") }
-        if (help.size > 0) embed.appendDescription("\n\n**Example**: $prefix$name ${help[0].first}")
-        embed.appendDescription("\n\nType ${member.guild.getPrefix()}help to view a full list of commands")
+        if (help.size > 0) embed.appendDescription("\n\n**Example**: {0}".translateTo(channel.guild).trReplace(channel.guild, "$prefix$name ${help[0].first}"))
+        embed.appendDescription("\n\nType {0}help to view a full list of commands".translateTo(channel.guild).trReplace(channel.guild, member.guild.getPrefix()))
         channel.send(embed)
         help.clear()
     }

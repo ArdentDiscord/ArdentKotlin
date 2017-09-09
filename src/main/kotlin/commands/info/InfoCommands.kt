@@ -18,41 +18,39 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val currentTime = System.currentTimeMillis()
         event.channel.sendMessage("I'll calculate my ping to Discord using this message".translateTo(event.guild)).queue({ m ->
-            m.editMessage("**Socket Ping**: *{0} milliseconds*".translateTo(event).trReplace(event.guild, 0, (System.currentTimeMillis() - currentTime).toString()))?.queue()
+            m.editMessage("**Socket Ping**: *{0} milliseconds*".translateTo(event).trReplace(event.guild, (System.currentTimeMillis() - currentTime).toString()))?.queue()
         })
     }
 }
 
 class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("My invite link is <https://ardentbot.com/invite>" +
-                " - have fun using Ardent!")
+        event.channel.send("My invite link is {0} - have fun using Ardent!".translateTo(event).trReplace(event, "<https://ardentbot.com/invite>"))
     }
 }
 
 class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and get special perks for it!") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Want to support our work and obtain some perks along the way? Head to <https://ardentbot.com/patreon> to see the different ways " +
-                "you could help us out!")
+        event.channel.send("Want to support our work and obtain some perks along the way? Head to {0} to see the different ways you could help us out!".translateTo(event).trReplace(event, "<https://ardentbot.com/patreon>"))
     }
 }
 
 
 class WebPanel : Command(Category.ADMINISTRATE, "webpanel", "administrate the settings for your server", "panel") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Visit our new web panel for an easy way to manage your settings - <https://ardentbot.com/manage/${event.guild.id}>")
+        event.channel.send("Visit our new web panel for an easy way to manage your settings - {0}".translateTo(event).trReplace(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
     }
 }
 
 class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Visit our new web panel for an easy way to manage your settings - <https://ardentbot.com/manage/${event.guild.id}>")
+        event.channel.send("Visit our new web panel for an easy way to manage your settings - {0}".translateTo(event).trReplace(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
     }
 }
 
 class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val builder = event.member.embed("About the bot and its founders")
+        val builder = event.member.embed("About the bot and its founders".translateTo(event))
         builder.appendDescription("Ardent was originally founded in November 2016 by Adam#9261. It reached over 4,000 servers " +
                 "by June, but Adam had to shut it down due to chronic stability issues with the bot and the fact that he was going on " +
                 "a language learning program without any internet for nearly two months. When he came back, he decided to recreate Ardent with a " +
@@ -98,7 +96,7 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                             event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
                                     "to give you roles!**")
                         })
-                    } catch (e: PermissionException) {
+                    } catch (e: Throwable) {
                         event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
                                 "to give you roles!**")
                     }
@@ -153,14 +151,14 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
 
 class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.selectFromList(event.member, "Ardent | Commands", Category.values().map { "${it.fancyName}: *${it.description}*" }.toMutableList(), { selected, selectionMessage ->
+        event.channel.selectFromList(event.member, "Ardent | Commands".translateTo(event), Category.values().map { "${it.fancyName}: *${it.description.translateTo(event)}*" }.toMutableList(), { selected, selectionMessage ->
             val category = Category.values()[selected]
-            val embed = event.member.embed("${category.fancyName} | Command List", Color.DARK_GRAY)
+            val embed = event.member.embed("{0} | Command List".translateTo(event).trReplace(event, category.fancyName.translateTo(event)), Color.DARK_GRAY)
             factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
                 embed.appendDescription("\n${if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: ${command.description}")
                 if (command.aliases.isNotEmpty()) {
-                    if (command.aliases.size > 1) embed.appendDescription("         __aliases: [${command.aliases.toList().stringify()}]__")
-                    else embed.appendDescription("   (__alias: ${command.aliases.toList().stringify()}__)")
+                    if (command.aliases.size > 1) embed.appendDescription("         __aliases: [{0}]__".translateTo(event).trReplace(event, command.aliases.toList().stringify()))
+                    else embed.appendDescription("   (__alias: {0}__)".translateTo(event).trReplace(event, command.aliases.toList().stringify()))
                 }
             }
             embed.appendDescription("\n\n*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
