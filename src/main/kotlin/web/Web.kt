@@ -229,14 +229,18 @@ class Web {
                                 null
                             } else {
                                 if (request.splat().getOrNull(1) == "hi" && request.splat().getOrNull(2) == "guys") {
-                                    map.put("nullTranslations", language.getNullTranslations())
-                                    map.put("completedTranslations", language.getNonNullTranslations())
+                                    val nullTranslations = language.getNullTranslations()
+                                    val completedTranslations = language.getNonNullTranslations()
+                                    map.put("nullTranslations", nullTranslations)
+                                    map.put("completedTranslations", completedTranslations)
+                                    map.put("undoneTotal", nullTranslations.size)
+                                    map.put("completedTotal", completedTranslations.size)
                                     map.put("language", language)
                                     map.put("title", "${language.readable} Translations")
                                     ModelAndView(map, "languageHome.hbs")
                                 } else {
                                     map.put("title", "${language.readable} Translation")
-                                    val phrase = translationData.getByEnglish(URLDecoder.decode(request.splat().getOrNull(2)))
+                                    val phrase = translationData.getByEncoded(URLEncoder.encode(request.splat().getOrNull(2)))
                                     if (phrase == null) {
                                         ModelAndView(map, "404.hbs")
                                     } else {
@@ -257,12 +261,13 @@ class Web {
                                                     null
                                                 } else {
                                                     phrase.translations.putIfAbsent(language.code, new)
-                                                    if (language == Languages.ENGLISH.language){
+                                                    if (language == Languages.ENGLISH.language) {
                                                         phrase.translations.replace("en", new)
+                                                        val temp = phrase.english
                                                         phrase.english = new
+                                                        r.table("phrases").filter(r.hashMap("english", temp)).update(r.json(phrase.toJson())).runNoReply(conn)
                                                         phrase.encoded = URLEncoder.encode(new)
-                                                    }
-                                                    r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
+                                                    } else r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
                                                     "355817985052508160".toChannel()?.send("${user.asMention} just updated a **${language.readable}** translation!")
                                                     response.redirect("/translation/ar/${language.code}/hi/guys")
                                                     null
@@ -763,7 +768,7 @@ class Web {
                                     if (content?.size == 2) {
                                         val phrase = translationData.get(content[0], content[1])
                                         if (phrase != null) {
-                                            translationData.phrases.forEach { t, u -> if (phrase == u) translationData.phrases.remove(t)}
+                                            translationData.phrases.forEach { t, u -> if (phrase == u) translationData.phrases.remove(t) }
                                             "355817985052508160".toChannel()?.send("An administrator just removed an english phrase :(")
                                             r.table("phrases").filter(r.hashMap("english", phrase.english)).delete().runNoReply(conn)
                                         }
@@ -773,8 +778,7 @@ class Web {
                                 else -> response.redirect("/administrators")
                             }
                             null
-                        }
-                        else {
+                        } else {
                             response.redirect("/administrators")
                             null
                         }

@@ -16,6 +16,7 @@ import commands.`fun`.*
 import commands.administrate.*
 import commands.games.*
 import commands.info.*
+import commands.info.Settings
 import commands.music.*
 import commands.music.Queue
 import commands.rpg.*
@@ -30,17 +31,15 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
-import utils.EventWaiter
-import utils.TriviaQuestion
-import utils.getGuildById
-import utils.logChannel
+import utils.*
 import web.Web
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
 import java.util.*
+import java.util.concurrent.TimeUnit
 
-val test = true
+val test = false
 
 var hangout: Guild? = null
 
@@ -96,6 +95,7 @@ fun main(args: Array<String>) {
     AudioSourceManagers.registerLocalSource(playerManager)
     addCommands()
     startAdministrativeDaemon()
+    waiter.executor.schedule({ checkQueueBackups() }, 5, TimeUnit.SECONDS)
     println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")
 }
 
@@ -125,13 +125,33 @@ data class Config(val url: String) {
 
 fun addCommands() {
     factory.addCommands(Play(), Radio(), Stop(), Pause(), Resume(), SongUrl(), Ping(), Help(), Volume(), Playing(), Repeat(),
-            Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), Games(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
+            Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
             JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
             Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand())
+}
+
+fun checkQueueBackups() {
+    val queues = r.table("queues").run<Any>(conn).queryAsArrayList(QueueModel::class.java)
+    queues.forEach {
+        if (it != null) {
+            val channel = it.channelId?.toChannel()
+            channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at <https://patreon.com/ardent> - we'd really appreciate it")
+            getVoiceChannelById(it.voiceId)?.connect(channel)
+            Thread.sleep(3000)
+            val guild = getGuildById(it.guildId)
+            val manager = guild?.getGuildAudioPlayer(channel)
+            if (guild != null && manager != null) {
+                it.music.forEach { trackUri ->
+                    trackUri.load(guild.selfMember, null, null, guild = guild)
+                }
+            }
+        }
+    }
+    r.table("queues").delete().runNoReply(conn)
 }
 
 fun setupDrive(): Sheets {

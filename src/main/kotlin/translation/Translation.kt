@@ -26,9 +26,8 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
                 val localPhrase = phrases[phrase.translate(Languages.ENGLISH)]
                 if (localPhrase == null) {
                     if (phrase.encoded == null) phrase.encoded = URLEncoder.encode(phrase.english)
-                    phrases.put(phrase.translate(Languages.ENGLISH), phrase)
-                }
-                else {
+                    else if (phrase.translate(Languages.ENGLISH) != null) phrases.put(phrase.translate(Languages.ENGLISH)!!, phrase)
+                } else {
                     phrase.translations.forEach { languageCode, translation ->
                         if (localPhrase.translations[languageCode] != translation) {
                             if (localPhrase.encoded == null) localPhrase.encoded = URLEncoder.encode(localPhrase.english)
@@ -41,13 +40,18 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
         }
     }
 
+    fun getByEncoded(string: String?): ArdentPhraseTranslation? {
+        phrases.forEach { if (it.value.encoded == string) return it.value }
+        return null
+    }
+
     fun getByEnglish(string: String?): ArdentPhraseTranslation? {
-        phrases.forEach { if (it.value.english == string) return it.value}
+        phrases.forEach { if (it.value.english == string) return it.value }
         return null
     }
 
     fun get(english: String, command: String): ArdentPhraseTranslation? {
-        phrases.forEach { if (it.value.english == english && command == it.value.command) return it.value}
+        phrases.forEach { if (it.value.english == english && command == it.value.command) return it.value }
         return null
     }
 }
@@ -57,33 +61,34 @@ data class ArdentPhraseTranslation(var english: String, val command: String, var
         translations.put("en", englishPhrase)
         return this
     }
-    fun translate(languages: Languages): String {
+
+    fun translate(languages: Languages): String? {
         return translate(languages.language)
     }
 
-    fun translate(language: String): String {
+    fun translate(language: String): String? {
         return translate(language.toLanguage() ?: Languages.ENGLISH.language)
     }
 
-    fun translate(language: ArdentLanguage): String {
-        return translations.getOrElse(language.code, { translations["en"] ?: "This translation doesn't currently exist" })
+    fun translate(language: ArdentLanguage): String? {
+        return translations["en"]
     }
 }
 
 data class ArdentLanguage(val code: String, val readable: String, val maturity: LanguageMaturity = LanguageMaturity.INFANCY) {
-    fun translate(english: String?): String {
-        return translationData.getByEnglish(english)?.translate(this) ?: "This translation doesn't exist yet in the database"
+    fun translate(english: String?): String? {
+        return translationData.getByEnglish(english)?.translate(this)
     }
 
     fun getNullTranslations(): MutableList<ArdentPhraseTranslation> {
         val phrases = mutableListOf<ArdentPhraseTranslation>()
-        translationData.phrases.forEach { _, u ->  if (!u.translations.containsKey(code) || u.translations[code]?.isEmpty() != false) phrases.add(u) }
+        translationData.phrases.forEach { _, u -> if (!u.translations.containsKey(code) || u.translations[code]?.isEmpty() != false) phrases.add(u) }
         return phrases
     }
 
     fun getNonNullTranslations(): MutableList<ArdentPhraseTranslation> {
         val phrases = mutableListOf<ArdentPhraseTranslation>()
-        translationData.phrases.forEach { _, u ->  if (u.translations.containsKey(code) && u.translations[code]?.isEmpty() == false) phrases.add(u) }
+        translationData.phrases.forEach { _, u -> if (u.translations.containsKey(code) && u.translations[code]?.isEmpty() == false) phrases.add(u) }
         return phrases
     }
 
@@ -98,6 +103,12 @@ fun String.toLanguage(): ArdentLanguage? {
         "fr" -> Languages.FRENCH.language
         "da" -> Languages.DANISH.language
         "de" -> Languages.GERMAN.language
+        "hi" -> Languages.HINDI.language
+        "ru" -> Languages.RUSSIAN.language
+        "it" -> Languages.ITALIAN.language
+        "cr" -> Languages.CROATIAN.language
+        "nl" -> Languages.DUTCH.language
+
         else -> null
     }
 }
@@ -106,9 +117,13 @@ enum class Languages(val language: ArdentLanguage) {
     ENGLISH(ArdentLanguage("en", "English", LanguageMaturity.DEVELOPMENT)),
     FRENCH(ArdentLanguage("fr", "Français")),
     DANISH(ArdentLanguage("da", "Dansk")),
-    GERMAN(ArdentLanguage("de", "Deutsch"))
-
-    ;
+    DUTCH(ArdentLanguage("nl", "Nederlands")),
+    GERMAN(ArdentLanguage("de", "Deutsch")),
+    HINDI(ArdentLanguage("hi", "Hindi")),
+    RUSSIAN(ArdentLanguage("ru", "Russian")),
+    ITALIAN(ArdentLanguage("it", "Italian")),
+    CROATIAN(ArdentLanguage("cr", "Croatian")),
+    EMOJI(ArdentLanguage("ej", "Emoji"));
 }
 
 enum class LanguageMaturity(val readable: String) {

@@ -794,22 +794,3 @@ class Connect4Command : Command(Category.GAMES, "connect4", "start connect 4 gam
 
     }
 }
-
-class Games : Command(Category.GAMES, "minigames", "who's the most skilled? play against friends or compete for the leaderboards in these addicting games") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        withHelp("/gamelist", "lists all games that are waiting for players or setting up to start")
-                .withHelp("/gameinvite @User", "allows the creator of the game to invite players in the server where it was started")
-                .withHelp("/decline invite", "decline a pending invite")
-                .withHelp("/joingame #game_id", "join a public game by its id or a game that you were invited to")
-                .withHelp("/forcestart", "force start a game")
-                .withHelp("/cancel", "cancel the game while it's in setup (for creators)")
-                .withHelp("/leavegame", "leave a game or its lobby (this could trigger your resignation from the game if it has already started)")
-                .withHelp("/bet", "start a betting game")
-                .withHelp("/blackjack", "start a blackjack game")
-                .withHelp("/trivia", "start a trivia game")
-                .withHelp("/connect4", "start a connect-4 game")
-
-                .displayHelp(event.channel, event.member)
-        return
-    }
-}

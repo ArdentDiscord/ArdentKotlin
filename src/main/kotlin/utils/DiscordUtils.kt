@@ -10,7 +10,6 @@ import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import translation.ArdentLanguage
 import translation.Languages
 import translation.toLanguage
@@ -132,6 +131,18 @@ fun String.toUser(): User? {
             val user = jda.getUserById(this)
             if (user != null) return user
         } catch (ignored: Exception) {
+        }
+    }
+    return null
+}
+
+fun getVoiceChannelById(id: String): VoiceChannel? {
+    jdas.forEach { jda ->
+        try {
+            val voice = jda.getVoiceChannelById(id)
+            if (voice != null) return voice
+        }
+        catch (ignored: Exception) {
         }
     }
     return null
@@ -331,7 +342,12 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
 }
 
 fun String.translateTo(language: ArdentLanguage, vararg new: String): String {
-    return language.translate(this).trReplace(language, *new)
+    return language.translate(String.format(this.replace("\n", "%n")))?.trReplace(language, *new) ?: translationDoesntExist()
+}
+
+fun String.translationDoesntExist(): String {
+    logChannel!!.send("`Translation for the following doesn't exist: $this`")
+    return this
 }
 
 fun String.translateTo(messageReceivedEvent: MessageReceivedEvent, vararg new: String): String {

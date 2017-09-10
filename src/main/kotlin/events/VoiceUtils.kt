@@ -2,6 +2,7 @@ package events
 
 import commands.music.getGuildAudioPlayer
 import main.managers
+import net.dv8tion.jda.core.events.ShutdownEvent
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import utils.send

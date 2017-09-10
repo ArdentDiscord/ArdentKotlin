@@ -3,10 +3,7 @@ package commands.administrate
 import commands.games.Connect4Game
 import events.Category
 import events.Command
-import main.config
-import main.conn
-import main.jdas
-import main.r
+import main.*
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
@@ -248,13 +245,18 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                     return
                 }
                 when (arguments[0]) {
-                    "test" -> {
-                        event.channel.send(Connect4Game.GameBoard("1", "2").toString())
-                    }
                     "eval" -> {
                         eval(arguments, event)
                     }
                     "shutdown" -> {
+                        managers.forEach {
+                            val tracks = mutableListOf<String>()
+                            if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
+                            it.value.scheduler.manager.queue.forEach { song -> tracks.add(song.track.info.uri) }
+                            val guild = getGuildById(it.key.toString())!!
+                            QueueModel(guild.id, guild.selfMember.voiceChannel()!!.id, it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
+                            it.value.scheduler.manager.getChannel()?.send("I'm restarting for updates. Your music **will** be preserved when I come back online!")
+                        }
                         event.channel.send("Shutting down now!")
                         jdas.forEach { it.shutdown() }
                         System.exit(0)

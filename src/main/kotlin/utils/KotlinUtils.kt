@@ -157,7 +157,6 @@ fun String.trReplace(ardentLanguage: ArdentLanguage, vararg new: String): String
     var str = this
     new.forEach {
         str = str.trReplace(ardentLanguage, current, it)
-        println(str)
         current++
     }
     return str

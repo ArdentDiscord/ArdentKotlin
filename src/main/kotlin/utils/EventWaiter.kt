@@ -137,63 +137,66 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
     }
     if (footerText != null) builder.append("\n$footerText\n")
     builder.append("\n__Please select **OR** type the number corresponding with the choice that you'd like to select or select **X** to cancel__\n")
-    sendMessage(embed.setDescription(builder).build()).queue { message ->
-        for (x in 1..options.size) {
-            message.addReaction(when (x) {
-                1 -> Emoji.KEYCAP_DIGIT_ONE
-                2 -> Emoji.KEYCAP_DIGIT_TWO
-                3 -> Emoji.KEYCAP_DIGIT_THREE
-                4 -> Emoji.KEYCAP_DIGIT_FOUR
-                5 -> Emoji.KEYCAP_DIGIT_FIVE
-                6 -> Emoji.KEYCAP_DIGIT_SIX
-                7 -> Emoji.KEYCAP_DIGIT_SEVEN
-                8 -> Emoji.KEYCAP_DIGIT_EIGHT
-                9 -> Emoji.KEYCAP_DIGIT_NINE
-                10 -> Emoji.KEYCAP_TEN
-                else -> Emoji.HEAVY_CHECK_MARK
-            }.symbol).queue()
+    try {
+        sendMessage(embed.setDescription(builder).build()).queue { message ->
+            for (x in 1..options.size) {
+                message.addReaction(when (x) {
+                    1 -> Emoji.KEYCAP_DIGIT_ONE
+                    2 -> Emoji.KEYCAP_DIGIT_TWO
+                    3 -> Emoji.KEYCAP_DIGIT_THREE
+                    4 -> Emoji.KEYCAP_DIGIT_FOUR
+                    5 -> Emoji.KEYCAP_DIGIT_FIVE
+                    6 -> Emoji.KEYCAP_DIGIT_SIX
+                    7 -> Emoji.KEYCAP_DIGIT_SEVEN
+                    8 -> Emoji.KEYCAP_DIGIT_EIGHT
+                    9 -> Emoji.KEYCAP_DIGIT_NINE
+                    10 -> Emoji.KEYCAP_TEN
+                    else -> Emoji.HEAVY_CHECK_MARK
+                }.symbol).queue()
+            }
+            message.addReaction(Emoji.HEAVY_MULTIPLICATION_X.symbol).queue()
+            var invoked = false
+            waiter.waitForMessage(Settings(member.user.id, id, member.guild.id, message.id), { response ->
+                invoked = true
+                val responseInt = response.rawContent.toIntOrNull()?.minus(1)
+                if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) send("You specified an invalid response!")
+                else {
+                    if (options.containsEq(response.rawContent)) {
+                        consumer.invoke(options.get(response.rawContent)!!.first, message)
+                    } else {
+                        consumer.invoke(responseInt, message)
+                        waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
+                    }
+                }
+            }, silentExpiration = true)
+            waiter.waitForReaction(Settings(member.user.id, id, member.guild.id, message.id), { messageReaction ->
+                val chosen = when (messageReaction.emote.name) {
+                    Emoji.KEYCAP_DIGIT_ONE.symbol -> 1
+                    Emoji.KEYCAP_DIGIT_TWO.symbol -> 2
+                    Emoji.KEYCAP_DIGIT_THREE.symbol -> 3
+                    Emoji.KEYCAP_DIGIT_FOUR.symbol -> 4
+                    Emoji.KEYCAP_DIGIT_FIVE.symbol -> 5
+                    Emoji.KEYCAP_DIGIT_SIX.symbol -> 6
+                    Emoji.KEYCAP_DIGIT_SEVEN.symbol -> 7
+                    Emoji.KEYCAP_DIGIT_EIGHT.symbol -> 8
+                    Emoji.KEYCAP_DIGIT_NINE.symbol -> 9
+                    Emoji.KEYCAP_TEN.symbol -> 10
+                    Emoji.HEAVY_MULTIPLICATION_X.symbol -> 69
+                    else -> 69999999
+                } - 1
+                when {
+                    chosen in 0..(options.size - 1) -> {
+                        invoked = true
+                        consumer.invoke(chosen, message)
+                        waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
+                    }
+                    chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection")
+                    else -> failure?.invoke()
+                }
+            }, {
+                if (!invoked) send("You didn't specify a reaction or response, cancelling selection")
+            }, time = 25, silentExpiration = true)
         }
-        message.addReaction(Emoji.HEAVY_MULTIPLICATION_X.symbol).queue()
-        var invoked = false
-        waiter.waitForMessage(Settings(member.user.id, id, member.guild.id, message.id), { response ->
-            invoked = true
-            val responseInt = response.rawContent.toIntOrNull()?.minus(1)
-            if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) send("You specified an invalid response!")
-            else {
-                if (options.containsEq(response.rawContent)) {
-                    consumer.invoke(options.get(response.rawContent)!!.first, message)
-                } else {
-                    consumer.invoke(responseInt, message)
-                    waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
-                }
-            }
-        }, silentExpiration = true)
-        waiter.waitForReaction(Settings(member.user.id, id, member.guild.id, message.id), { messageReaction ->
-            val chosen = when (messageReaction.emote.name) {
-                Emoji.KEYCAP_DIGIT_ONE.symbol -> 1
-                Emoji.KEYCAP_DIGIT_TWO.symbol -> 2
-                Emoji.KEYCAP_DIGIT_THREE.symbol -> 3
-                Emoji.KEYCAP_DIGIT_FOUR.symbol -> 4
-                Emoji.KEYCAP_DIGIT_FIVE.symbol -> 5
-                Emoji.KEYCAP_DIGIT_SIX.symbol -> 6
-                Emoji.KEYCAP_DIGIT_SEVEN.symbol -> 7
-                Emoji.KEYCAP_DIGIT_EIGHT.symbol -> 8
-                Emoji.KEYCAP_DIGIT_NINE.symbol -> 9
-                Emoji.KEYCAP_TEN.symbol -> 10
-                Emoji.HEAVY_MULTIPLICATION_X.symbol -> 69
-                else -> 69999999
-            } - 1
-            when {
-                chosen in 0..(options.size - 1) -> {
-                    invoked = true
-                    consumer.invoke(chosen, message)
-                    waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
-                }
-                chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection")
-                else -> failure?.invoke()
-            }
-        }, {
-            if (!invoked) send("You didn't specify a reaction or response, cancelling selection")
-        }, time = 25, silentExpiration = true)
+    } catch (e: Exception) {
     }
 }

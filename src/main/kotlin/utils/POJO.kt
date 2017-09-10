@@ -26,6 +26,8 @@ data class AnnouncementModel(var date: Long, var writer: String, var content: St
     }
 }
 
+data class QueueModel(val guildId: String, val voiceId: String, val channelId: String?, val music: MutableList<String /* URI */>)
+
 data class GuildData(val id: String, var prefix: String?, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var iamList: MutableList<Iam> = mutableListOf(), var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole: String? = null, var allowGlobalOverride: Boolean = false, var language: ArdentLanguage?)
 data class Iam(var name: String, var roleId: String)
 data class MusicSettings(var announceNewMusic: Boolean = false, var singleSongInQueueForMembers: Boolean = false, var membersCanMoveBot: Boolean = true,

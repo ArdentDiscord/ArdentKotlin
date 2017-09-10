@@ -5,7 +5,6 @@ import events.Command
 import main.factory
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import net.dv8tion.jda.core.exceptions.PermissionException
 import utils.*
 import java.awt.Color
 import java.text.DecimalFormat
@@ -64,18 +63,18 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
         val data = event.guild.getData()
         if (arguments.size == 0) {
             val embed = event.member.embed("Iam List")
-            val builder = StringBuilder().append("This is the **autoroles** list for *${event.guild.name}* - to add or delete them, type **/webpanel**\n")
-            if (data.iamList.size == 0) builder.append("You don't have any autoroles :(")
+            val builder = StringBuilder().append("This is the **autoroles** list for *{0}* - to add or delete them, type **{1}**".translateTo(event, event.guild.name, "${event.guild.getPrefix()}webpanel") + "\n")
+            if (data.iamList.size == 0) builder.append("You don't have any autoroles :(".translateTo(event))
             else {
                 data.iamList.forEach {
                     val role = it.roleId.toRole(event.guild)
-                    if (role != null) builder.append("${Emoji.SMALL_ORANGE_DIAMOND} Typing **${it.name}** will give you the **${role.name}** role\n")
+                    if (role != null) builder.append("{0} Typing **{1}** will give you the **{2}** role".translateTo(event, Emoji.SMALL_ORANGE_DIAMOND.symbol, it.name, role.name)).append("\n")
                     else {
                         data.iamList.remove(it)
                     }
                 }
                 data.update()
-                builder.append("\n**Give yourself one of these roles by typing _/iam NAME_**")
+                builder.append("\n").append("**Give yourself one of these roles by typing _/iam NAME_**".translateTo(event))
             }
             event.channel.send(embed.setDescription(builder.toString()))
             return
@@ -91,21 +90,19 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                 } else {
                     try {
                         event.guild.controller.addRolesToMember(event.member, role).reason("Ardent Autoroles").queue({
-                            event.channel.send("Successfully gave you the **${role.name}** role!")
+                            event.channel.send("Successfully gave you the **{0}** role!".translateTo(event, role.name))
                         }, {
-                            event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
-                                    "to give you roles!**")
+                            event.channel.send("Failed to give the *{0}* role - **Please ask an administrator of this server to allow me to give you roles!**".translateTo(event, role.name))
                         })
                     } catch (e: Throwable) {
-                        event.channel.send("Failed to give the *${role.name}* role - **please ask an administrator of this server to allow me " +
-                                "to give you roles!**")
+                        event.channel.send("Failed to give the *{0}* role - **Please ask an administrator of this server to allow me to give you roles!**".translateTo(event, role.name))
                     }
                 }
                 found = true
                 return@forEach
             }
         }
-        if (!found) event.channel.send("An autorole with that name wasn't found. Please type **${data.prefix}iam** to get a full list")
+        if (!found) event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to get a full list".translateTo(event, event.guild.getPrefix()))
 
     }
 }
