@@ -141,14 +141,14 @@ fun checkQueueBackups() {
     queues.forEach {
         if (it != null) {
             val channel = it.channelId?.toChannel()
-            channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at <https://patreon.com/ardent> - we'd really appreciate it")
             val voiceChannel = getVoiceChannelById(it.voiceId)
             if (voiceChannel != null && voiceChannel.members.size > 0) {
                 voiceChannel.connect(channel)
-                Thread.sleep(3000)
+                Thread.sleep(6000)
                 val guild = getGuildById(it.guildId)
                 val manager = guild?.getGuildAudioPlayer(channel)
-                if (guild != null && manager != null) {
+                if (guild != null && manager != null && it.music.size > 0) {
+                    channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at <https://patreon.com/ardent> - we'd really appreciate it")
                     it.music.forEach { trackUri ->
                         trackUri.load(guild.selfMember, null, null, guild = guild)
                     }
