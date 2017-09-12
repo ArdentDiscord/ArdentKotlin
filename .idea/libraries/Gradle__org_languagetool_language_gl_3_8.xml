@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.languagetool:language-gl:3.8">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.languagetool/language-gl/3.8/4807cfd9cae2315848e501c1567f6a2e805f2cc4/language-gl-3.8.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.languagetool/language-gl/3.8/324e8e7641c2785634cfd7aafeee796a351d379b/language-gl-3.8-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

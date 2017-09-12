@@ -154,11 +154,11 @@ class Help : Command(Category.BOT_INFO, "help", "can you figure out what this do
             factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
                 embed.appendDescription("\n${if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND} **${command.name}**: ${command.description}")
                 if (command.aliases.isNotEmpty()) {
-                    if (command.aliases.size > 1) embed.appendDescription("         __aliases: [{0}]__".translateTo(event).trReplace(event, command.aliases.toList().stringify()))
-                    else embed.appendDescription("   (__alias: {0}__)".translateTo(event).trReplace(event, command.aliases.toList().stringify()))
+                    if (command.aliases.size > 1) embed.appendDescription("         ").appendDescription("__aliases: [{0}]__".translateTo(event).trReplace(event, command.aliases.toList().stringify()))
+                    else embed.appendDescription("   ").appendDescription("(__alias: {0}__)".translateTo(event).trReplace(event, command.aliases.toList().stringify()))
                 }
             }
-            embed.appendDescription("\n\n*Did you know you can also type \"_ardent help_\" along with \"_/help_\" ? You can also change the set prefix for your server!*")
+            embed.appendDescription("\n\n").appendDescription("*Did you know you can also type _ardent help_ instead of _/help_? You can also change the set prefix for your server!*")
             selectionMessage.editMessage(embed.build()).queue()
         }, failure = {
             event.channel.send("You need to type the number or click the reaction that corresponded to the category you wanted to select :(")

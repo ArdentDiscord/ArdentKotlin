@@ -2,6 +2,8 @@ package translation
 
 import main.conn
 import main.r
+import org.languagetool.JLanguageTool
+import org.languagetool.language.*
 import utils.queryAsArrayList
 import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
@@ -10,6 +12,16 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 val translationData = ArdentTranslationData()
+
+enum class LanguageTools(val languageTool: JLanguageTool) {
+    ENGLISH(JLanguageTool(AmericanEnglish())),
+    FRENCH(JLanguageTool(French())),
+    DANISH(JLanguageTool(Danish())),
+    DUTCH(JLanguageTool(Dutch())),
+    GERMAN(JLanguageTool(GermanyGerman())),
+    RUSSIAN(JLanguageTool(Russian())),
+    ITALIAN(JLanguageTool(Italian()))
+}
 
 class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseTranslation> = ConcurrentHashMap(), executor: ScheduledExecutorService = Executors.newScheduledThreadPool(5)) {
     init {
@@ -46,7 +58,7 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
     }
 
     fun getByEnglish(string: String?): ArdentPhraseTranslation? {
-        phrases.forEach { if (it.value.english == string) return it.value }
+        phrases.forEach { if (it.value.english.equals(string, true)) return it.value }
         return null
     }
 
@@ -71,13 +83,17 @@ data class ArdentPhraseTranslation(var english: String, val command: String, var
     }
 
     fun translate(language: ArdentLanguage): String? {
-        return translations["en"]
+        return translations[language.code]
     }
 }
 
 data class ArdentLanguage(val code: String, val readable: String, val maturity: LanguageMaturity = LanguageMaturity.INFANCY) {
     fun translate(english: String?): String? {
         return translationData.getByEnglish(english)?.translate(this)
+    }
+
+    fun getTranslations(): List<ArdentPhraseTranslation> {
+        return translationData.phrases.map { it.value }
     }
 
     fun getNullTranslations(): MutableList<ArdentPhraseTranslation> {
@@ -90,6 +106,19 @@ data class ArdentLanguage(val code: String, val readable: String, val maturity: 
         val phrases = mutableListOf<ArdentPhraseTranslation>()
         translationData.phrases.forEach { _, u -> if (u.translations.containsKey(code) && u.translations[code]?.isEmpty() == false) phrases.add(u) }
         return phrases
+    }
+
+    fun getChecker(): JLanguageTool? {
+        return when (this) {
+            Languages.ENGLISH.language -> LanguageTools.ENGLISH
+            Languages.FRENCH.language -> LanguageTools.FRENCH
+            Languages.GERMAN.language -> LanguageTools.GERMAN
+            Languages.DANISH.language -> LanguageTools.DANISH
+            Languages.DUTCH.language -> LanguageTools.DUTCH
+            Languages.RUSSIAN.language -> LanguageTools.RUSSIAN
+            Languages.ITALIAN.language -> LanguageTools.ITALIAN
+            else -> null
+        }?.languageTool
     }
 
     override fun toString(): String {
@@ -108,9 +137,14 @@ fun String.toLanguage(): ArdentLanguage? {
         "it" -> Languages.ITALIAN.language
         "cr" -> Languages.CROATIAN.language
         "nl" -> Languages.DUTCH.language
-
+        "ej" -> Languages.EMOJI.language
         else -> null
     }
+}
+
+fun String.fromLangName(): ArdentLanguage? {
+    Languages.values().forEach { if (it.language.readable.equals(this, true)) return it.language }
+    return null
 }
 
 enum class Languages(val language: ArdentLanguage) {

@@ -8,9 +8,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
 import com.wrapper.spotify.exceptions.BadRequestException
-import main.managers
-import main.playerManager
-import main.spotifyApi
+import main.*
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
@@ -248,7 +246,7 @@ fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
         managers.put(guildId, musicManager)
     } else {
         val ardentMusicManager = musicManager.scheduler.manager
-        if (ardentMusicManager.getChannel() == null) {
+        if (ardentMusicManager.getChannel() != null) {
             ardentMusicManager.setChannel(channel)
         }
     }
@@ -295,6 +293,20 @@ fun String.getSpotifyPlaylist(channel: TextChannel, member: Member) {
         }
         else -> searchAndLoadPlaylists(channel, member)
     }
+}
+
+/**
+ * @return [Pair] with first as the title, and second as the video id
+ */
+fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
+    val search = youtube.search().list("id,snippet")
+    search.q = this
+    search.key = config.getValue("google")
+    search.fields = "items(id/videoId,snippet/title)"
+    search.maxResults = 7
+    val response = search.execute()
+    val items = response.items ?: return null
+    return items.map { Pair(it.snippet.title, it.id.videoId ?: "none") }
 }
 
 fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {

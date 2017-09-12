@@ -73,7 +73,7 @@ class CommandFactory {
                                     LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                         } catch (e: Throwable) {
                             e.log()
-                            event.channel.send("There was an exception while trying to run this command. Please join https://ardentbot.com/support and share the following stacktrace:\n{0}".translateTo(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
+                            event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:\n{1}".translateTo(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
                         }
                     }
                     return

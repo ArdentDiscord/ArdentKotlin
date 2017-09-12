@@ -5,6 +5,7 @@ import main.r
 import net.dv8tion.jda.core.entities.User
 import org.apache.commons.lang3.text.WordUtils
 import translation.ArdentLanguage
+import translation.ArdentPhraseTranslation
 
 data class TriviaCategory(val title: String, val created_at: String, val updated_at: String, val clues_count: Int) {
     fun getCategoryName(): String {
@@ -12,7 +13,7 @@ data class TriviaCategory(val title: String, val created_at: String, val updated
     }
 }
 
-data class TriviaQuestion( val question: String, val answers: List<String>, val category: String, val value: Int)
+data class TriviaQuestion(val question: String, val answers: List<String>, val category: String, val value: Int)
 
 data class Marriage(var userOne: String, var userTwo: String, val id: String = r.uuid().run(conn))
 data class Patron(var id: String, var donationLevel: DonationLevel)
@@ -27,7 +28,7 @@ data class AnnouncementModel(var date: Long, var writer: String, var content: St
 }
 
 data class QueueModel(val guildId: String, val voiceId: String, val channelId: String?, val music: MutableList<String /* URI */>)
-
+data class ProofreadPhrase(val original: ArdentPhraseTranslation, val phrase: String, val hasChecker: Boolean, val suggestions: MutableList<String> = mutableListOf(), var suggestionString: String = "", var hasSuggestions: Boolean = true)
 data class GuildData(val id: String, var prefix: String?, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var iamList: MutableList<Iam> = mutableListOf(), var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole: String? = null, var allowGlobalOverride: Boolean = false, var language: ArdentLanguage?)
 data class Iam(var name: String, var roleId: String)
 data class MusicSettings(var announceNewMusic: Boolean = false, var singleSongInQueueForMembers: Boolean = false, var membersCanMoveBot: Boolean = true,
@@ -44,6 +45,7 @@ data class Magic /* The name was not my choice...... */(val question: String, va
 class Punishment(val userId: String, val punisherId: String, val guildId: String, val type: Type, val expiration: Long, val start: Long = System.currentTimeMillis(), val id: String = r.uuid().run(conn)) {
     enum class Type {
         TEMPBAN, MUTE;
+
         override fun toString(): String {
             return if (this == TEMPBAN) "temp-banned"
             else "muted"

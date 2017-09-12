@@ -11,6 +11,7 @@ import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import org.apache.commons.lang.WordUtils
+import org.languagetool.markup.AnnotatedTextBuilder
 import spark.ModelAndView
 import spark.Request
 import spark.Response
@@ -22,8 +23,8 @@ import translation.Languages
 import translation.toLanguage
 import translation.translationData
 import utils.*
-import java.net.URLDecoder
 import java.net.URLEncoder
+import java.util.stream.Collectors
 
 val settings = mutableListOf<Setting>()
 
@@ -238,6 +239,36 @@ class Web {
                                     map.put("language", language)
                                     map.put("title", "${language.readable} Translations")
                                     ModelAndView(map, "languageHome.hbs")
+                                } else if (request.splat().getOrNull(1) == "proofread" && request.splat().getOrNull(2) == "all") {
+                                    val translations = language.getTranslations()
+                                    val proofed = mutableListOf<ProofreadPhrase>()
+                                    translations.forEach { translation ->
+                                        val checker = language.getChecker()
+                                        val tempProofed = ProofreadPhrase(translation, translation.translate(language) ?: "Doesn't exist", checker != null)
+                                        if (checker != null) {
+                                            val builder = AnnotatedTextBuilder()
+                                            if (tempProofed.phrase != "Doesn't exist") {
+                                                tempProofed.phrase.toCharArray().forEach { char ->
+                                                    if (char == '*' || char == '_') builder.addMarkup(char.toString())
+                                                    else builder.addText(char.toString())
+                                                }
+                                                val matches = checker.check(builder.build())
+                                                if (matches.size == 0) tempProofed.hasSuggestions = false
+                                                else {
+                                                    matches.forEach { match ->
+                                                        tempProofed.suggestions.add("Potential error in <b>${tempProofed.phrase.substring(match.fromPos, match.toPos)}</b> (characters ${match.fromPos} to ${match.toPos}): ${match.message}<br />" +
+                                                                "Suggested Correction(s): ${match.suggestedReplacements.stringify()}")
+                                                    }
+                                                    tempProofed.suggestionString = tempProofed.suggestions.stream().collect(Collectors.joining("<br /> <br />"))
+                                                }
+                                                proofed.add(tempProofed)
+                                            }
+                                        }
+                                    }
+                                    map.put("proofed", proofed)
+                                    map.put("language", language)
+                                    map.put("title", "Proofreading | ${language.readable}")
+                                    ModelAndView(map, "proofread.hbs")
                                 } else {
                                     map.put("title", "${language.readable} Translation")
                                     val phrase = translationData.getByEncoded(URLEncoder.encode(request.splat().getOrNull(2)))
@@ -267,7 +298,10 @@ class Web {
                                                         phrase.english = new
                                                         r.table("phrases").filter(r.hashMap("english", temp)).update(r.json(phrase.toJson())).runNoReply(conn)
                                                         phrase.encoded = URLEncoder.encode(new)
-                                                    } else r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
+                                                    } else {
+                                                        phrase.translations.replace(language.code, new)
+                                                        r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
+                                                    }
                                                     "355817985052508160".toChannel()?.send("${user.asMention} just updated a **${language.readable}** translation!")
                                                     response.redirect("/translation/ar/${language.code}/hi/guys")
                                                     null
@@ -702,7 +736,7 @@ class Web {
                                         ModelAndView(map, "fail.hbs")
                                     } else {
                                         val guild = getGuildById(request.splat()[0])!!
-                                        if (guild.getMember(user).hasOverride(guild.publicChannel, failQuietly = true)) {
+                                        if (guild.getMember(user).hasOverride(guild.defaultChannel ?: guild.textChannels[0], failQuietly = true)) {
                                             when (request.queryParams("type")) {
                                                 "add" -> {
                                                     val data = guild.getData()

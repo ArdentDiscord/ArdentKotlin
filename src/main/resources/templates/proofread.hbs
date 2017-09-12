@@ -1,0 +1,28 @@
+{{> header.hbs }}
+{{#if showSnackbar}}
+    <a href="#" style="margin: 50px auto 0 auto; width: 75%; display: block;"
+       class="button special small">{{snackbarMessage}}</a>
+{{/if}}
+<!-- Main -->
+<section id="main" class="container 75%" xmlns="http://www.w3.org/1999/html">
+    <header>
+        <h2>{{language.readable}} | Proofreading</h2>
+    </header>
+    {{#each proofed}}
+        <div class="box">
+            <h4>{{phrase}}</h4>
+            {{#if hasChecker}}
+                {{#if hasSuggestions}}
+                    <h5 style="color: red">{{& suggestionString}}</h5>
+                {{else}}
+                    <p style="color: green">No suggestions available :)</p>
+                {{/if}}
+                {{else}}
+                <p>No checker is available for this language</p>
+            {{/if}}
+            <p style="display: inline-block;"><a href="/translation/ar/{{language.code}}/view/{{original.encoded}}">Click here to edit phrase {{@index_1}}</a></p>
+        </div>
+    {{/each}}
+</section>
+
+{{> footer.hbs }}

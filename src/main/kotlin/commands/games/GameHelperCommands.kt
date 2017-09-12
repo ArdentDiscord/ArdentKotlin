@@ -72,9 +72,9 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
                             game.players.add(event.author.id)
                             event.channel.send("**${event.author.withDiscrim()}** has joined **${game.creator.toUser()!!.withDiscrim()}**'s game of ${game.type.readable}\n" +
                                     "Players in lobby: *${game.players.toUsers()}*")
-                            return
                         }
                     }
+                    return
                 }
             }
             event.channel.send("There's not a game in lobby with the ID of **#$id**")

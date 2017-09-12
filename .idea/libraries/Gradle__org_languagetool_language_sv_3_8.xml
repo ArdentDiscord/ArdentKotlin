@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.languagetool:language-sv:3.8">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.languagetool/language-sv/3.8/fbc877243451c324b230c3778aa3e5c61af6bd08/language-sv-3.8.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.languagetool/language-sv/3.8/d8f754c5c6862ceacead72076edba02365bebf96/language-sv-3.8-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

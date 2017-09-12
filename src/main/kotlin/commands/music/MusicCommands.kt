@@ -55,7 +55,7 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
     }
 }
 
-class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs by the authors' names", "artistsearch", "artist") {
+class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs by the authors' names", "artistsearch", "artist", "searchauthor", "author") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (event.member.voiceChannel() == null) {
             event.channel.send("You need to be in a voice channel to use this command!")
@@ -140,8 +140,8 @@ class RemoveAt : Command(Category.MUSIC, "removeat", "remove a song from the que
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (event.member.hasOverride(event.textChannel, true, djCommand = true)) {
             if (!event.member.checkSameChannel(event.textChannel)) return
-            if (event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.removeAt(arguments.getOrNull(0)?.toIntOrNull())) {
-                event.channel.send("Removed song from the queue :thumbs_up:")
+            if (event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.removeAt(arguments.getOrNull(0)?.toIntOrNull()?.minus(1))) {
+                event.channel.send("Removed song from the queue ${Emoji.WHITE_HEAVY_CHECKMARK}")
             } else event.channel.send("Failed to remove track... check the number in the queue?")
         }
     }
@@ -407,7 +407,17 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
     }
     playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {
         override fun loadFailed(exception: FriendlyException) {
-            textChannel?.send("There was an error loading the track: *${exception.localizedMessage}")
+            exception.log()
+            if (exception.message?.contains("503") == true) {
+                val results = this@load.searchYoutubeOfficial()
+                if (results == null || results.isEmpty()) textChannel?.send("There was an issue searching the official YouTube API... please try again later :(")
+                else {
+                    textChannel?.selectFromList(member, "Select Song", results.map { it.first }.toMutableList(), { response, _ ->
+                        "https://www.youtube.com/watch?v=${results[response].second}".load(member, textChannel, message, false, guild = guild)
+                    })
+                }
+                logChannel!!.send("Fell back to YouTube API in ${textChannel?.guild?.name} for search **${this@load}**")
+            } else textChannel?.send("YouTube won't let us search music at the moment, please try again later... (blame google) **You can still play tracks by using the Youtube URL of the video**")
         }
 
         override fun trackLoaded(track: AudioTrack) {
@@ -422,7 +432,6 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
         }
 
         override fun noMatches() {
-            println("No matches for $this")
             if (search) {
                 if (autoplay) {
                     textChannel?.send("I was unable to find a related song...")
@@ -455,7 +464,7 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
                     }
                 }
             } else {
-                val selectFrom = mutableListOf<String>()
+               val selectFrom = mutableListOf<String>()
                 val num: Int = if (playlist.tracks.size >= 7) 7
                 else playlist.tracks.size
                 (1..num)

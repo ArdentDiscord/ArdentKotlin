@@ -1,6 +1,5 @@
 package commands.administrate
 
-import commands.games.Connect4Game
 import events.Category
 import events.Command
 import main.*
@@ -12,7 +11,7 @@ import net.dv8tion.jda.core.requests.RestAction
 import org.apache.commons.lang.WordUtils
 import translation.ArdentPhraseTranslation
 import translation.Languages
-import translation.toLanguage
+import translation.fromLangName
 import utils.*
 import java.awt.Color
 import java.util.*
@@ -42,15 +41,15 @@ class LanguageCommand : Command(Category.ADMINISTRATE, "language", "view or chan
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0 || !arguments[0].equals("set", true)) {
             event.channel.send(("Your server language is **{0}** - You can change it by using {1}lang set **language** - Language list: {2}").translateTo(event).trReplace(event.guild, event.guild.getLanguage().readable, event.guild.getPrefix(), Languages.values().map { "**${it.language.readable}**" }.stringify()))
-        }
-        else {
+        } else {
             if (event.member.hasOverride(event.textChannel)) {
-                val lang = arguments.without(arguments[0]).concat().toLanguage()
+                val lang = arguments.without(arguments[0]).concat().fromLangName()
                 if (lang == null) event.channel.send("You specified an invalid language! Remember: You must add accents if your language requires that. Type **{0}lang** to see a language list".translateTo(event).trReplace(event.guild, event.guild.getPrefix()))
                 else {
                     val guildData = event.guild.getData()
                     guildData.language = lang
                     guildData.update()
+                    event.channel.send("Successfully updated your language to **${lang.readable}**!")
                 }
             }
         }
@@ -252,10 +251,12 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                         managers.forEach {
                             val tracks = mutableListOf<String>()
                             if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
-                            it.value.scheduler.manager.queue.forEach { song -> tracks.add(song.track.info.uri) }
-                            val guild = getGuildById(it.key.toString())!!
-                            QueueModel(guild.id, guild.selfMember.voiceChannel()!!.id, it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
-                            it.value.scheduler.manager.getChannel()?.send("I'm restarting for updates. Your music **will** be preserved when I come back online!")
+                            it.value.scheduler.manager.queue.forEach { song -> if (song != null) tracks.add(song.track.info.uri) }
+                            val guild = getGuildById(it.key.toString())
+                            if (guild != null) {
+                                QueueModel(guild.id, guild.selfMember.voiceChannel()?.id ?: "", it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
+                                it.value.scheduler.manager.getChannel()?.send("I'm restarting for updates. Your music **will** be preserved when I come back online!")
+                            }
                         }
                         event.channel.send("Shutting down now!")
                         jdas.forEach { it.shutdown() }

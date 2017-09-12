@@ -4,6 +4,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.HttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.sheets.v4.Sheets
+import com.google.api.services.youtube.YouTube
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
@@ -63,11 +64,12 @@ var transport: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
 var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
 
 val sheets: Sheets = setupDrive()
+val youtube: YouTube = setupYoutube()
 
 fun main(args: Array<String>) {
     val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
             .execute()
-    spreadsheet.getValues().forEach { if (it.getOrNull(1) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
+    spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
     Web()
     val shards = 2
     for (sh in 1..shards) {
@@ -140,13 +142,17 @@ fun checkQueueBackups() {
         if (it != null) {
             val channel = it.channelId?.toChannel()
             channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at <https://patreon.com/ardent> - we'd really appreciate it")
-            getVoiceChannelById(it.voiceId)?.connect(channel)
-            Thread.sleep(3000)
-            val guild = getGuildById(it.guildId)
-            val manager = guild?.getGuildAudioPlayer(channel)
-            if (guild != null && manager != null) {
-                it.music.forEach { trackUri ->
-                    trackUri.load(guild.selfMember, null, null, guild = guild)
+            val voiceChannel = getVoiceChannelById(it.voiceId)
+            if (voiceChannel != null && voiceChannel.members.size > 0) {
+                voiceChannel.connect(channel)
+                Thread.sleep(3000)
+                val guild = getGuildById(it.guildId)
+                val manager = guild?.getGuildAudioPlayer(channel)
+                if (guild != null && manager != null) {
+                    it.music.forEach { trackUri ->
+                        trackUri.load(guild.selfMember, null, null, guild = guild)
+                    }
+                    println("Successfully resumed playback for ${guild.name}")
                 }
             }
         }
@@ -158,4 +164,8 @@ fun setupDrive(): Sheets {
     val builder = Sheets.Builder(transport, jsonFactory, null)
     builder.applicationName = "Ardent"
     return builder.build()
+}
+
+fun setupYoutube(): YouTube {
+    return YouTube.Builder(transport, jsonFactory, null).setApplicationName("Ardent").build()
 }
