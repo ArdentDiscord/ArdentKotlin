@@ -137,8 +137,8 @@ enum class GameType(val readable: String, val description: String, val id: Int) 
     TRIVIA("Trivia", "this is a placeholder", 3),
     BETTING("Betting", "this is a placeholder", 4),
     CONNECT_4("Connect_4", "this is a placeholder", 5),
+    TIC_TAC_TOE("Tic_Tac_Toe", "this is a placeholder", 7),
     SLOTS("Slots", "this is a placeholder", 6);
-    //CONNECT_FOUR("Connect-Four", "this is a placeholder", 4);
 
     override fun toString(): String {
         return readable
@@ -150,8 +150,8 @@ enum class GameType(val readable: String, val description: String, val id: Int) 
     fun findNextId(): Long {
         val random = Random()
         val number = random.nextInt(99999) + 1
-        if (r.table("${readable}Data").get(number).run<Any?>(conn) == null) return number.toLong()
-        else return findNextId()
+        return if (r.table("${readable}Data").get(number).run<Any?>(conn) == null) number.toLong()
+        else findNextId()
     }
 }
 

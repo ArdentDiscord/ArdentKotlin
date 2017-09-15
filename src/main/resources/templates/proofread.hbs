@@ -11,15 +11,6 @@
     {{#each proofed}}
         <div class="box">
             <h4>{{phrase}}</h4>
-            {{#if hasChecker}}
-                {{#if hasSuggestions}}
-                    <h5 style="color: red">{{& suggestionString}}</h5>
-                {{else}}
-                    <p style="color: green">No suggestions available :)</p>
-                {{/if}}
-                {{else}}
-                <p>No checker is available for this language</p>
-            {{/if}}
             <p style="display: inline-block;"><a href="/translation/ar/{{language.code}}/view/{{original.encoded}}">Click here to edit phrase {{@index_1}}</a></p>
         </div>
     {{/each}}

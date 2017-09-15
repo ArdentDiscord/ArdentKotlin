@@ -11,7 +11,6 @@ import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import org.apache.commons.lang.WordUtils
-import org.languagetool.markup.AnnotatedTextBuilder
 import spark.ModelAndView
 import spark.Request
 import spark.Response
@@ -24,7 +23,6 @@ import translation.toLanguage
 import translation.translationData
 import utils.*
 import java.net.URLEncoder
-import java.util.stream.Collectors
 
 val settings = mutableListOf<Setting>()
 
@@ -243,27 +241,7 @@ class Web {
                                     val translations = language.getTranslations()
                                     val proofed = mutableListOf<ProofreadPhrase>()
                                     translations.forEach { translation ->
-                                        val checker = language.getChecker()
-                                        val tempProofed = ProofreadPhrase(translation, translation.translate(language) ?: "Doesn't exist", checker != null)
-                                        if (checker != null) {
-                                            val builder = AnnotatedTextBuilder()
-                                            if (tempProofed.phrase != "Doesn't exist") {
-                                                tempProofed.phrase.toCharArray().forEach { char ->
-                                                    if (char == '*' || char == '_') builder.addMarkup(char.toString())
-                                                    else builder.addText(char.toString())
-                                                }
-                                                val matches = checker.check(builder.build())
-                                                if (matches.size == 0) tempProofed.hasSuggestions = false
-                                                else {
-                                                    matches.forEach { match ->
-                                                        tempProofed.suggestions.add("Potential error in <b>${tempProofed.phrase.substring(match.fromPos, match.toPos)}</b> (characters ${match.fromPos} to ${match.toPos}): ${match.message}<br />" +
-                                                                "Suggested Correction(s): ${match.suggestedReplacements.stringify()}")
-                                                    }
-                                                    tempProofed.suggestionString = tempProofed.suggestions.stream().collect(Collectors.joining("<br /> <br />"))
-                                                }
-                                                proofed.add(tempProofed)
-                                            }
-                                        }
+                                        proofed.add(ProofreadPhrase(translation, translation.translate(language) ?: "Doesn't exist", false))
                                     }
                                     map.put("proofed", proofed)
                                     map.put("language", language)
@@ -795,7 +773,7 @@ class Web {
                                         phrase.insert("phrases")
                                         translationData.phrases.put(content, phrase)
                                         response.redirect("/administrators")
-                                        "355817985052508160".toChannel()?.send("${logChannel!!.guild.getRolesByName("Translator", true)[0].asMention}, a new phrase was added at https://ardentbot.com/translation/")
+                                        "355817985052508160".toChannel()?.send("${"355817985052508160".toChannel()?.guild?.getRolesByName("Translator", true)?.get(0)?.asMention}, a new phrase was added by ${request.session().attribute<User>("user").asMention} at https://ardentbot.com/translation/")
                                     }
                                 }
                                 "remove" -> {
@@ -804,7 +782,7 @@ class Web {
                                         val phrase = translationData.get(content[0], content[1])
                                         if (phrase != null) {
                                             translationData.phrases.forEach { t, u -> if (phrase == u) translationData.phrases.remove(t) }
-                                            "355817985052508160".toChannel()?.send("An administrator just removed an english phrase :(")
+                                            "355817985052508160".toChannel()?.send("${request.session().attribute<User>("user").asMention} just removed a phrase :(")
                                             r.table("phrases").filter(r.hashMap("english", phrase.english)).delete().runNoReply(conn)
                                         }
                                     }

@@ -102,16 +102,18 @@ class Gamelist : Command(Category.GAMES, "gamelist", "show a list of all current
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = event.member.embed("Games in Lobby")
         val builder = StringBuilder()
-                .append("**Red means that the game is private, Green that it's public and anyone can join**")
-        if (gamesInLobby.isEmpty()) event.channel.send("\n\nThere are no games in lobby right now. You can start one by typing **${event.guild.getPrefix()}minigames** and seeing what the command is for each specific game")
+                .append("**Red means that the game is in lobby, Green that it's currently ingame**")
+        if (gamesInLobby.isEmpty() && activeGames.isEmpty()) event.channel.send("\n\nThere are no games in lobby or ingame right now. You can start one by typing **${event.guild.getPrefix()}minigames** and seeing what the command is for each specific game")
         else {
             gamesInLobby.forEach {
-                builder.append("\n\n ")
-                if (it.isPublic) builder.append(Emoji.LARGE_GREEN_CIRCLE)
-                else builder.append(Emoji.LARGE_RED_CIRCLE)
-                builder.append("  **${it.type.readable}** [**${it.players.size}** / **${it.playerCount}**] created by __${it.creator.toUser()?.withDiscrim()}__ | ${it.players.toUsers()}")
+                builder.append("\n\n ${Emoji.LARGE_RED_CIRCLE}")
+                        .append("  **${it.type.readable}** [**${it.players.size}** / **${it.playerCount}**] created by __${it.creator.toUser()?.withDiscrim()}__ | ${it.players.toUsers()}")
             }
-            builder.append("\n\n__Take Note__: You can run only one game of each type at a time in this server")
+            activeGames.forEach {
+                builder.append("\n\n ${Emoji.LARGE_GREEN_CIRCLE}")
+                        .append("  **${it.type.readable}** [**${it.players.size}** / **${it.playerCount}**] created by __${it.creator.toUser()?.withDiscrim()}__ | ${it.players.toUsers()}")
+            }
+                builder.append("\n\n__Take Note__: You can run only one game of each type at a time in this server")
             event.channel.send(embed.setDescription(builder.toString()))
         }
     }

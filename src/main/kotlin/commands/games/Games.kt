@@ -794,3 +794,20 @@ class Connect4Command : Command(Category.GAMES, "connect4", "start connect 4 gam
 
     }
 }
+
+class TicTacToeCommand : Command(Category.GAMES, "tictactoe", "start tic tac toe games - inside Discord!") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val member = event.member
+        val channel = event.textChannel
+        if (member.isInGameOrLobby()) channel.send("${member.user.asMention}, You're already in game! You can't create another game!")
+        else if (event.guild.hasGameType(GameType.TIC_TAC_TOE) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+            channel.send("There can only be one Tic Tac Toe game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
+                    "https://ardentbot.com/patreon to start more than one game per type at a time**")
+        } else {
+           // val game = TicTacToeGame(channel, member.id())
+           // gamesInLobby.add(game)
+            TODO("finish tic tac toe")
+        }
+
+    }
+}

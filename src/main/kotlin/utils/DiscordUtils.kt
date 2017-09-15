@@ -10,10 +10,7 @@ import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import translation.ArdentLanguage
-import translation.ArdentPhraseTranslation
-import translation.Languages
-import translation.toLanguage
+import translation.*
 import java.awt.Color
 import java.lang.management.ManagementFactory
 import java.util.*
@@ -363,7 +360,7 @@ data class LoggedCommand(val commandId: String, val userId: String, val executio
 
 class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0, val reminders: MutableList<Reminder> = mutableListOf()) {
     fun canCollect(): Boolean {
-        return ((System.currentTimeMillis() - collected) / 1000 / 60 / 24) >= 1
+        return ((System.currentTimeMillis() - collected) / 1000) > 86399;
     }
 
     fun collectionTime(): String {

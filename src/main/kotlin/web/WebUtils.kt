@@ -94,7 +94,7 @@ data class SupportTicketModel(val user: String, val title: String, val open: Boo
                 else -> 0
             }
         }
-        return SupportTicket(user.toUser()!!, title, open, messages.map { it.toSupportMessage() }, administratorResponses.size > 0, id, date.readableDate())
+        return SupportTicket(user.toUser() ?: jdas[0].selfUser, title, open, messages.map { it.toSupportMessage() }, administratorResponses.size > 0, id, date.readableDate())
     }
 
     fun add(originalMessage: String): SupportTicketModel {
@@ -105,7 +105,7 @@ data class SupportTicketModel(val user: String, val title: String, val open: Boo
 
 data class SupportMessageModel(val writer: String, val userMessage: Boolean, val content: String, val date: Long, val id: String = r.uuid().run(conn)) {
     fun toSupportMessage(): SupportMessage {
-        val writerUser = writer.toUser()!!
+        val writerUser = writer.toUser() ?: jdas[0].selfUser
         return SupportMessage(writerUser, userMessage, content, date.readableDate(), id)
     }
 }

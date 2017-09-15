@@ -45,7 +45,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-sheets:v4-rev483-1.22.0" level="project" />
-    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.3.0_261" level="project" />
+    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.3.0_270" level="project" />
     <orderEntry type="library" name="Gradle: com.sedmelluq:jda-nas:1.0.3" level="project" />
     <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer:1.2.43" level="project" />
     <orderEntry type="library" name="Gradle: com.github.jonasfugedi:spotify-web-api-java:browse-SNAPSHOT" level="project" />
@@ -63,7 +63,6 @@
     <orderEntry type="library" name="Gradle: org.slf4j:slf4j-simple:1.7.25" level="project" />
     <orderEntry type="library" name="Gradle: com.google.api-client:google-api-client:1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-youtube:v3-rev183-1.22.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-all:3.8" level="project" />
     <orderEntry type="library" name="Gradle: junit:junit:4.12" level="project" />
     <orderEntry type="library" name="Gradle: com.google.code.findbugs:jsr305:3.0.2" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-collections4:4.1" level="project" />
@@ -110,35 +109,6 @@
     <orderEntry type="library" name="Gradle: com.google.oauth-client:google-oauth-client:1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.http-client:google-http-client-jackson2:1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.guava:guava-jdk5:17.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-en:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-fa:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-fr:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-de:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-de-DE-x-simple-language:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-pl:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-ca:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-it:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-br:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-nl:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-pt:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-ru:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-ast:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-be:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-zh:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-da:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-eo:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-gl:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-el:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-ja:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-km:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-ro:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-sk:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-sl:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-es:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-sv:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-ta:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-tl:3.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:language-uk:3.8" level="project" />
     <orderEntry type="library" name="Gradle: org.hamcrest:hamcrest-core:1.3" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpcore:4.4.4" level="project" />
     <orderEntry type="library" name="Gradle: commons-logging:commons-logging:1.2" level="project" />
@@ -156,22 +126,7 @@
     <orderEntry type="library" name="Gradle: io.javaslang:javaslang-match:2.0.3" level="project" />
     <orderEntry type="library" name="Gradle: net.jcip:jcip-annotations:1.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.http-client:google-http-client:1.22.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.opennlp:opennlp-tools:1.7.2" level="project" />
-    <orderEntry type="library" name="Gradle: edu.washington.cs.knowitall:opennlp-tokenize-models:1.5" level="project" />
-    <orderEntry type="library" name="Gradle: edu.washington.cs.knowitall:opennlp-postag-models:1.5" level="project" />
-    <orderEntry type="library" name="Gradle: edu.washington.cs.knowitall:opennlp-chunk-models:1.5" level="project" />
-    <orderEntry type="library" name="Gradle: org.languagetool:hunspell-native-libs:2.9" level="project" />
-    <orderEntry type="library" name="Gradle: de.danielnaber:german-pos-dict:1.1" level="project" />
-    <orderEntry type="library" name="Gradle: edu.washington.cs.knowitall:openregex:1.1.1" level="project" />
-    <orderEntry type="library" name="Gradle: de.danielnaber:jwordsplitter:4.1" level="project" />
-    <orderEntry type="library" name="Gradle: org.softcatala:catalan-pos-dict:1.5" level="project" />
-    <orderEntry type="library" name="Gradle: com.googlecode.ictclas4j:ictclas4j:1.0.1" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.code:cjftransform:1.0.1" level="project" />
-    <orderEntry type="library" name="Gradle: org.ioperm:morphology-el:1.0.0" level="project" />
-    <orderEntry type="library" name="Gradle: com.github.lucene-gosen:lucene-gosen:ipadic:6.2.1" level="project" />
-    <orderEntry type="library" name="Gradle: ua.net.nlp:morfologik-ukrainian-lt:3.8.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpcore-nio:4.4.4" level="project" />
-    <orderEntry type="library" name="Gradle: com.ibm.icu:icu4j:56.1" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.okio:okio:1.13.0" level="project" />
     <orderEntry type="library" name="Gradle: org.slf4j:slf4j-api:1.7.25" level="project" />
     <orderEntry type="library" name="Gradle: com.google.guava:guava:21.0" level="project" />
