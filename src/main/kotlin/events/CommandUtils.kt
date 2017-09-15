@@ -51,11 +51,13 @@ class CommandFactory {
             val member = event.member
             val args = event.message.rawContent.split(" ").toMutableList()
             val prefix = event.guild.getPrefix()
-            if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "")
-            else if (args[0].startsWith("/") && !test) args[0] = args[0].replace("/", "")
-            else if (args[0].equals("ardent", true) && !test) args[0] = args.removeAt(0)
-            else if (test && args[0].equals("test")) args[0] = args[0].replace("test", "")
-            else return
+            when {
+                args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
+                args[0].startsWith("/") -> args[0] = args[0].replace("/", "")
+                args[0] == "ardent" -> args.removeAt(0)
+                args[0] == "test" -> args.removeAt(0)
+                else -> return
+            }
             commands.forEach { cmd ->
                 if (cmd.containsAlias(args[0])) {
                     args.removeAt(0)

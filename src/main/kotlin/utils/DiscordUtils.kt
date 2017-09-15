@@ -348,7 +348,6 @@ fun String.translateTo(language: ArdentLanguage, vararg new: String): String {
 
 fun String.translationDoesntExist(): String {
     logChannel!!.send("`Translation for the following doesn't exist: $this`")
-    ArdentPhraseTranslation(this, "help").instantiate(this).insert("phrases")
     return this
 }
 
