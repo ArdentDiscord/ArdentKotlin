@@ -51,29 +51,31 @@ class CommandFactory {
             val member = event.member
             val args = event.message.rawContent.split(" ").toMutableList()
             val prefix = event.guild.getPrefix()
-
-            when (args[0]) {
-                if (test) "test" else "ardent" -> args.removeAt(0)
-                "/" -> args[0] = args[0].removePrefix("/")
-                else -> {
-                    if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "") else return
-                }
-            }
+            if (args[0].startsWith(prefix)) args[0] = args[0].replace(prefix, "")
+            else if (args[0].startsWith("/") && !test) args[0] = args[0].replace("/", "")
+            else if (args[0].equals("ardent", true) && !test) args[0] = args.removeAt(0)
+            else if (test && args[0].equals("test")) args[0] = args[0].replace("test", "")
+            else return
             commands.forEach { cmd ->
                 if (cmd.containsAlias(args[0])) {
                     args.removeAt(0)
                     commandsById.incrementValue(cmd.name)
-                    executor.execute {
-                        try {
-                            val data = member.data()
-                            data.gold += 2
-                            data.update()
-                            cmd.executeInternal(args, event)
-                            r.table("commands").insert(r.json(getGson().toJson(
-                                    LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
-                        } catch (e: Throwable) {
-                            e.log()
-                            event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:\n{1}".translateTo(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
+                    val name = event.author.name
+                    if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
+                        event.channel.send("Here at Ardent, we hate derogatory names. This, ${event.author.asMention}, you need to change yours to be able to use any command")
+                    } else {
+                        executor.execute {
+                            try {
+                                val data = member.data()
+                                data.gold += 2
+                                data.update()
+                                cmd.executeInternal(args, event)
+                                r.table("commands").insert(r.json(getGson().toJson(
+                                        LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
+                            } catch (e: Throwable) {
+                                e.log()
+                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:\n{1}".translateTo(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
+                            }
                         }
                     }
                     return

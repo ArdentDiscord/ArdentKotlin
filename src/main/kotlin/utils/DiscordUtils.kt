@@ -11,6 +11,7 @@ import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.ArdentLanguage
+import translation.ArdentPhraseTranslation
 import translation.Languages
 import translation.toLanguage
 import java.awt.Color
@@ -347,6 +348,7 @@ fun String.translateTo(language: ArdentLanguage, vararg new: String): String {
 
 fun String.translationDoesntExist(): String {
     logChannel!!.send("`Translation for the following doesn't exist: $this`")
+    ArdentPhraseTranslation(this, "help").instantiate(this).insert("phrases")
     return this
 }
 

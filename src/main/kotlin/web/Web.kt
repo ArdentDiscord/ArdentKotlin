@@ -342,6 +342,7 @@ class Web {
                 }
             }, handlebars)
         })
+        get("/invite/extensions", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?client_id=354400275412418560&scope=bot&permissions=67193857") })
         get("/support", { _, response -> response.redirect("https://discord.gg/VebBB5z") })
         get("/invite", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=bot&client_id=339101087569281045&permissions=269574192&redirect_uri=$loginRedirect&response_type=code") })
         get("/login", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") })
@@ -794,7 +795,7 @@ class Web {
                                         phrase.insert("phrases")
                                         translationData.phrases.put(content, phrase)
                                         response.redirect("/administrators")
-                                        "355817985052508160".toChannel()?.send("An administrator just added an english phrase!")
+                                        "355817985052508160".toChannel()?.send("${logChannel!!.guild.getRolesByName("Translator", true)[0].asMention}, a new phrase was added at https://ardentbot.com/translation/")
                                     }
                                 }
                                 "remove" -> {

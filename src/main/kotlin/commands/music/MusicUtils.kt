@@ -299,14 +299,20 @@ fun String.getSpotifyPlaylist(channel: TextChannel, member: Member) {
  * @return [Pair] with first as the title, and second as the video id
  */
 fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
-    val search = youtube.search().list("id,snippet")
-    search.q = this
-    search.key = config.getValue("google")
-    search.fields = "items(id/videoId,snippet/title)"
-    search.maxResults = 7
-    val response = search.execute()
-    val items = response.items ?: return null
-    return items.map { Pair(it.snippet.title, it.id.videoId ?: "none") }
+    return try {
+        val search = youtube.search().list("id,snippet")
+        search.q = this
+        search.key = config.getValue("google")
+        search.fields = "items(id/videoId,snippet/title)"
+        search.maxResults = 7
+        val response = search.execute()
+        val items = response.items ?: return null
+        items.map { Pair(it.snippet.title, it.id.videoId ?: "none") }
+    }
+    catch(e: Exception) {
+        e.log()
+        null
+    }
 }
 
 fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {

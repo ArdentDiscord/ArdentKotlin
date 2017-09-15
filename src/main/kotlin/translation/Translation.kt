@@ -14,13 +14,13 @@ import java.util.concurrent.TimeUnit
 val translationData = ArdentTranslationData()
 
 enum class LanguageTools(val languageTool: JLanguageTool) {
-    ENGLISH(JLanguageTool(AmericanEnglish())),
-    FRENCH(JLanguageTool(French())),
+    FRENCH(JLanguageTool(org.languagetool.Languages.getLanguageForShortCode("fr"))),
     DANISH(JLanguageTool(Danish())),
     DUTCH(JLanguageTool(Dutch())),
     GERMAN(JLanguageTool(GermanyGerman())),
     RUSSIAN(JLanguageTool(Russian())),
-    ITALIAN(JLanguageTool(Italian()))
+    ITALIAN(JLanguageTool(Italian())),
+    SPANISH(JLanguageTool(Spanish()))
 }
 
 class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseTranslation> = ConcurrentHashMap(), executor: ScheduledExecutorService = Executors.newScheduledThreadPool(5)) {
@@ -109,16 +109,21 @@ data class ArdentLanguage(val code: String, val readable: String, val maturity: 
     }
 
     fun getChecker(): JLanguageTool? {
-        return when (this) {
-            Languages.ENGLISH.language -> LanguageTools.ENGLISH
-            Languages.FRENCH.language -> LanguageTools.FRENCH
-            Languages.GERMAN.language -> LanguageTools.GERMAN
-            Languages.DANISH.language -> LanguageTools.DANISH
-            Languages.DUTCH.language -> LanguageTools.DUTCH
-            Languages.RUSSIAN.language -> LanguageTools.RUSSIAN
-            Languages.ITALIAN.language -> LanguageTools.ITALIAN
-            else -> null
-        }?.languageTool
+        try {
+            return when (this) {
+                Languages.FRENCH.language -> LanguageTools.FRENCH.languageTool
+                Languages.GERMAN.language -> LanguageTools.GERMAN.languageTool
+                Languages.DANISH.language -> LanguageTools.DANISH.languageTool
+                Languages.DUTCH.language -> LanguageTools.DUTCH.languageTool
+                Languages.RUSSIAN.language -> LanguageTools.RUSSIAN.languageTool
+                Languages.ITALIAN.language -> LanguageTools.ITALIAN.languageTool
+                else -> null
+            }
+        }
+        catch(e: Exception) {
+            e.printStackTrace()
+        }
+        return null
     }
 
     override fun toString(): String {
@@ -138,6 +143,7 @@ fun String.toLanguage(): ArdentLanguage? {
         "cr" -> Languages.CROATIAN.language
         "nl" -> Languages.DUTCH.language
         "ej" -> Languages.EMOJI.language
+        "es" -> Languages.SPANISH.language
         else -> null
     }
 }
@@ -157,7 +163,8 @@ enum class Languages(val language: ArdentLanguage) {
     RUSSIAN(ArdentLanguage("ru", "Russian")),
     ITALIAN(ArdentLanguage("it", "Italian")),
     CROATIAN(ArdentLanguage("cr", "Croatian")),
-    EMOJI(ArdentLanguage("ej", "Emoji"));
+    EMOJI(ArdentLanguage("ej", "Emoji")),
+    SPANISH(ArdentLanguage("es", "Spanish"));
 }
 
 enum class LanguageMaturity(val readable: String) {

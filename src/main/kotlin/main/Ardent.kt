@@ -32,6 +32,7 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
+import org.languagetool.Languages
 import utils.*
 import web.Web
 import java.io.File
@@ -40,7 +41,7 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-val test = false
+val test = true
 
 var hangout: Guild? = null
 
@@ -137,6 +138,7 @@ fun addCommands() {
 }
 
 fun checkQueueBackups() {
+    Thread.sleep(1500)
     val queues = r.table("queues").run<Any>(conn).queryAsArrayList(QueueModel::class.java)
     queues.forEach {
         if (it != null) {
@@ -144,11 +146,12 @@ fun checkQueueBackups() {
             val voiceChannel = getVoiceChannelById(it.voiceId)
             if (voiceChannel != null && voiceChannel.members.size > 0) {
                 voiceChannel.connect(channel)
-                Thread.sleep(6000)
+                Thread.sleep(750)
                 val guild = getGuildById(it.guildId)
                 val manager = guild?.getGuildAudioPlayer(channel)
                 if (guild != null && manager != null && it.music.size > 0) {
                     channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at <https://patreon.com/ardent> - we'd really appreciate it")
+
                     it.music.forEach { trackUri ->
                         trackUri.load(guild.selfMember, null, null, guild = guild)
                     }

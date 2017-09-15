@@ -407,7 +407,6 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
     }
     playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {
         override fun loadFailed(exception: FriendlyException) {
-            exception.log()
             if (exception.message?.contains("503") == true) {
                 val results = this@load.searchYoutubeOfficial()
                 if (results == null || results.isEmpty()) textChannel?.send("There was an issue searching the official YouTube API... please try again later :(")
