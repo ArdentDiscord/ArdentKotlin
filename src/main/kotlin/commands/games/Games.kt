@@ -406,6 +406,45 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
     data class Round(val won: Boolean, val betAmount: Double, val suit: BlackjackGame.Suit)
 }
 
+class TicTacToeGame(channel: TextChannel, creator: String) : Game(GameType.TIC_TAC_TOE, channel, creator, 2, false) {
+    override fun onStart() {
+
+    }
+
+    data class Board(val playerOne: String, val playerTwo: String, val tiles: Array<String?> = Array(9, { null })) {
+        fun put(space: Int, isPlayerOne: Boolean): Boolean {
+           return if (space !in 1..9 || tiles[space - 1] != null)  false
+            else {
+               tiles[space - 1] = if (isPlayerOne) playerOne else playerTwo
+               true
+           }
+        }
+
+        fun spacesLeft(): MutableList<Int> {
+            val list = mutableListOf<Int>()
+            tiles.forEachIndexed { index, s -> if (s == null) list.add(index) }
+            return list
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as Board
+            if (playerOne != other.playerOne) return false
+            if (playerTwo != other.playerTwo) return false
+            if (!Arrays.equals(tiles, other.tiles)) return false
+            return true
+        }
+        override fun hashCode(): Int {
+            var result = playerOne.hashCode()
+            result = 31 * result + playerTwo.hashCode()
+            result = 31 * result + Arrays.hashCode(tiles)
+            return result
+        }
+    }
+
+}
+
 class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNECT_4, channel, creator, 2, false) {
     override fun onStart() {
         val game = GameBoard(players[0], players[1])
@@ -628,6 +667,7 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
     }
 }
 
+
 class SlotsGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.SLOTS, channel, creator, playerCount, isPublic) {
     private val rounds = mutableListOf<Round>()
     override fun onStart() {
@@ -804,9 +844,8 @@ class TicTacToeCommand : Command(Category.GAMES, "tictactoe", "start tic tac toe
             channel.send("There can only be one Tic Tac Toe game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
                     "https://ardentbot.com/patreon to start more than one game per type at a time**")
         } else {
-           // val game = TicTacToeGame(channel, member.id())
-           // gamesInLobby.add(game)
-            TODO("finish tic tac toe")
+           val game = TicTacToeGame(channel, member.id())
+           gamesInLobby.add(game)
         }
 
     }

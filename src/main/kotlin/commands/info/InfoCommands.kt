@@ -62,10 +62,7 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()
         if (arguments.size == 0) {
-
-            println("Iam list".translateTo(event))
-            return
-           /* val embed = event.member.embed("Iam List".translateTo(event))
+            val embed = event.member.embed("Iam List".translateTo(event))
             val builder = StringBuilder().append("This is the **autoroles** list for *{0}* - to add or delete them, type **{1}**".translateTo(event, event.guild.name, "${event.guild.getPrefix()}webpanel") + "\n")
             if (data.iamList.size == 0) builder.append("You don't have any autoroles :(".translateTo(event))
             else {
@@ -80,7 +77,7 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                 builder.append("\n").append("**Give yourself one of these roles by typing _/iam NAME_**".translateTo(event))
             }
             event.channel.send(embed.setDescription(builder.toString()))
-            return*/
+            return
         }
         val name = arguments.concat()
         var found = false
