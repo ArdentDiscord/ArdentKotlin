@@ -8,6 +8,7 @@ import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import utils.getData
 import utils.send
+import utils.tr
 import utils.withDiscrim
 
 class JoinRemoveEvents {
@@ -47,8 +48,7 @@ class JoinRemoveEvents {
                     e.guild.controller.addRolesToMember(e.member, role).reason("Default Role - Automatic Addition")
                             .queue({}, {
                                 e.member.user.openPrivateChannel().queue({ channel ->
-                                    channel.send("Unable to give you the default role **${role.name}** in **${e.guild.name}**. Please contact the server " +
-                                            "owner or administrators to let them know.")
+                                    channel.send("Unable to give you the default role **{0}** in **{1}**. Please contact the server owner or administrators to let them know.".tr(e.guild, role.name, e.guild.name))
                                 })
                             })
                 } catch (e: Exception) {

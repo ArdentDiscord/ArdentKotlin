@@ -9,6 +9,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
+import translation.Languages
 import utils.*
 import java.awt.Color
 import java.util.concurrent.ExecutorService
@@ -64,7 +65,7 @@ class CommandFactory {
                     commandsById.incrementValue(cmd.name)
                     val name = event.author.name
                     if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
-                        event.channel.send("Here at Ardent, we hate derogatory names. Thus, ${event.author.asMention}, you need to change yours to be able to use any command")
+                        event.channel.send("Here at Ardent, we hate derogatory and discriminatory statements. Thus, {0}, you need to change your username to be able to use any command".tr(event.guild, event.author.asMention))
                     } else {
                         executor.execute {
                             try {
@@ -76,7 +77,7 @@ class CommandFactory {
                                         LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                             } catch (e: Throwable) {
                                 e.log()
-                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:\n{1}".tr(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
+                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support") + "\n${ExceptionUtils.getStackTrace(e)}")
                             }
                         }
                     }
@@ -92,7 +93,7 @@ abstract class Command(val category: Category, val name: String, val description
     fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent) {
         if (event.channelType == ChannelType.PRIVATE)
             event.author.openPrivateChannel().queue { channel ->
-                channel.send("Please use commands inside a Discord server!")
+                channel.send("Please use commands inside a Discord server!".tr(Languages.ENGLISH.language))
             }
         else execute(args, event)
     }
