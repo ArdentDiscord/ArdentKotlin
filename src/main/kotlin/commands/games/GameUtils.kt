@@ -118,7 +118,8 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
             gameData.insert("${type.readable}Data")
         }
         channel.send("Game Data has been successfully inserted into the database. To view the results and statistics for this match, " +
-                "you can go to https://ardentbot.com/games/${type.name.toLowerCase()}/$gameId")
+                "you can go to https://ardentbot.com/games/${type.name.toLowerCase()}/$gameId\n\n" +
+                "*Please consider making a small monthly pledge at <https://patreon.com/ardent> if you enjoyed this game to support our hosting and development costs\n   - Adam*")
     }
 
     private fun announceCreation() {
@@ -187,6 +188,8 @@ class BlackjackPlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0) : Playe
 
 class BettingPlayerData(wins: Int = 0, losses: Int = 0, var netWinnings: Double = 0.0) : PlayerGameData(wins, losses)
 
+class TicTacToePlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0): PlayerGameData(wins, losses, ties)
+
 abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: Int = 0) {
     fun gamesPlayed(): Int {
         return wins + losses
@@ -200,6 +203,8 @@ class GameDataConnect4(gameId: Long, creator: String, startTime: Long, val winne
 class GameDataBetting(gameId: Long, creator: String, startTime: Long, val rounds: List<BetGame.Round>) : GameData(gameId, creator, startTime)
 
 class GameDataBlackjack(gameId: Long, creator: String, startTime: Long, val rounds: List<BlackjackGame.Round>) : GameData(gameId, creator, startTime)
+
+class GameDataTicTacToe(gameId: Long, creator: String, startTime: Long, val playerOne: String, val playerTwo: String, val winner: String?, val game: String) : GameData(gameId, creator, startTime)
 
 class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner: String, val losers: List<String>, val scores: Map<String, Int>,
                      val rounds: List<TriviaGame.Round>) : GameData(gameId, creator, startTime) {

@@ -54,8 +54,8 @@ class CommandFactory {
             when {
                 args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
                 args[0].startsWith("/") -> args[0] = args[0].replace("/", "")
-                args[0] == "ardent" -> args.removeAt(0)
-                args[0] == "test" -> args.removeAt(0)
+                args[0] == "ardent" && !test -> args.removeAt(0)
+                args[0] == "test" && test -> args.removeAt(0)
                 else -> return
             }
             commands.forEach { cmd ->
@@ -64,7 +64,7 @@ class CommandFactory {
                     commandsById.incrementValue(cmd.name)
                     val name = event.author.name
                     if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
-                        event.channel.send("Here at Ardent, we hate derogatory names. This, ${event.author.asMention}, you need to change yours to be able to use any command")
+                        event.channel.send("Here at Ardent, we hate derogatory names. Thus, ${event.author.asMention}, you need to change yours to be able to use any command")
                     } else {
                         executor.execute {
                             try {

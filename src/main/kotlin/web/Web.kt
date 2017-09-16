@@ -350,6 +350,7 @@ class Web {
             r.table("TriviaData").run<Any>(conn).queryAsArrayList(GameDataTrivia::class.java).forEach { games.add(Pair(GameType.TRIVIA, it!!)) }
             r.table("Connect_4Data").run<Any>(conn).queryAsArrayList(GameDataConnect4::class.java).forEach { games.add(Pair(GameType.CONNECT_4, it!!)) }
             r.table("SlotsData").run<Any>(conn).queryAsArrayList(GameDataSlots::class.java).forEach { games.add(Pair(GameType.SLOTS, it!!)) }
+            r.table("Tic_Tac_ToeData").run<Any>(conn).queryAsArrayList(GameDataTicTacToe::class.java).forEach { games.add(Pair(GameType.TIC_TAC_TOE, it!!)) }
             games.sortByDescending { it.second.endTime }
             map.put("total", games.size)
             games.removeIf { it.second.creator.toUser() == null }
@@ -435,6 +436,32 @@ class Web {
                         ModelAndView(map, "connect_4.hbs")
                     }
                 }
+                "tic_tac_toe" -> {
+                    val id = request.splat()[1].toIntOrNull() ?: 999999999
+                    val game = asPojo(r.table("Tic_Tac_ToeData").get(id).run(conn), GameDataTicTacToe::class.java)
+                    if (game == null) {
+                        map.put("showSnackbar", true)
+                        map.put("snackbarMessage", "No game with that id was found!")
+                        map.put("title", "Gamemode not found")
+                        ModelAndView(map, "404.hbs")
+                    } else {
+                        map.put("title", "Tic Tac Toe Game #$id")
+                        map.put("game", game)
+                        map.put("user", game.creator.toUser()!!)
+                        map.put("board", game.game.replace("\n", "<br />"))
+                        if (game.winner == null) {
+                            map.put("hasWinner", false)
+                            map.put("player1", game.playerOne.toUser()!!)
+                            map.put("player2", game.playerTwo.toUser()!!)
+                        } else {
+                            map.put("hasWinner", true)
+                            map.put("winner", game.winner.toUser()!!)
+                            map.put("loser", (if (game.winner != game.playerOne) game.playerOne else game.playerTwo).toUser()!!)
+                        }
+                        map.put("date", game.startTime.readableDate())
+                        ModelAndView(map, "tic_tac_toe.hbs")
+                    }
+                }
                 "trivia" -> {
                     val id = request.splat()[1].toIntOrNull() ?: 999999999
                     val game = asPojo(r.table("TriviaData").get(id).run(conn), GameDataTrivia::class.java)
@@ -479,631 +506,634 @@ class Web {
                 }
             }
         }, handlebars)
-        get("/tickets", { _, response ->
-            response.redirect("/tickets/")
-        })
-        get("/tickets/*", { request, response ->
-            val session = request.session()
-            val user: User? = session.attribute<User>("user")
-            if (user == null) {
-                response.redirect("/login")
-                null
-            } else {
-                val map = hashMapOf<String, Any>()
-                map.put("title", "Tickets")
-                handle(request, map)
-                val splats = request.splat()
-                if (splats.isEmpty()) {
-                    val tickets = user.getTickets()
-                    val openTickets = tickets.filter { it.open }
-                    val closedTickets = tickets.filter { !it.open }
-                    map.put("hasOpenTickets", openTickets.isNotEmpty())
-                    map.put("hasClosedTickets", closedTickets.isNotEmpty())
-                    map.put("openTickets", openTickets)
-                    map.put("closedTickets", closedTickets)
-                    ModelAndView(map, "ticketsHome.hbs")
-                } else {
-                    when (splats[0]) {
-                        "new" -> ModelAndView(map, "newTicket.hbs")
-                        "api" -> {
-                            val action = request.queryParams("action")
-                            if (action == null) {
-                                response.redirect("/404")
-                                null
-                            } else {
-                                when (action) {
-                                    "create" -> {
-                                        val title = request.queryParams("title")
-                                        val description = request.queryParams("description")
-                                        if (title == null || description == null) {
-                                            response.redirect("/tickets")
-                                        } else {
-                                            val ticket = SupportTicketModel(user.id, title, true).add(description)
-                                            ticket.insert("supportTickets")
-                                            response.redirect("/tickets/${ticket.id}")
-                                            "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
-                                                    "https://ardentbot.com/tickets/${ticket.id}").queue()
-                                        }
-                                        null
-                                    }
-                                    "addMessage" -> {
-                                        val message = request.queryParams("message")
-                                        val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
-                                                SupportTicketModel::class.java)
-                                        if (message != null && ticket != null && ticket.user == user.id || map["isAdmin"] as Boolean) {
-                                            if (ticket!!.user == user.id) {
-                                                ticket.userResponses.add(SupportMessageModel(user.id, true, message, System.currentTimeMillis()))
-                                                "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **replied** to their support ticket @ " +
-                                                        "https://ardentbot.com/tickets/${ticket.id}").queue()
-                                            } else {
-                                                ticket.administratorResponses.add(SupportMessageModel(user.id, false, message, System.currentTimeMillis()))
-                                                "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}**, an **administrator**, has replied to the " +
-                                                        "support ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
-                                                ticket.user.toUser()!!.openPrivateChannel().queue({ privateChannel ->
-                                                    privateChannel.sendMessage("**Ardent Support**: __${user.withDiscrim()}__ has replied to your ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
-                                                })
-                                            }
-                                            r.table("supportTickets").get(ticket.id).update(r.json(ticket.toJson())).runNoReply(conn)
-                                            response.redirect("/tickets/${ticket.id}")
-
-                                        } else {
-                                            response.redirect("/fail")
-                                        }
-                                        null
-                                    }
-                                    "close" -> {
-                                        val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
-                                                SupportTicketModel::class.java)
-                                        if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
-                                            r.table("supportTickets").get(ticket.id).update(r.hashMap("open", false)).runNoReply(conn)
-                                            response.redirect("/tickets/${ticket.id}?announce=Successfully+closed+your+ticket")
-                                            "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **closed** a support ticket at " +
-                                                    "https://ardentbot.com/tickets/${ticket.id}. No further action is necessary").queue()
-                                        } else {
-                                            response.redirect("/fail")
-                                        }
-                                        null
-                                    }
-                                    "reopen" -> {
-                                        val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
-                                                SupportTicketModel::class.java)
-                                        if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
-                                            r.table("supportTickets").get(ticket.id).update(r.hashMap("open", true)).runNoReply(conn)
-                                            "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **re-opened** a support ticket at " +
-                                                    "https://ardentbot.com/tickets/${ticket.id}").queue()
-                                            response.redirect("/tickets/${ticket.id}?announce=Successfully+reopened+your+ticket")
-                                        } else {
-                                            response.redirect("/fail")
-                                        }
-                                        null
-                                    }
-                                    else -> {
-                                        response.redirect("/404")
-                                        null
-                                    }
-                                }
-                            }
-                        }
-                        else -> {
-                            val ticketId = splats[0]
-                            if (ticketId == null) {
-                                response.redirect("/404")
-                                null
-                            } else {
-                                val ticketModel = asPojo(r.table("supportTickets").get(ticketId).run(conn), SupportTicketModel::class.java)
-                                if (ticketModel == null) {
-                                    response.redirect("/404")
-                                    null
-                                } else {
-                                    val ticket = ticketModel.toSupportTicket()
-                                    if (ticket.user.id == user.id || map["isAdmin"] as Boolean) {
-                                        map.put("noResponses", ticket.messages.isEmpty())
-                                        map.put("oneMessage", ticket.messages.size == 1)
-                                        map.put("ticket", ticket)
-                                        map.put("messages", ticket.messages)
-                                        if (request.queryParams("announce") != null) {
-                                            map.replace("showSnackbar", true)
-                                            map.put("snackbarMessage", request.queryParams("announce"))
-                                        }
-                                        ModelAndView(map, "viewTicket.hbs")
-                                    } else {
-                                        response.redirect("/fail")
-                                        null
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }, handlebars)
-        path("/api", {
-            path("/internal", {
-                get("/useraction/*", { request, response ->
-                    val map = hashMapOf<String, Any>()
-                    handle(request, map)
+        get("/tickets",
+                { _, response ->
+                    response.redirect("/tickets/")
+                })
+        get("/tickets/*",
+                { request, response ->
                     val session = request.session()
                     val user: User? = session.attribute<User>("user")
                     if (user == null) {
                         response.redirect("/login")
                         null
                     } else {
-                        val actionUser = getUserById(request.queryParams("id"))
-                        if (actionUser == null || request.queryParams("action") == null) {
-                            map.put("showSnackbar", true)
-                            map.put("snackbarMessage", "No user with that ID or action was found!")
-                            ModelAndView(map, "404.hbs")
+                        val map = hashMapOf<String, Any>()
+                        map.put("title", "Tickets")
+                        handle(request, map)
+                        val splats = request.splat()
+                        if (splats.isEmpty()) {
+                            val tickets = user.getTickets()
+                            val openTickets = tickets.filter { it.open }
+                            val closedTickets = tickets.filter { !it.open }
+                            map.put("hasOpenTickets", openTickets.isNotEmpty())
+                            map.put("hasClosedTickets", closedTickets.isNotEmpty())
+                            map.put("openTickets", openTickets)
+                            map.put("closedTickets", closedTickets)
+                            ModelAndView(map, "ticketsHome.hbs")
                         } else {
-                            when (request.queryParams("action")) {
-                                "addWhitelisted" -> {
-                                    val role = session.attribute<Staff>("role")
-                                    if (role == null) ModelAndView(map, "fail.hbs")
-                                    else {
-                                        if (role.role != Staff.StaffRole.ADMINISTRATOR) {
-                                            map.put("showSnackbar", true)
-                                            map.put("snackbarMessage", "You don't have permission to do this!")
-                                            ModelAndView(map, "fail.hbs")
-                                        } else {
-                                            if (user.whitelisted().size >= 3) {
-                                                map.put("showSnackbar", true)
-                                                map.put("snackbarMessage", "You can't have more than 3 whitelists at a time!")
-                                                ModelAndView(map, "fail.hbs")
-                                            } else {
-                                                SpecialPerson(actionUser.id, user.id).insert("specialPeople")
-                                                val redirect = request.queryParams("redirect")
-                                                if (redirect == null) response.redirect("/")
-                                                else response.redirect("/$redirect")
-                                                null
-                                            }
-                                        }
-                                    }
-                                }
-                                "addStaffMember" -> {
-                                    val role = session.attribute<Staff>("role")
-                                    if (role == null) ModelAndView(map, "fail.hbs")
-                                    else {
-                                        if (role.role != Staff.StaffRole.ADMINISTRATOR) {
-                                            map.put("showSnackbar", true)
-                                            map.put("snackbarMessage", "You don't have permission to do this!")
-                                            ModelAndView(map, "fail.hbs")
-                                        } else {
-                                            if (actionUser.isStaff()) {
-                                                map.put("showSnackbar", true)
-                                                map.put("snackbarMessage", "This person is already a staff member!")
-                                                ModelAndView(map, "fail.hbs")
-                                            } else {
-                                                val newStaff = Staff(actionUser.id, Staff.StaffRole.MODERATOR)
-                                                staff.add(newStaff)
-                                                newStaff.insert("staff")
-                                                val redirect = request.queryParams("redirect")
-                                                if (redirect == null) response.redirect("/")
-                                                else response.redirect("/$redirect")
-                                                null
-                                            }
-                                        }
-                                    }
-                                }
-                                "removeWhitelisted" -> {
-                                    val role = session.attribute<Staff>("role")
-                                    if (role == null) ModelAndView(map, "fail.hbs")
-                                    else {
-                                        if (role.role != Staff.StaffRole.ADMINISTRATOR) {
-                                            map.put("showSnackbar", true)
-                                            map.put("snackbarMessage", "You don't have permission to do this!")
-                                            ModelAndView(map, "fail.hbs")
-                                        } else {
-                                            val whitelists = user.whitelisted().map { it!!.id }
-                                            val isWhitelisted = whitelists.contains(actionUser.id)
-                                            if (!isWhitelisted) {
-                                                map.put("showSnackbar", true)
-                                                map.put("snackbarMessage", "You haven't whitelisted this user!")
-                                                ModelAndView(map, "fail.hbs")
-                                            } else {
-                                                r.table("specialPeople").get(actionUser.id).delete().runNoReply(conn)
-                                                val redirect = request.queryParams("redirect")
-                                                if (redirect == null) response.redirect("/")
-                                                else response.redirect("/$redirect")
-                                                null
-                                            }
-                                        }
-                                    }
-                                }
-                                "advancedPermissions" -> {
-                                    if (request.splat().isEmpty() || getGuildById(request.splat()[0]) == null) {
-                                        map.put("showSnackbar", true)
-                                        map.put("snackbarMessage", "No server was provided!")
-                                        ModelAndView(map, "fail.hbs")
+                            when (splats[0]) {
+                                "new" -> ModelAndView(map, "newTicket.hbs")
+                                "api" -> {
+                                    val action = request.queryParams("action")
+                                    if (action == null) {
+                                        response.redirect("/404")
+                                        null
                                     } else {
-                                        val guild = getGuildById(request.splat()[0])!!
-                                        if (guild.getMember(user).hasOverride(guild.defaultChannel ?: guild.textChannels[0], failQuietly = true)) {
-                                            when (request.queryParams("type")) {
-                                                "add" -> {
-                                                    val data = guild.getData()
-                                                    if (!data.advancedPermissions.contains(actionUser.id)) {
-                                                        data.advancedPermissions.add(actionUser.id)
-                                                        data.update()
-                                                    }
-                                                    response.redirect("/manage/${guild.id}")
-                                                    null
+                                        when (action) {
+                                            "create" -> {
+                                                val title = request.queryParams("title")
+                                                val description = request.queryParams("description")
+                                                if (title == null || description == null) {
+                                                    response.redirect("/tickets")
+                                                } else {
+                                                    val ticket = SupportTicketModel(user.id, title, true).add(description)
+                                                    ticket.insert("supportTickets")
+                                                    response.redirect("/tickets/${ticket.id}")
+                                                    "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has created a support ticket at " +
+                                                            "https://ardentbot.com/tickets/${ticket.id}").queue()
                                                 }
-                                                "remove" -> {
-                                                    val data = guild.getData()
-                                                    if (data.advancedPermissions.contains(actionUser.id)) {
-                                                        data.advancedPermissions.remove(actionUser.id)
-                                                        data.update()
-                                                    }
-                                                    response.redirect("/manage/${guild.id}")
-                                                    null
-                                                }
-                                                else -> {
-                                                    map.put("showSnackbar", true)
-                                                    map.put("snackbarMessage", "No registered action was found!")
-                                                    ModelAndView(map, "404.hbs")
-                                                }
+                                                null
                                             }
-                                        } else {
-                                            map.put("showSnackbar", true)
-                                            map.put("snackbarMessage", "You don't have permission to perform this action!")
-                                            ModelAndView(map, "fail.hbs")
+                                            "addMessage" -> {
+                                                val message = request.queryParams("message")
+                                                val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
+                                                        SupportTicketModel::class.java)
+                                                if (message != null && ticket != null && ticket.user == user.id || map["isAdmin"] as Boolean) {
+                                                    if (ticket!!.user == user.id) {
+                                                        ticket.userResponses.add(SupportMessageModel(user.id, true, message, System.currentTimeMillis()))
+                                                        "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **replied** to their support ticket @ " +
+                                                                "https://ardentbot.com/tickets/${ticket.id}").queue()
+                                                    } else {
+                                                        ticket.administratorResponses.add(SupportMessageModel(user.id, false, message, System.currentTimeMillis()))
+                                                        "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}**, an **administrator**, has replied to the " +
+                                                                "support ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
+                                                        ticket.user.toUser()!!.openPrivateChannel().queue({ privateChannel ->
+                                                            privateChannel.sendMessage("**Ardent Support**: __${user.withDiscrim()}__ has replied to your ticket @ https://ardentbot.com/tickets/${ticket.id}").queue()
+                                                        })
+                                                    }
+                                                    r.table("supportTickets").get(ticket.id).update(r.json(ticket.toJson())).runNoReply(conn)
+                                                    response.redirect("/tickets/${ticket.id}")
+
+                                                } else {
+                                                    response.redirect("/fail")
+                                                }
+                                                null
+                                            }
+                                            "close" -> {
+                                                val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
+                                                        SupportTicketModel::class.java)
+                                                if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
+                                                    r.table("supportTickets").get(ticket.id).update(r.hashMap("open", false)).runNoReply(conn)
+                                                    response.redirect("/tickets/${ticket.id}?announce=Successfully+closed+your+ticket")
+                                                    "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **closed** a support ticket at " +
+                                                            "https://ardentbot.com/tickets/${ticket.id}. No further action is necessary").queue()
+                                                } else {
+                                                    response.redirect("/fail")
+                                                }
+                                                null
+                                            }
+                                            "reopen" -> {
+                                                val ticket = asPojo(r.table("supportTickets").get(request.queryParamOrDefault("id", "4")).run(conn),
+                                                        SupportTicketModel::class.java)
+                                                if (ticket != null && (ticket.user == user.id || map["isAdmin"] as Boolean)) {
+                                                    r.table("supportTickets").get(ticket.id).update(r.hashMap("open", true)).runNoReply(conn)
+                                                    "351377320927428609".toChannel()!!.sendMessage("**${user.withDiscrim()}** has **re-opened** a support ticket at " +
+                                                            "https://ardentbot.com/tickets/${ticket.id}").queue()
+                                                    response.redirect("/tickets/${ticket.id}?announce=Successfully+reopened+your+ticket")
+                                                } else {
+                                                    response.redirect("/fail")
+                                                }
+                                                null
+                                            }
+                                            else -> {
+                                                response.redirect("/404")
+                                                null
+                                            }
                                         }
                                     }
                                 }
                                 else -> {
-                                    map.put("showSnackbar", true)
-                                    map.put("snackbarMessage", "No registered action was found!")
-                                    ModelAndView(map, "404.hbs")
+                                    val ticketId = splats[0]
+                                    if (ticketId == null) {
+                                        response.redirect("/404")
+                                        null
+                                    } else {
+                                        val ticketModel = asPojo(r.table("supportTickets").get(ticketId).run(conn), SupportTicketModel::class.java)
+                                        if (ticketModel == null) {
+                                            response.redirect("/404")
+                                            null
+                                        } else {
+                                            val ticket = ticketModel.toSupportTicket()
+                                            if (ticket.user.id == user.id || map["isAdmin"] as Boolean) {
+                                                map.put("noResponses", ticket.messages.isEmpty())
+                                                map.put("oneMessage", ticket.messages.size == 1)
+                                                map.put("ticket", ticket)
+                                                map.put("messages", ticket.messages)
+                                                if (request.queryParams("announce") != null) {
+                                                    map.replace("showSnackbar", true)
+                                                    map.put("snackbarMessage", request.queryParams("announce"))
+                                                }
+                                                ModelAndView(map, "viewTicket.hbs")
+                                            } else {
+                                                response.redirect("/fail")
+                                                null
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }, handlebars)
-                path("/administrators", {
-                    get("/translations/*", { request, response ->
-                        val map = hashMapOf<String, Any>()
-                        handle(request, map)
-                        map.put("title", "Administrator Zone")
-                        if (isAdministrator(request, response)) {
-                            when (request.splat().getOrNull(0)) {
-                                "add" -> {
-                                    val command = request.queryParams("command")
-                                    val content = request.queryParams("content")
-                                    if (command == null || content == null || content.isEmpty()) response.redirect("/administrators")
-                                    else {
-                                        val phrase = ArdentPhraseTranslation(content, WordUtils.capitalize(command)).instantiate(content)
-                                        phrase.insert("phrases")
-                                        translationData.phrases.put(content, phrase)
-                                        response.redirect("/administrators")
-                                        "355817985052508160".toChannel()?.send("${"355817985052508160".toChannel()?.guild?.getRolesByName("Translator", true)?.get(0)?.asMention}, a new phrase was added by ${request.session().attribute<User>("user").asMention} at https://ardentbot.com/translation/")
-                                    }
-                                }
-                                "remove" -> {
-                                    val content = request.queryParams("content")?.split("||")
-                                    if (content?.size == 2) {
-                                        val phrase = translationData.get(content[0], content[1])
-                                        if (phrase != null) {
-                                            translationData.phrases.forEach { t, u -> if (phrase == u) translationData.phrases.remove(t) }
-                                            "355817985052508160".toChannel()?.send("${request.session().attribute<User>("user").asMention} just removed a phrase :(")
-                                            r.table("phrases").filter(r.hashMap("english", phrase.english)).delete().runNoReply(conn)
+        path("/api",
+                {
+                    path("/internal", {
+                        get("/useraction/*", { request, response ->
+                            val map = hashMapOf<String, Any>()
+                            handle(request, map)
+                            val session = request.session()
+                            val user: User? = session.attribute<User>("user")
+                            if (user == null) {
+                                response.redirect("/login")
+                                null
+                            } else {
+                                val actionUser = getUserById(request.queryParams("id"))
+                                if (actionUser == null || request.queryParams("action") == null) {
+                                    map.put("showSnackbar", true)
+                                    map.put("snackbarMessage", "No user with that ID or action was found!")
+                                    ModelAndView(map, "404.hbs")
+                                } else {
+                                    when (request.queryParams("action")) {
+                                        "addWhitelisted" -> {
+                                            val role = session.attribute<Staff>("role")
+                                            if (role == null) ModelAndView(map, "fail.hbs")
+                                            else {
+                                                if (role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                                    map.put("showSnackbar", true)
+                                                    map.put("snackbarMessage", "You don't have permission to do this!")
+                                                    ModelAndView(map, "fail.hbs")
+                                                } else {
+                                                    if (user.whitelisted().size >= 3) {
+                                                        map.put("showSnackbar", true)
+                                                        map.put("snackbarMessage", "You can't have more than 3 whitelists at a time!")
+                                                        ModelAndView(map, "fail.hbs")
+                                                    } else {
+                                                        SpecialPerson(actionUser.id, user.id).insert("specialPeople")
+                                                        val redirect = request.queryParams("redirect")
+                                                        if (redirect == null) response.redirect("/")
+                                                        else response.redirect("/$redirect")
+                                                        null
+                                                    }
+                                                }
+                                            }
                                         }
-                                    }
-                                    response.redirect("/administrators")
-                                }
-                                else -> response.redirect("/administrators")
-                            }
-                            null
-                        } else {
-                            response.redirect("/administrators")
-                            null
-                        }
-                    }, handlebars)
-                    get("/announcements/*", { request, response ->
-                        val map = hashMapOf<String, Any>()
-                        handle(request, map)
-                        map.put("title", "Administrator Zone")
-                        if (isAdministrator(request, response)) {
-                            if (request.splat().size == 1) {
-                                val content = request.queryParams("content")
-                                if (content == null) response.redirect("/404")
-                                else {
-                                    when (request.splat()[0]) {
-                                        "add" -> {
-                                            val user = request.session().attribute<User>("user")
-                                            val announcement = AnnouncementModel(System.currentTimeMillis(), user.id, content)
-                                            announcement.insert("announcements")
-                                            "351369307147468800".toChannel()!!.sendMessage("**New Announcement** from __${user.withDiscrim()}__\n" +
-                                                    "${announcement.content}\n" +
-                                                    "*View Announcements @ https://ardentbot.com/announcements*").queue()
-                                            response.redirect("/administrators")
+                                        "addStaffMember" -> {
+                                            val role = session.attribute<Staff>("role")
+                                            if (role == null) ModelAndView(map, "fail.hbs")
+                                            else {
+                                                if (role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                                    map.put("showSnackbar", true)
+                                                    map.put("snackbarMessage", "You don't have permission to do this!")
+                                                    ModelAndView(map, "fail.hbs")
+                                                } else {
+                                                    if (actionUser.isStaff()) {
+                                                        map.put("showSnackbar", true)
+                                                        map.put("snackbarMessage", "This person is already a staff member!")
+                                                        ModelAndView(map, "fail.hbs")
+                                                    } else {
+                                                        val newStaff = Staff(actionUser.id, Staff.StaffRole.MODERATOR)
+                                                        staff.add(newStaff)
+                                                        newStaff.insert("staff")
+                                                        val redirect = request.queryParams("redirect")
+                                                        if (redirect == null) response.redirect("/")
+                                                        else response.redirect("/$redirect")
+                                                        null
+                                                    }
+                                                }
+                                            }
                                         }
-                                        "remove" -> {
-                                            val dateLong = content.toLongOrNull() ?: 0
-                                            r.table("announcements").get(dateLong).delete().runNoReply(conn)
-                                            response.redirect("/administrators")
+                                        "removeWhitelisted" -> {
+                                            val role = session.attribute<Staff>("role")
+                                            if (role == null) ModelAndView(map, "fail.hbs")
+                                            else {
+                                                if (role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                                    map.put("showSnackbar", true)
+                                                    map.put("snackbarMessage", "You don't have permission to do this!")
+                                                    ModelAndView(map, "fail.hbs")
+                                                } else {
+                                                    val whitelists = user.whitelisted().map { it!!.id }
+                                                    val isWhitelisted = whitelists.contains(actionUser.id)
+                                                    if (!isWhitelisted) {
+                                                        map.put("showSnackbar", true)
+                                                        map.put("snackbarMessage", "You haven't whitelisted this user!")
+                                                        ModelAndView(map, "fail.hbs")
+                                                    } else {
+                                                        r.table("specialPeople").get(actionUser.id).delete().runNoReply(conn)
+                                                        val redirect = request.queryParams("redirect")
+                                                        if (redirect == null) response.redirect("/")
+                                                        else response.redirect("/$redirect")
+                                                        null
+                                                    }
+                                                }
+                                            }
                                         }
-                                        else -> response.redirect("/fail")
-                                    }
-                                }
-                            } else response.redirect("/fail")
-                        }
-                    })
-                    get("/remove", { request, response ->
-                        val map = hashMapOf<String, Any>()
-                        handle(request, map)
-                        map.put("title", "Administrator Zone")
-                        val session = request.session()
-                        val user: User? = session.attribute<User>("user")
-                        val role: Staff? = session.attribute<Staff>("role")
-                        if (user == null) {
-                            response.redirect("/login")
-                            null
-                        } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
-                            map.put("showSnackbar", true)
-                            map.put("snackbarMessage", "You need to be an administrator to access this page!")
-                            ModelAndView(map, "fail.hbs")
-
-                        } else {
-                            val id = request.queryParamOrDefault("id", "3")
-                            val whitelisted = user.whitelisted().map { it!!.id }
-                            if (whitelisted.contains(id)) r.table("specialPeople").get(id).delete().runNoReply(conn)
-                            response.redirect("/administrators")
-                            null
-                        }
-                    })
-                    get("/removeStaff", { request, response ->
-                        val map = hashMapOf<String, Any>()
-                        handle(request, map)
-                        map.put("title", "Administrator Zone")
-                        val session = request.session()
-                        val user: User? = session.attribute<User>("user")
-                        val role: Staff? = session.attribute<Staff>("role")
-                        if (user == null) {
-                            response.redirect("/login")
-                            null
-                        } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
-                            map.put("showSnackbar", true)
-                            map.put("snackbarMessage", "You need to be an administrator to access this page!")
-                            ModelAndView(map, "fail.hbs")
-
-                        } else {
-                            val id = request.queryParamOrDefault("id", "3")
-                            r.table("staff").get(id).delete().runNoReply(conn)
-                            staff.removeIf { it.id == id }
-                            response.redirect("/administrators")
-                            null
-                        }
-                    })
-                })
-                get("/data/*/*", { request, response ->
-                    val session = request.session()
-                    val user: User? = session.attribute<User>("user")
-                    val guild = getGuildById(request.splat()[0] ?: "1")
-                    if (user == null) {
-                        response.redirect("/login")
-                        null
-                    } else if (guild == null) {
-                        response.redirect("/manage")
-                        null
-                    } else {
-                        val map = hashMapOf<String, Any>()
-                        handle(request, map)
-                        map.put("showSnackbar", false)
-                        if (guild.getMember(user).hasOverride(guild.textChannels[0], failQuietly = true)) {
-                            map.put("title", "Management Center")
-                            val data = guild.getData()
-                            when (request.splat()[1] ?: "1") {
-                                "addautorole" -> {
-                                    map.replace("showSnackbar", true)
-                                    val title = request.queryParams("name")
-                                    val role = guild.getRoleById(request.queryParams("role") ?: "1")
-                                    if (title == null || role == null) {
-                                        map.put("snackbarMessage", "One of the given parameters was null")
-                                    } else {
-                                        if (data.iamList.firstOrNull({ it.roleId == role.id }) != null) {
-                                            map.put("snackbarMessage", "This role already has an autorole set to it!")
-                                        } else {
-                                            data.iamList.add(Iam(title, role.id))
-                                            map.put("snackbarMessage", "Successfully added autorole!")
-                                        }
-                                    }
-                                }
-                                "removeautorole" -> {
-                                    map.replace("showSnackbar", true)
-                                    val role = request.queryParams("role")
-                                    if (role == null) map.put("snackbarMessage", "The role provided wasn't found")
-                                    else {
-                                        val iterator = data.iamList.iterator()
-                                        while (iterator.hasNext()) {
-                                            if (iterator.next().roleId == role) iterator.remove()
-                                        }
-                                        map.put("snackbarMessage", "Removed autorole if it was found in our database")
-                                    }
-                                }
-                                "autoplaymusic" -> {
-                                    val state: String? = request.queryParams("state")
-                                    val snackbarKey: String
-                                    when (state) {
-                                        "on" -> {
-                                            data.musicSettings.autoQueueSongs = true
-                                            snackbarKey = "enabled"
+                                        "advancedPermissions" -> {
+                                            if (request.splat().isEmpty() || getGuildById(request.splat()[0]) == null) {
+                                                map.put("showSnackbar", true)
+                                                map.put("snackbarMessage", "No server was provided!")
+                                                ModelAndView(map, "fail.hbs")
+                                            } else {
+                                                val guild = getGuildById(request.splat()[0])!!
+                                                if (guild.getMember(user).hasOverride(guild.defaultChannel ?: guild.textChannels[0], failQuietly = true)) {
+                                                    when (request.queryParams("type")) {
+                                                        "add" -> {
+                                                            val data = guild.getData()
+                                                            if (!data.advancedPermissions.contains(actionUser.id)) {
+                                                                data.advancedPermissions.add(actionUser.id)
+                                                                data.update()
+                                                            }
+                                                            response.redirect("/manage/${guild.id}")
+                                                            null
+                                                        }
+                                                        "remove" -> {
+                                                            val data = guild.getData()
+                                                            if (data.advancedPermissions.contains(actionUser.id)) {
+                                                                data.advancedPermissions.remove(actionUser.id)
+                                                                data.update()
+                                                            }
+                                                            response.redirect("/manage/${guild.id}")
+                                                            null
+                                                        }
+                                                        else -> {
+                                                            map.put("showSnackbar", true)
+                                                            map.put("snackbarMessage", "No registered action was found!")
+                                                            ModelAndView(map, "404.hbs")
+                                                        }
+                                                    }
+                                                } else {
+                                                    map.put("showSnackbar", true)
+                                                    map.put("snackbarMessage", "You don't have permission to perform this action!")
+                                                    ModelAndView(map, "fail.hbs")
+                                                }
+                                            }
                                         }
                                         else -> {
-                                            data.musicSettings.autoQueueSongs = false
-                                            snackbarKey = "disabled"
+                                            map.put("showSnackbar", true)
+                                            map.put("snackbarMessage", "No registered action was found!")
+                                            ModelAndView(map, "404.hbs")
                                         }
-                                    }
-                                    map.replace("showSnackbar", true)
-                                    map.put("snackbarMessage", "Successfully $snackbarKey Ardent's autoplay feature")
-
-                                }
-                                "announcemusic" -> {
-                                    val state: String? = request.queryParams("state")
-                                    when (state) {
-                                        "on" -> data.musicSettings.announceNewMusic = true
-                                        else -> data.musicSettings.announceNewMusic = false
-                                    }
-                                    map.replace("showSnackbar", true)
-                                    map.put("snackbarMessage", "Successfully updated the Announce Music setting")
-                                }
-                                "trusteveryone" -> {
-                                    val state: String? = request.queryParams("state")
-                                    when (state) {
-                                        "on" -> data.allowGlobalOverride = true
-                                        else -> data.allowGlobalOverride = false
-                                    }
-                                    map.replace("showSnackbar", true)
-                                    map.put("snackbarMessage", "Successfully updated the \"Music Trust Level\" setting")
-                                }
-                                "receiverchannel" -> {
-                                    val ch: String? = request.queryParams("channelid")
-                                    if (ch.equals("none", true)) {
-                                        map.put("snackbarMessage", "Removed the Receiver Channel")
-                                        if (data.joinMessage == null) data.joinMessage = Pair(null, null)
-                                        else data.joinMessage = Pair(data.joinMessage!!.first, null)
-                                        if (data.leaveMessage == null) data.leaveMessage = Pair(null, null)
-                                        else data.leaveMessage = Pair(data.leaveMessage!!.first, null)
-                                    } else {
-                                        val channel: TextChannel? = ch?.toChannel()
-                                        map.replace("showSnackbar", true)
-                                        if (channel == null) {
-                                            map.put("snackbarMessage", "Unable to find a Text Channel with that ID... Please retry")
-                                        } else {
-                                            if (data.joinMessage == null) data.joinMessage = Pair(null, channel.id)
-                                            else data.joinMessage = Pair(data.joinMessage!!.first, channel.id)
-                                            if (data.leaveMessage == null) data.leaveMessage = Pair(null, channel.id)
-                                            else data.leaveMessage = Pair(data.leaveMessage!!.first, channel.id)
-                                            map.put("snackbarMessage", "Set the Receiver Channel")
-                                        }
-                                    }
-                                }
-                                "removemessages" -> {
-                                    val resetChannel = request.queryParams("resetChannel") ?: ""
-                                    val resetJoinMessage = request.queryParams("resetJoinMessage") ?: ""
-                                    val resetLeaveMessage = request.queryParams("resetLeaveMessage") ?: ""
-                                    if (resetChannel == "on") {
-                                        if (data.joinMessage != null) data.joinMessage = Pair(data.joinMessage!!.first, null)
-                                        if (data.leaveMessage != null) data.leaveMessage = Pair(data.leaveMessage!!.first, null)
-                                    }
-                                    if (resetJoinMessage == "on") {
-                                        if (data.joinMessage != null) data.joinMessage = Pair(null, data.joinMessage!!.second)
-                                    }
-                                    if (resetLeaveMessage == "on") {
-                                        if (data.leaveMessage != null) data.leaveMessage = Pair(null, data.leaveMessage!!.second)
-                                    }
-                                    map.replace("showSnackbar", true)
-                                    map.put("snackbarMessage", "Your request for removal completed successfully")
-                                }
-                                "joinmessage" -> {
-                                    var joinMessage = request.queryParams("joinMessage")
-                                    if (joinMessage != null) {
-                                        val built = mutableListOf<String>()
-                                        val arguments = joinMessage.split(" ")
-                                        arguments.forEach { it ->
-                                            if (it.startsWith("#")) {
-                                                val lookup = it.removePrefix("#")
-                                                val results = guild.getTextChannelsByName(lookup, true)
-                                                if (results.size > 0) built.add(results[0].asMention)
-                                                else built.add(it)
-                                            } else built.add(it)
-                                        }
-                                        joinMessage = built.concat()
-                                        if (data.joinMessage == null) data.joinMessage = Pair(joinMessage, null)
-                                        else data.joinMessage = Pair(joinMessage, data.joinMessage!!.second)
-                                        map.replace("showSnackbar", true)
-                                        map.put("snackbarMessage", "Successfully set the Join Message")
-                                    }
-                                }
-                                "leavemessage" -> {
-                                    var leaveMessage = request.queryParams("leaveMessage")
-                                    if (leaveMessage != null) {
-                                        val built = mutableListOf<String>()
-                                        val arguments = leaveMessage.split(" ")
-                                        arguments.forEach { it ->
-                                            if (it.startsWith("#")) {
-                                                val lookup = it.removePrefix("#")
-                                                val results = guild.getTextChannelsByName(lookup, true)
-                                                if (results.size > 0) built.add(results[0].asMention)
-                                                else built.add(it)
-                                            } else built.add(it)
-                                        }
-                                        leaveMessage = built.concat()
-                                        if (data.leaveMessage == null) data.leaveMessage = Pair(leaveMessage, null)
-                                        else data.leaveMessage = Pair(leaveMessage, data.leaveMessage!!.second)
-                                        map.replace("showSnackbar", true)
-                                        map.put("snackbarMessage", "Successfully set the Leave Message")
-                                    }
-                                }
-                                "defaultrole" -> {
-                                    map.replace("showSnackbar", true)
-                                    val roleId = request.queryParams("defaultRole")
-                                    if (!roleId.equals("none", true)) {
-                                        data.defaultRole = roleId
-                                        map.put("snackbarMessage", "Successfully set the Default Role")
-                                    } else {
-                                        data.defaultRole = ""
-                                        map.put("snackbarMessage", "Successfully removed the Default Role")
                                     }
                                 }
                             }
-                            data.update()
-                            manage(map, guild)
-                            ModelAndView(map, "manageGuild.hbs")
-                        } else {
-                            map.put("showSnackbar", true)
-                            map.put("snackbarMessage", "You don't have permission to manage the settings for this server!")
-                            ModelAndView(map, "fail.hbs")
-                        }
-                    }
-                }, handlebars)
-            })
-            path("/oauth", {
-                get("/login", { request, response ->
-                    if (request.queryParams("code") == null) {
-                        response.redirect("/welcome")
-                        null
-                    } else {
-                        val code = request.queryParams("code")
-                        val token = retrieveToken(code)
-                        if (token == null) {
-                            response.redirect("/welcome")
-                            null
-                        } else {
-                            val identification = identityObject(token.access_token)
-                            if (identification != null) {
+                        }, handlebars)
+                        path("/administrators", {
+                            get("/translations/*", { request, response ->
+                                val map = hashMapOf<String, Any>()
+                                handle(request, map)
+                                map.put("title", "Administrator Zone")
+                                if (isAdministrator(request, response)) {
+                                    when (request.splat().getOrNull(0)) {
+                                        "add" -> {
+                                            val command = request.queryParams("command")
+                                            val content = request.queryParams("content")
+                                            if (command == null || content == null || content.isEmpty()) response.redirect("/administrators")
+                                            else {
+                                                val phrase = ArdentPhraseTranslation(content, WordUtils.capitalize(command)).instantiate(content)
+                                                phrase.insert("phrases")
+                                                translationData.phrases.put(content, phrase)
+                                                response.redirect("/administrators")
+                                                "355817985052508160".toChannel()?.send("${"355817985052508160".toChannel()?.guild?.getRolesByName("Translator", true)?.get(0)?.asMention}, a new phrase was added by ${request.session().attribute<User>("user").asMention} at https://ardentbot.com/translation/")
+                                            }
+                                        }
+                                        "remove" -> {
+                                            val content = request.queryParams("content")?.split("||")
+                                            if (content?.size == 2) {
+                                                val phrase = translationData.get(content[0], content[1])
+                                                if (phrase != null) {
+                                                    translationData.phrases.forEach { t, u -> if (phrase == u) translationData.phrases.remove(t) }
+                                                    "355817985052508160".toChannel()?.send("${request.session().attribute<User>("user").asMention} just removed a phrase :(")
+                                                    r.table("phrases").filter(r.hashMap("english", phrase.english)).delete().runNoReply(conn)
+                                                }
+                                            }
+                                            response.redirect("/administrators")
+                                        }
+                                        else -> response.redirect("/administrators")
+                                    }
+                                    null
+                                } else {
+                                    response.redirect("/administrators")
+                                    null
+                                }
+                            }, handlebars)
+                            get("/announcements/*", { request, response ->
+                                val map = hashMapOf<String, Any>()
+                                handle(request, map)
+                                map.put("title", "Administrator Zone")
+                                if (isAdministrator(request, response)) {
+                                    if (request.splat().size == 1) {
+                                        val content = request.queryParams("content")
+                                        if (content == null) response.redirect("/404")
+                                        else {
+                                            when (request.splat()[0]) {
+                                                "add" -> {
+                                                    val user = request.session().attribute<User>("user")
+                                                    val announcement = AnnouncementModel(System.currentTimeMillis(), user.id, content)
+                                                    announcement.insert("announcements")
+                                                    "351369307147468800".toChannel()!!.sendMessage("**New Announcement** from __${user.withDiscrim()}__\n" +
+                                                            "${announcement.content}\n" +
+                                                            "*View Announcements @ https://ardentbot.com/announcements*").queue()
+                                                    response.redirect("/administrators")
+                                                }
+                                                "remove" -> {
+                                                    val dateLong = content.toLongOrNull() ?: 0
+                                                    r.table("announcements").get(dateLong).delete().runNoReply(conn)
+                                                    response.redirect("/administrators")
+                                                }
+                                                else -> response.redirect("/fail")
+                                            }
+                                        }
+                                    } else response.redirect("/fail")
+                                }
+                            })
+                            get("/remove", { request, response ->
+                                val map = hashMapOf<String, Any>()
+                                handle(request, map)
+                                map.put("title", "Administrator Zone")
                                 val session = request.session()
-                                val role = asPojo(r.table("staff").get(identification.id).run(conn), Staff::class.java)
-                                if (role != null) session.attribute("role", role)
-                                session.attribute("user", getUserById(identification.id))
-                            }
-                            response.redirect("/welcome")
-                            null
-                        }
-                    }
-                }, handlebars)
-                post("/login", { _, response -> response.redirect("/welcome") })
-            })
-            path("/public", {
-                get("/status", { _, _ -> internals.toJson() })
-                get("/commands", { _, _ -> factory.commands })
-                get("/staff", { _, _ -> staff.toJson() })
-                path("/data", {
-                    path("/user", {
-                        get("/*/*", { request, _ ->
-                            val id = request.splat()[0]
-                            val guildId = request.splat()[1]
-                            val guild: Guild? = getGuildById(guildId)
-                            if (guild == null) createUserModel(id).toJson()
-                            else {
-                                val member = guild.getMemberById(id)
-                                if (member == null) Failure("invalid user specified")
-                                else GuildMemberModel(id, member.effectiveName, member.roles.map { it.name }, member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
+                                val user: User? = session.attribute<User>("user")
+                                val role: Staff? = session.attribute<Staff>("role")
+                                if (user == null) {
+                                    response.redirect("/login")
+                                    null
+                                } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                    map.put("showSnackbar", true)
+                                    map.put("snackbarMessage", "You need to be an administrator to access this page!")
+                                    ModelAndView(map, "fail.hbs")
 
+                                } else {
+                                    val id = request.queryParamOrDefault("id", "3")
+                                    val whitelisted = user.whitelisted().map { it!!.id }
+                                    if (whitelisted.contains(id)) r.table("specialPeople").get(id).delete().runNoReply(conn)
+                                    response.redirect("/administrators")
+                                    null
+                                }
+                            })
+                            get("/removeStaff", { request, response ->
+                                val map = hashMapOf<String, Any>()
+                                handle(request, map)
+                                map.put("title", "Administrator Zone")
+                                val session = request.session()
+                                val user: User? = session.attribute<User>("user")
+                                val role: Staff? = session.attribute<Staff>("role")
+                                if (user == null) {
+                                    response.redirect("/login")
+                                    null
+                                } else if (role == null || role.role != Staff.StaffRole.ADMINISTRATOR) {
+                                    map.put("showSnackbar", true)
+                                    map.put("snackbarMessage", "You need to be an administrator to access this page!")
+                                    ModelAndView(map, "fail.hbs")
+
+                                } else {
+                                    val id = request.queryParamOrDefault("id", "3")
+                                    r.table("staff").get(id).delete().runNoReply(conn)
+                                    staff.removeIf { it.id == id }
+                                    response.redirect("/administrators")
+                                    null
+                                }
+                            })
+                        })
+                        get("/data/*/*", { request, response ->
+                            val session = request.session()
+                            val user: User? = session.attribute<User>("user")
+                            val guild = getGuildById(request.splat()[0] ?: "1")
+                            if (user == null) {
+                                response.redirect("/login")
+                                null
+                            } else if (guild == null) {
+                                response.redirect("/manage")
+                                null
+                            } else {
+                                val map = hashMapOf<String, Any>()
+                                handle(request, map)
+                                map.put("showSnackbar", false)
+                                if (guild.getMember(user).hasOverride(guild.textChannels[0], failQuietly = true)) {
+                                    map.put("title", "Management Center")
+                                    val data = guild.getData()
+                                    when (request.splat()[1] ?: "1") {
+                                        "addautorole" -> {
+                                            map.replace("showSnackbar", true)
+                                            val title = request.queryParams("name")
+                                            val role = guild.getRoleById(request.queryParams("role") ?: "1")
+                                            if (title == null || role == null) {
+                                                map.put("snackbarMessage", "One of the given parameters was null")
+                                            } else {
+                                                if (data.iamList.firstOrNull({ it.roleId == role.id }) != null) {
+                                                    map.put("snackbarMessage", "This role already has an autorole set to it!")
+                                                } else {
+                                                    data.iamList.add(Iam(title, role.id))
+                                                    map.put("snackbarMessage", "Successfully added autorole!")
+                                                }
+                                            }
+                                        }
+                                        "removeautorole" -> {
+                                            map.replace("showSnackbar", true)
+                                            val role = request.queryParams("role")
+                                            if (role == null) map.put("snackbarMessage", "The role provided wasn't found")
+                                            else {
+                                                val iterator = data.iamList.iterator()
+                                                while (iterator.hasNext()) {
+                                                    if (iterator.next().roleId == role) iterator.remove()
+                                                }
+                                                map.put("snackbarMessage", "Removed autorole if it was found in our database")
+                                            }
+                                        }
+                                        "autoplaymusic" -> {
+                                            val state: String? = request.queryParams("state")
+                                            val snackbarKey: String
+                                            when (state) {
+                                                "on" -> {
+                                                    data.musicSettings.autoQueueSongs = true
+                                                    snackbarKey = "enabled"
+                                                }
+                                                else -> {
+                                                    data.musicSettings.autoQueueSongs = false
+                                                    snackbarKey = "disabled"
+                                                }
+                                            }
+                                            map.replace("showSnackbar", true)
+                                            map.put("snackbarMessage", "Successfully $snackbarKey Ardent's autoplay feature")
+
+                                        }
+                                        "announcemusic" -> {
+                                            val state: String? = request.queryParams("state")
+                                            when (state) {
+                                                "on" -> data.musicSettings.announceNewMusic = true
+                                                else -> data.musicSettings.announceNewMusic = false
+                                            }
+                                            map.replace("showSnackbar", true)
+                                            map.put("snackbarMessage", "Successfully updated the Announce Music setting")
+                                        }
+                                        "trusteveryone" -> {
+                                            val state: String? = request.queryParams("state")
+                                            when (state) {
+                                                "on" -> data.allowGlobalOverride = true
+                                                else -> data.allowGlobalOverride = false
+                                            }
+                                            map.replace("showSnackbar", true)
+                                            map.put("snackbarMessage", "Successfully updated the \"Music Trust Level\" setting")
+                                        }
+                                        "receiverchannel" -> {
+                                            val ch: String? = request.queryParams("channelid")
+                                            if (ch.equals("none", true)) {
+                                                map.put("snackbarMessage", "Removed the Receiver Channel")
+                                                if (data.joinMessage == null) data.joinMessage = Pair(null, null)
+                                                else data.joinMessage = Pair(data.joinMessage!!.first, null)
+                                                if (data.leaveMessage == null) data.leaveMessage = Pair(null, null)
+                                                else data.leaveMessage = Pair(data.leaveMessage!!.first, null)
+                                            } else {
+                                                val channel: TextChannel? = ch?.toChannel()
+                                                map.replace("showSnackbar", true)
+                                                if (channel == null) {
+                                                    map.put("snackbarMessage", "Unable to find a Text Channel with that ID... Please retry")
+                                                } else {
+                                                    if (data.joinMessage == null) data.joinMessage = Pair(null, channel.id)
+                                                    else data.joinMessage = Pair(data.joinMessage!!.first, channel.id)
+                                                    if (data.leaveMessage == null) data.leaveMessage = Pair(null, channel.id)
+                                                    else data.leaveMessage = Pair(data.leaveMessage!!.first, channel.id)
+                                                    map.put("snackbarMessage", "Set the Receiver Channel")
+                                                }
+                                            }
+                                        }
+                                        "removemessages" -> {
+                                            val resetChannel = request.queryParams("resetChannel") ?: ""
+                                            val resetJoinMessage = request.queryParams("resetJoinMessage") ?: ""
+                                            val resetLeaveMessage = request.queryParams("resetLeaveMessage") ?: ""
+                                            if (resetChannel == "on") {
+                                                if (data.joinMessage != null) data.joinMessage = Pair(data.joinMessage!!.first, null)
+                                                if (data.leaveMessage != null) data.leaveMessage = Pair(data.leaveMessage!!.first, null)
+                                            }
+                                            if (resetJoinMessage == "on") {
+                                                if (data.joinMessage != null) data.joinMessage = Pair(null, data.joinMessage!!.second)
+                                            }
+                                            if (resetLeaveMessage == "on") {
+                                                if (data.leaveMessage != null) data.leaveMessage = Pair(null, data.leaveMessage!!.second)
+                                            }
+                                            map.replace("showSnackbar", true)
+                                            map.put("snackbarMessage", "Your request for removal completed successfully")
+                                        }
+                                        "joinmessage" -> {
+                                            var joinMessage = request.queryParams("joinMessage")
+                                            if (joinMessage != null) {
+                                                val built = mutableListOf<String>()
+                                                val arguments = joinMessage.split(" ")
+                                                arguments.forEach { it ->
+                                                    if (it.startsWith("#")) {
+                                                        val lookup = it.removePrefix("#")
+                                                        val results = guild.getTextChannelsByName(lookup, true)
+                                                        if (results.size > 0) built.add(results[0].asMention)
+                                                        else built.add(it)
+                                                    } else built.add(it)
+                                                }
+                                                joinMessage = built.concat()
+                                                if (data.joinMessage == null) data.joinMessage = Pair(joinMessage, null)
+                                                else data.joinMessage = Pair(joinMessage, data.joinMessage!!.second)
+                                                map.replace("showSnackbar", true)
+                                                map.put("snackbarMessage", "Successfully set the Join Message")
+                                            }
+                                        }
+                                        "leavemessage" -> {
+                                            var leaveMessage = request.queryParams("leaveMessage")
+                                            if (leaveMessage != null) {
+                                                val built = mutableListOf<String>()
+                                                val arguments = leaveMessage.split(" ")
+                                                arguments.forEach { it ->
+                                                    if (it.startsWith("#")) {
+                                                        val lookup = it.removePrefix("#")
+                                                        val results = guild.getTextChannelsByName(lookup, true)
+                                                        if (results.size > 0) built.add(results[0].asMention)
+                                                        else built.add(it)
+                                                    } else built.add(it)
+                                                }
+                                                leaveMessage = built.concat()
+                                                if (data.leaveMessage == null) data.leaveMessage = Pair(leaveMessage, null)
+                                                else data.leaveMessage = Pair(leaveMessage, data.leaveMessage!!.second)
+                                                map.replace("showSnackbar", true)
+                                                map.put("snackbarMessage", "Successfully set the Leave Message")
+                                            }
+                                        }
+                                        "defaultrole" -> {
+                                            map.replace("showSnackbar", true)
+                                            val roleId = request.queryParams("defaultRole")
+                                            if (!roleId.equals("none", true)) {
+                                                data.defaultRole = roleId
+                                                map.put("snackbarMessage", "Successfully set the Default Role")
+                                            } else {
+                                                data.defaultRole = ""
+                                                map.put("snackbarMessage", "Successfully removed the Default Role")
+                                            }
+                                        }
+                                    }
+                                    data.update()
+                                    manage(map, guild)
+                                    ModelAndView(map, "manageGuild.hbs")
+                                } else {
+                                    map.put("showSnackbar", true)
+                                    map.put("snackbarMessage", "You don't have permission to manage the settings for this server!")
+                                    ModelAndView(map, "fail.hbs")
+                                }
                             }
+                        }, handlebars)
+                    })
+                    path("/oauth", {
+                        get("/login", { request, response ->
+                            if (request.queryParams("code") == null) {
+                                response.redirect("/welcome")
+                                null
+                            } else {
+                                val code = request.queryParams("code")
+                                val token = retrieveToken(code)
+                                if (token == null) {
+                                    response.redirect("/welcome")
+                                    null
+                                } else {
+                                    val identification = identityObject(token.access_token)
+                                    if (identification != null) {
+                                        val session = request.session()
+                                        val role = asPojo(r.table("staff").get(identification.id).run(conn), Staff::class.java)
+                                        if (role != null) session.attribute("role", role)
+                                        session.attribute("user", getUserById(identification.id))
+                                    }
+                                    response.redirect("/welcome")
+                                    null
+                                }
+                            }
+                        }, handlebars)
+                        post("/login", { _, response -> response.redirect("/welcome") })
+                    })
+                    path("/public", {
+                        get("/status", { _, _ -> internals.toJson() })
+                        get("/commands", { _, _ -> factory.commands })
+                        get("/staff", { _, _ -> staff.toJson() })
+                        path("/data", {
+                            path("/user", {
+                                get("/*/*", { request, _ ->
+                                    val id = request.splat()[0]
+                                    val guildId = request.splat()[1]
+                                    val guild: Guild? = getGuildById(guildId)
+                                    if (guild == null) createUserModel(id).toJson()
+                                    else {
+                                        val member = guild.getMemberById(id)
+                                        if (member == null) Failure("invalid user specified")
+                                        else GuildMemberModel(id, member.effectiveName, member.roles.map { it.name }, member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
+
+                                    }
+                                })
+                            })
                         })
                     })
                 })
-            })
-        })
-        internalServerError { request, _ ->
+        internalServerError { request: Request, _: Response ->
             val map = hashMapOf<String, Any>()
             handle(request, map)
             map.put("showSnackbar", false)

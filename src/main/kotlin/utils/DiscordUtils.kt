@@ -402,6 +402,21 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
         return data
     }
 
+    fun ticTacToeData(): TicTacToePlayerData {
+        val data = TicTacToePlayerData()
+        r.table("Tic_Tac_ToeData").run<Any>(conn).queryAsArrayList(GameDataTicTacToe::class.java).forEach { game ->
+            if (game != null && (game.playerOne == id|| game.playerTwo == id)) {
+                if (game.winner == null) data.ties++
+                else {
+                    if (game.winner == id) data.wins++
+                    else data.losses++
+                }
+            }
+        }
+        return data
+    }
+
+
     fun bettingData(): BettingPlayerData {
         val data = BettingPlayerData()
         r.table("BettingData").run<Any>(conn).queryAsArrayList(GameDataBetting::class.java).forEach { game ->

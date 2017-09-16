@@ -1,0 +1,23 @@
+{{> header.hbs }}
+<!-- Main -->
+<section id="main" class="container 75%">
+    <header>
+        <h2>{{user.name}}#{{user.discriminator}}'s game of Tic Tac Toe</h2>
+        <p>Game ID: #{{game.id}} - Started at {{date}}</p>
+    </header>
+    <div class="box">
+        <h3>Stats</h3>
+        {{#if hasWinner}}
+            <p><b>Winner: </b><span style="color:green;">{{winner.name}}#{{winner.discriminator}}</span><br/>
+                <b>Loser: </b><span style="color:red;">{{loser.name}}#{{loser.discriminator}}</span</p>
+        {{else}}
+            <p><b>Game State: <span style="color:yellow;">Tied!</span></b></p>
+        {{/if}}
+    </div>
+    <div class="box">
+        <h3>Game Board</h3>
+        {{&board}}
+    </div>
+</section>
+
+{{> footer.hbs }}

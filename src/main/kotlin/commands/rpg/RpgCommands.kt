@@ -49,6 +49,7 @@ class ProfileCommand : Command(Category.RPG, "profile", "see your or others' pro
         val bettingData = data.bettingData()
         val slotsData = data.slotsData()
         val connect4Data = data.connect4Data()
+        val ticTacToeData = data.ticTacToeData()
         val spouse = profiled.getMarriage()
         val embed = event.member.embed("${profiled.withDiscrim()}'s Profile")
                 .setThumbnail(profiled.effectiveAvatarUrl)
@@ -59,8 +60,9 @@ class ProfileCommand : Command(Category.RPG, "profile", "see your or others' pro
                 .addField("Betting Stats", "Wins: **${bettingData.wins}**\nLosses: **${bettingData.ties}**\nNet Winnings: **${bettingData.netWinnings}** gold", true)
                 .addField("Slots Stats", "Wins: **${slotsData.wins}**\nLosses: **${slotsData.losses}**\nNet Winnings: **${slotsData.netWinnings}** gold", true)
                 .addField("Connect 4 Stats", "Wins: **${connect4Data.wins}**\nLosses: **${connect4Data.losses}**", true)
+                .addField("Tic Tac Toe Stats", "Wins: **${ticTacToeData.wins}**\nTies: **${ticTacToeData.ties}**\nLosses: **${ticTacToeData.losses}**", true)
                 .addField("Trivia Stats", "**Use ${event.guild.getPrefix()}triviastats @User**", true)
-                .addField("Married To", spouse?.withDiscrim() ?: "Nobody :(", true)
+                .addField("Married To", spouse?.withDiscrim() ?: "Forever a bachelor :)", true)
         event.channel.send(embed)
     }
 }

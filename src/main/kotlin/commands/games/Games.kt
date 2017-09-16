@@ -244,8 +244,7 @@ class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPubl
                 val data = winnerUser.getData()
                 data.gold += winner.second
                 data.update()
-            }
-            else {
+            } else {
                 channel.send("Thanks for playing, ${winnerUser.asMention}!\n" +
                         "**Cleaning game up..**")
             }
@@ -408,22 +407,136 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
 
 class TicTacToeGame(channel: TextChannel, creator: String) : Game(GameType.TIC_TAC_TOE, channel, creator, 2, false) {
     override fun onStart() {
+        doRound(Board(players[0], players[1]), players[0])
+    }
 
+    fun doRound(board: Board, player: String, cancelIfExpire: Boolean = false) {
+        val member = channel.guild.getMemberById(player)
+        channel.sendMessage(member.embed("Tic Tac Toe | Ardent", Color.WHITE)
+                .appendDescription("${member.asMention}, you're up! Click where you want to place\n\n")
+                .appendDescription(board.toString()).build()).queue { message ->
+            message.addReaction(Emoji.NORTH_WEST_ARROW.symbol).queue()
+            message.addReaction(Emoji.UPWARDS_BLACK_ARROW.symbol).queue()
+            message.addReaction(Emoji.NORTHEAST_ARROW.symbol).queue()
+
+            message.addReaction(Emoji.LEFTWARDS_BLACK_ARROW.symbol).queue()
+            message.addReaction(Emoji.SMALL_ORANGE_DIAMOND.symbol).queue()
+            message.addReaction(Emoji.BLACK_RIGHTWARDS_ARROW.symbol).queue()
+
+            message.addReaction(Emoji.SOUTH_WEST_ARROW.symbol).queue()
+            message.addReaction(Emoji.DOWNWARDS_BLACK_ARROW.symbol).queue()
+            message.addReaction(Emoji.SOUTHEAST_ARROW.symbol).queue()
+
+            waiter.waitForReaction(Settings(player, channel.id, channel.guild.id, message.id), { messageReaction ->
+                val place: Int? = when (messageReaction.emote.name) {
+                    Emoji.NORTH_WEST_ARROW.symbol -> 1
+                    Emoji.UPWARDS_BLACK_ARROW.symbol -> 2
+                    Emoji.NORTHEAST_ARROW.symbol -> 3
+                    Emoji.LEFTWARDS_BLACK_ARROW.symbol -> 4
+                    Emoji.SMALL_ORANGE_DIAMOND.symbol -> 5
+                    Emoji.BLACK_RIGHTWARDS_ARROW.symbol -> 6
+                    Emoji.SOUTH_WEST_ARROW.symbol -> 7
+                    Emoji.DOWNWARDS_BLACK_ARROW.symbol -> 8
+                    Emoji.SOUTHEAST_ARROW.symbol -> 9
+                    else -> null
+                }
+                if (place == null) {
+                    channel.send("${member.asMention} reacted with an invalid place! They'll have **one** more try or else I'll cancel the game..")
+                    if (!cancelIfExpire) doRound(board, player, true)
+                    else cancel(member)
+                } else {
+                    if (board.put(place, player == players[0])) {
+                        val winner = board.checkWin()
+                        if (winner == null) {
+                            if (board.spacesLeft().size > 0) doRound(board, if (player == players[0]) players[1] else players[0])
+                            else {
+                                channel.sendMessage(member.embed("Tic Tac Toe | Ardent", Color.WHITE)
+                                        .appendDescription("Game Over! Sadly, you guys **tied** and nobody won :(\n\n")
+                                        .appendDescription(board.toString()).build()).queue { message -> }
+                                doCleanup(board, null)
+                            }
+                        } else {
+                            channel.sendMessage(member.embed("Tic Tac Toe | Ardent", Color.WHITE)
+                                    .appendDescription("Game Over! The incredible ${winner.toUser()?.asMention} has won!\n\n")
+                                    .appendDescription(board.toString()).build()).queue { message -> }
+                            doCleanup(board, winner)
+                        }
+                    } else {
+                        channel.send("${member.asMention} reacted with an invalid place! They'll have **one** more try or else I'll cancel the game..")
+                        if (!cancelIfExpire) doRound(board, player, true)
+                        else cancel(member)
+                    }
+                }
+                message.delete().queue()
+            }, {
+                if (cancelIfExpire) cancel(member)
+                else {
+                    channel.send("No input was received from ${member.asMention}... They have **45** more seconds to play or the game will be automatically cancelled")
+                    doRound(board, player, true)
+                }
+                message.delete().queue()
+            }, 45)
+        }
+    }
+
+    fun doCleanup(board: Board, winner: String?) {
+        Thread.sleep(2000)
+        cleanup(GameDataTicTacToe(gameId, creator, startTime!!, players[0], players[1], winner, board.toString()))
+        val creatorMember = channel.guild.getMemberById(creator)
+        channel.selectFromList(creatorMember, "Do you want to start another game?", mutableListOf("Yes", "No"), { selection, selectionMessage ->
+            if (selection == 0) {
+                channel.send("**Creating game now..**")
+                val newGame = TicTacToeGame(channel, creatorMember.id())
+                gamesInLobby.add(newGame)
+            }
+            else channel.send("You selected not to play another game. **Cleaning up resources..**")
+            selectionMessage.delete().queue()
+        }, footerText = "Only the creator of the game can do this selection", failure = {})
     }
 
     data class Board(val playerOne: String, val playerTwo: String, val tiles: Array<String?> = Array(9, { null })) {
         fun put(space: Int, isPlayerOne: Boolean): Boolean {
-           return if (space !in 1..9 || tiles[space - 1] != null)  false
+            return if (space !in 1..9 || tiles[space - 1] != null) false
             else {
-               tiles[space - 1] = if (isPlayerOne) playerOne else playerTwo
-               true
-           }
+                tiles[space - 1] = if (isPlayerOne) playerOne else playerTwo
+                true
+            }
+        }
+
+        fun checkWin(): String? {
+            (0..2)
+                    .filter { tiles[0 + 3 * it] != null && tiles[0 + 3 * it] == tiles[1 + 3 * it] && tiles[0 + 3 * it] == tiles[2 + 3 * it] }
+                    .forEach { return tiles[0 + 3 * it] }
+            (0..2)
+                    .filter { tiles[it] != null && tiles[it] == tiles[it + 3] && tiles[it] == tiles[it + 6] }
+                    .forEach { return tiles[it] }
+            if (tiles[0] != null && tiles[0] == tiles[4] && tiles[0] == tiles[8]) return tiles[0]
+            if (tiles[2] != null && tiles[2] == tiles[4] && tiles[2] == tiles[6]) return tiles[2]
+            return null
         }
 
         fun spacesLeft(): MutableList<Int> {
             val list = mutableListOf<Int>()
             tiles.forEachIndexed { index, s -> if (s == null) list.add(index) }
             return list
+        }
+
+        override fun toString(): String {
+            val builder = StringBuilder()
+                    .append("▬▬▬▬▬▬▬▬▬▬\n▐ ")
+            tiles.forEachIndexed { index, s ->
+                builder.append(when (s) {
+                    playerOne -> "❌"
+                    playerTwo -> "⭕"
+                    else -> "⬛"
+                })
+                if ((index + 1) % 3 == 0) {
+                    builder.append("▐ \n▬▬▬▬▬▬▬▬▬▬\n")
+                    if (index != 8) builder.append("▐ ")
+                }
+                else builder.append(" ║ ")
+            }
+            return builder.toString()
         }
 
         override fun equals(other: Any?): Boolean {
@@ -435,6 +548,7 @@ class TicTacToeGame(channel: TextChannel, creator: String) : Game(GameType.TIC_T
             if (!Arrays.equals(tiles, other.tiles)) return false
             return true
         }
+
         override fun hashCode(): Int {
             var result = playerOne.hashCode()
             result = 31 * result + playerTwo.hashCode()
@@ -686,7 +800,7 @@ class SlotsGame(channel: TextChannel, creator: String, playerCount: Int, isPubli
                 Thread.sleep(500)
                 var slots = SlotsGame()
                 if (!slots.won()) slots = SlotsGame()
-                channel.send(member.embed("Slots Results").setDescription("${if (slots.won())"Congrats, you won **$bet** gold" else "Darn, you lost **$bet** gold :("}\n$slots)"))
+                channel.send(member.embed("Slots Results").setDescription("${if (slots.won()) "Congrats, you won **$bet** gold" else "Darn, you lost **$bet** gold :("}\n$slots)"))
                 if (slots.won()) data.gold += bet
                 else data.gold -= bet
                 data.update()
@@ -844,8 +958,8 @@ class TicTacToeCommand : Command(Category.GAMES, "tictactoe", "start tic tac toe
             channel.send("There can only be one Tic Tac Toe game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at " +
                     "https://ardentbot.com/patreon to start more than one game per type at a time**")
         } else {
-           val game = TicTacToeGame(channel, member.id())
-           gamesInLobby.add(game)
+            val game = TicTacToeGame(channel, member.id())
+            gamesInLobby.add(game)
         }
 
     }
