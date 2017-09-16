@@ -119,6 +119,7 @@ fun String.toLanguage(): ArdentLanguage? {
         "ej" -> Languages.EMOJI
         "es" -> Languages.SPANISH
         "po" -> Languages.POLISH
+        "zh-PY" -> Languages.MANDARIN_PINYIN
         else -> null
     }?.language
 }
@@ -140,7 +141,9 @@ enum class Languages(val language: ArdentLanguage) {
     CROATIAN(ArdentLanguage("cr", "Croatian")),
     EMOJI(ArdentLanguage("ej", "Emoji")),
     POLISH(ArdentLanguage("po", "Polish")),
-    SPANISH(ArdentLanguage("es", "Spanish"));
+    SPANISH(ArdentLanguage("es", "Spanish")),
+    MANDARIN_PINYIN(ArdentLanguage("zh", "Mandarin Pinyin"))
+    ;
 }
 
 enum class LanguageMaturity(val readable: String) {

@@ -246,9 +246,8 @@ fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
         managers.put(guildId, musicManager)
     } else {
         val ardentMusicManager = musicManager.scheduler.manager
-        if (ardentMusicManager.getChannel() != null) {
-            ardentMusicManager.setChannel(channel)
-        }
+        musicManager.scheduler.channel = channel
+        ardentMusicManager.setChannel(channel)
     }
     return musicManager
 }
@@ -308,8 +307,7 @@ fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
         val response = search.execute()
         val items = response.items ?: return null
         items.map { Pair(it.snippet.title, it.id.videoId ?: "none") }
-    }
-    catch(e: Exception) {
+    } catch (e: Exception) {
         e.log()
         null
     }

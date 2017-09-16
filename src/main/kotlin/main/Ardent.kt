@@ -41,7 +41,7 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-val test = false
+val test = true
 
 var hangout: Guild? = null
 

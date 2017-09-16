@@ -53,7 +53,7 @@ class CommandFactory {
             val prefix = event.guild.getPrefix()
             when {
                 args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
-                args[0].startsWith("/") -> args[0] = args[0].replace("/", "")
+                args[0].startsWith("/") && !test -> args[0] = args[0].replace("/", "")
                 args[0] == "ardent" && !test -> args.removeAt(0)
                 args[0] == "test" && test -> args.removeAt(0)
                 else -> return
@@ -76,7 +76,7 @@ class CommandFactory {
                                         LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                             } catch (e: Throwable) {
                                 e.log()
-                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:\n{1}".translateTo(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
+                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:\n{1}".tr(event.guild).trReplace(event.guild, ExceptionUtils.getStackTrace(e)))
                             }
                         }
                     }
@@ -100,19 +100,19 @@ abstract class Command(val category: Category, val name: String, val description
     abstract fun execute(arguments: MutableList<String>, event: MessageReceivedEvent)
 
     fun withHelp(syntax: String, description: String, event: MessageReceivedEvent): Command {
-        help.add(Pair(syntax.translateTo(event), description.translateTo(event)))
+        help.add(Pair(syntax.tr(event), description.tr(event)))
         return this
     }
 
     fun displayHelp(channel: TextChannel, member: Member) {
         val prefix = member.guild.getPrefix()
-        val embed = member.embed("How can I use {0}?".translateTo(channel.guild).trReplace(channel.guild, "$prefix$name"), Color.BLACK)
+        val embed = member.embed("How can I use {0}?".tr(channel.guild).trReplace(channel.guild, "$prefix$name"), Color.BLACK)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
-                .setFooter("Aliases: {0}".translateTo(channel.guild).trReplace(channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
-                .appendDescription("*${description.translateTo(channel.guild)}*\n")
-        help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first}**: *${it.second}*") }
-        if (help.size > 0) embed.appendDescription("\n\n**Example**: {0}".translateTo(channel.guild).trReplace(channel.guild, "$prefix$name ${help[0].first}"))
-        embed.appendDescription("\n\nType {0}help to view a full list of commands".translateTo(channel.guild).trReplace(channel.guild, member.guild.getPrefix()))
+                .setFooter("Aliases: {0}".tr(channel.guild).trReplace(channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
+                .appendDescription("*${description.tr(channel.guild)}*\n")
+        help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first.tr(channel.guild)}**: *${it.second.tr(channel.guild)}*") }
+        if (help.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild).trReplace(channel.guild, "$prefix$name ${help[0].first}"))
+        embed.appendDescription("\n\nType {0}help to view a full list of commands".tr(channel.guild).trReplace(channel.guild, member.guild.getPrefix()))
         channel.send(embed)
         help.clear()
     }

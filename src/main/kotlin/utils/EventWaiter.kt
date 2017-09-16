@@ -80,7 +80,7 @@ class EventWaiter : EventListener {
                 else {
                     if (!silentExpiration) {
                         val channel: TextChannel? = settings.channel?.toChannel()
-                        channel?.send("You took too long to add a reaction! [${unit.toSeconds(time.toLong())} seconds]")
+                        channel?.send("You took too long to add a reaction!".tr(channel.guild))
                     }
                 }
             }
@@ -112,7 +112,7 @@ class EventWaiter : EventListener {
             if (messageEvents.contains(pair)) {
                 messageEvents.remove(pair)
                 val channel: TextChannel? = settings.channel?.toChannel()
-                if (expiration == null && !silentExpiration) channel?.send("You took too long to respond! [${unit.toSeconds(time.toLong())} seconds]")
+                if (expiration == null && !silentExpiration) channel?.send("You took too long to respond!".tr(channel.guild))
                 expiration?.invoke()
             }
         }, time.toLong(), unit)
@@ -136,7 +136,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
     }
     if (footerText != null) builder.append("\n$footerText\n")
-    builder.append("\n__Please select **OR** type the number corresponding with the choice that you'd like to select or select **X** to cancel__\n")
+    builder.append("\n" + "__Please select **OR** type the number corresponding with the choice that you'd like to select or select **X** to cancel__".tr(id.toChannel()!!.guild) + "\n")
     try {
         sendMessage(embed.setDescription(builder).build()).queue { message ->
             for (x in 1..options.size) {
@@ -159,7 +159,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
             waiter.waitForMessage(Settings(member.user.id, id, member.guild.id, message.id), { response ->
                 invoked = true
                 val responseInt = response.rawContent.toIntOrNull()?.minus(1)
-                if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) send("You specified an invalid response!")
+                if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) send("You specified an invalid response!".tr(id.toChannel()!!.guild))
                 else {
                     if (options.containsEq(response.rawContent)) {
                         consumer.invoke(options.get(response.rawContent)!!.first, message)
@@ -190,11 +190,11 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                         consumer.invoke(chosen, message)
                         waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
                     }
-                    chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection")
+                    chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
                     else -> failure?.invoke()
                 }
             }, {
-                if (!invoked) send("You didn't specify a reaction or response, cancelling selection")
+                if (!invoked) send("You didn't specify a reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
             }, time = 25, silentExpiration = true)
         }
     } catch (e: Exception) {

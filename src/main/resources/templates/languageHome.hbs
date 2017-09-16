@@ -12,13 +12,13 @@
     <h2>Undone Translations ({{undoneTotal}} Total)</h2>
     {{#each nullTranslations}}
         <div class="box">
-            <h3 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{language.code}}/view/{{encoded}}">A <b>{{command}}</b> Command Translation</a></h3>
+            <h4 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{language.code}}/view/{{encoded}}"><b>{{english}}</b></a></h4>
         </div>
     {{/each}}
     <h2>Completed Translations ({{completedTotal}} Total)</h2>
     {{#each completedTranslations}}
         <div class="box">
-            <h3 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{language.code}}/view/{{encoded}}">A <b>{{command}}</b> Command Translation</a></h3>
+            <h3 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{language.code}}/view/{{encoded}}">A <b>{{english}}</b></a></h3>
         </div>
     {{/each}}
 </section>

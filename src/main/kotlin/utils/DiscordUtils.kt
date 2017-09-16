@@ -83,7 +83,7 @@ fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, fa
         val track = guild.getGuildAudioPlayer(channel).scheduler.manager.current
         if (track != null && track.author == id()) return true
     }
-    if (!failQuietly) channel.send("${Emoji.NEGATIVE_SQUARED_CROSSMARK} You need to be given advanced permissions or the `Manage Server` permission to use this!")
+    if (!failQuietly) channel.send("${Emoji.NEGATIVE_SQUARED_CROSSMARK} " + "You need to be given advanced permissions or the `Manage Server` permission to use this!".tr(guild))
     return false
 }
 
@@ -120,7 +120,7 @@ fun User.withDiscrim(): String {
 fun Member.embed(title: String, color: Color = Color.DARK_GRAY): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
             .setColor(color)
-            .setFooter("Served by Ardent ${Emoji.COPYRIGHT_SIGN} Adam#9261", user.avatarUrl)
+            .setFooter("Served by Ardent {0} | By {1} and {2}".tr(guild, Emoji.COPYRIGHT_SIGN.symbol, getUserById("169904324980244480")!!.withDiscrim(), getUserById("188505107057475585")!!.withDiscrim()), user.avatarUrl)
 }
 
 fun String.toUser(): User? {
@@ -329,7 +329,7 @@ fun Member.isWhitelisted(): Boolean {
 
 fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel): Boolean {
     if (member.isPatron() || member.isStaff() || member.isWhitelisted() || member.guild.isPatronGuild()) return true
-    else send("${Emoji.CROSS_MARK} This command requires that you or this server have a donation level of **${requiredLevel.readable}** to be able to use it")
+    else send("${Emoji.CROSS_MARK} " + "This command requires that you or this server have a donation level of **{0}** to be able to use it".tr(member.guild, requiredLevel.readable.tr(member.guild)))
     return false
 }
 
@@ -339,21 +339,25 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
     return servers
 }
 
-fun String.translateTo(language: ArdentLanguage, vararg new: String): String {
-    return language.translate(String.format(this.replace("\n", "%n")))?.trReplace(language, *new) ?: translationDoesntExist()
+fun String.tr(language: ArdentLanguage, vararg new: String): String {
+    return language.translate(String.format(this.replace("\n", "%n")))?.trReplace(language, *new) ?: translationDoesntExist(language, *new)
 }
 
-fun String.translationDoesntExist(): String {
-    logChannel!!.send("`Translation for the following doesn't exist: $this`")
-    return this
+fun String.translationDoesntExist(language: ArdentLanguage, vararg new: String): String {
+    val phrase = ArdentPhraseTranslation(this, "Unknown").instantiate(this)
+    translationData.phrases.put(this, phrase)
+    phrase.insert("phrases")
+    logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
+    "355817985052508160".toChannel()?.send("${"355817985052508160".toChannel()?.guild?.getRolesByName("Translator", true)?.get(0)?.asMention}, a new phrase was automatically detected and added at https://ardentbot.com/translation/")
+    return this.trReplace(language, *new)
 }
 
-fun String.translateTo(messageReceivedEvent: MessageReceivedEvent, vararg new: String): String {
-    return translateTo(messageReceivedEvent.guild, *new)
+fun String.tr(messageReceivedEvent: MessageReceivedEvent, vararg new: String): String {
+    return tr(messageReceivedEvent.guild, *new)
 }
 
-fun String.translateTo(guild: Guild, vararg new: String): String {
-    return translateTo(guild.getLanguage(), *new)
+fun String.tr(guild: Guild, vararg new: String): String {
+    return tr(guild.getLanguage(), *new)
 }
 
 data class LoggedCommand(val commandId: String, val userId: String, val executionTime: Long, val readableExecutionTime: String, val id: String = r.uuid().run(conn))

@@ -40,11 +40,11 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
 class LanguageCommand : Command(Category.ADMINISTRATE, "language", "view or change Ardent's language on this server!", "lang") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0 || !arguments[0].equals("set", true)) {
-            event.channel.send(("Your server language is **{0}** - You can change it by using {1}lang set **language** - Language list: {2}").translateTo(event).trReplace(event.guild, event.guild.getLanguage().readable, event.guild.getPrefix(), Languages.values().map { "**${it.language.readable}**" }.stringify()))
+            event.channel.send(("Your server language is **{0}** - You can change it by using {1}lang set **language** - Language list: {2}").tr(event).trReplace(event.guild, event.guild.getLanguage().readable, event.guild.getPrefix(), Languages.values().map { "**${it.language.readable}**" }.stringify()))
         } else {
             if (event.member.hasOverride(event.textChannel)) {
                 val lang = arguments.without(arguments[0]).concat().fromLangName()
-                if (lang == null) event.channel.send("You specified an invalid language! Remember: You must add accents if your language requires that. Type **{0}lang** to see a language list".translateTo(event).trReplace(event.guild, event.guild.getPrefix()))
+                if (lang == null) event.channel.send("You specified an invalid language! Remember: You must add accents if your language requires that. Type **{0}lang** to see a language list".tr(event).trReplace(event.guild, event.guild.getPrefix()))
                 else {
                     val guildData = event.guild.getData()
                     guildData.language = lang
