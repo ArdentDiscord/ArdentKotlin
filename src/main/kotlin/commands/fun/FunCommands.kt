@@ -83,9 +83,14 @@ class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your fu
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) event.channel.send("${Emoji.HEAVY_MULTIPLICATION_X} How dare you try to ask the 8-ball an empty question??!!")
         else {
-            event.channel.send(getGson().fromJson(Jsoup.connect("https://8ball.delegator.com/magic/JSON/${URLEncoder.encode(arguments.concat())}")
-                    .ignoreContentType(true).userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
-                    "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!.body().text(), EightBallResult::class.java).magic.answer)
+            try {
+                event.channel.send(getGson().fromJson(Jsoup.connect("https://8ball.delegator.com/magic/JSON/${URLEncoder.encode(arguments.concat())}")
+                        .ignoreContentType(true).userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
+                        "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!.body().text(), EightBallResult::class.java).magic.answer)
+            }
+            catch(e: Exception) {
+                event.channel.send("You need to ask the 8ball a question!".tr(event.guild))
+            }
         }
     }
 }

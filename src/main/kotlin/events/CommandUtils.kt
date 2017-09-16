@@ -4,6 +4,7 @@ import main.conn
 import main.r
 import main.test
 import net.dv8tion.jda.core.entities.ChannelType
+import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -50,7 +51,7 @@ class CommandFactory {
         messagesReceived.getAndIncrement()
         if (cont) {
             val member = event.member
-            val args = event.message.rawContent.split(" ").toMutableList()
+            var args = event.message.rawContent.split(" ").toMutableList()
             val prefix = event.guild.getPrefix()
             when {
                 args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
@@ -60,8 +61,20 @@ class CommandFactory {
                 else -> return
             }
             commands.forEach { cmd ->
-                if (cmd.containsAlias(args[0])) {
-                    args.removeAt(0)
+                val arg = args.concat()
+                if (cmd.containsAlias(arg, event.guild)) {
+                    when {
+                        arg.startsWith(cmd.name) -> args = arg.removePrefix(cmd.name).split(" ").toMutableList()
+                        arg.startsWith(cmd.name.tr(event.guild)) -> args = arg.removePrefix(cmd.name.tr(event.guild)).split(" ").toMutableList()
+                        else -> {
+                            cmd.aliases.forEach { a ->
+                                if (arg.startsWith(a)) args = arg.removePrefix(a).split(" ").toMutableList()
+                            }
+                        }
+                    }
+                    (0..(args.size - 1))
+                            .filter { args[it].isEmpty() }
+                            .forEach { args.removeAt(it) }
                     commandsById.incrementValue(cmd.name)
                     val name = event.author.name
                     if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
@@ -118,8 +131,8 @@ abstract class Command(val category: Category, val name: String, val description
         help.clear()
     }
 
-    fun containsAlias(arg: String): Boolean {
-        return name.equals(arg, true) || aliases.contains(arg)
+    fun containsAlias(arg: String, guild: Guild): Boolean {
+        return arg.startsWith(name.tr(guild)) || name.equals(arg, true) || aliases.contains(arg) || aliases.any { arg.startsWith(it) }
     }
 
     override fun toString(): String {

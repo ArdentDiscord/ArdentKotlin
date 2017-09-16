@@ -274,7 +274,9 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             ArdentPhraseTranslation(phrase, WordUtils.capitalize(split[0])).insert("phrases")
                         }
                     }
-                    else -> event.channel.send("You're an idiot")
+                    else -> {
+                        event.channel.send("You're an idiot")
+                    }
                 }
             }
             return

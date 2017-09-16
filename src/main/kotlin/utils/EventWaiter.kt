@@ -186,13 +186,13 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 } - 1
                 when {
                     chosen in 0..(options.size - 1) -> {
-                        invoked = true
                         consumer.invoke(chosen, message)
                         waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
                     }
                     chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
                     else -> failure?.invoke()
                 }
+                invoked = true
             }, {
                 if (!invoked) send("You didn't specify a reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
             }, time = 25, silentExpiration = true)

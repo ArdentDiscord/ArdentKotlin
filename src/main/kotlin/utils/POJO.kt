@@ -13,6 +13,8 @@ data class TriviaCategory(val title: String, val created_at: String, val updated
     }
 }
 
+data class PlayedMusic(val guildId: String, val position: Long, val id: String = r.uuid().run(conn))
+
 data class TriviaQuestion(val question: String, val answers: List<String>, val category: String, val value: Int)
 
 data class Marriage(var userOne: String, var userTwo: String, val id: String = r.uuid().run(conn))

@@ -158,6 +158,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     }
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
+        PlayedMusic(channel?.id ?: manager.getChannel()?.id ?: "unknown", track.position).insert("musicPlayed")
         if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
             try {
                 val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()

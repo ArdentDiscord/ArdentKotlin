@@ -144,19 +144,19 @@ fun getGson(): Gson {
     return gsons[random.nextInt(gsons.size)]
 }
 
-fun String.trReplace(event: MessageReceivedEvent, vararg new: String): String {
+fun String.trReplace(event: MessageReceivedEvent, vararg new: Any): String {
     return trReplace(event.guild, *new)
 }
 
-fun String.trReplace(guild: Guild, vararg new: String): String {
+fun String.trReplace(guild: Guild, vararg new: Any): String {
     return trReplace(guild.getLanguage(), *new)
 }
 
-fun String.trReplace(ardentLanguage: ArdentLanguage, vararg new: String): String {
+fun String.trReplace(ardentLanguage: ArdentLanguage, vararg new: Any): String {
     var current = 0
     var str = this
     new.forEach {
-        str = str.trReplace(ardentLanguage, current, it)
+        str = str.trReplace(ardentLanguage, current, it as? String ?: it.toString())
         current++
     }
     return str

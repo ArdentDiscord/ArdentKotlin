@@ -32,7 +32,6 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
-import org.languagetool.Languages
 import utils.*
 import web.Web
 import java.io.File
@@ -41,7 +40,7 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-val test = true
+val test = false
 
 var hangout: Guild? = null
 
@@ -146,7 +145,7 @@ fun checkQueueBackups() {
             val voiceChannel = getVoiceChannelById(it.voiceId)
             if (voiceChannel != null && voiceChannel.members.size > 0) {
                 voiceChannel.connect(channel)
-                Thread.sleep(750)
+                Thread.sleep(2000)
                 val guild = getGuildById(it.guildId)
                 val manager = guild?.getGuildAudioPlayer(channel)
                 if (guild != null && manager != null && it.music.size > 0) {

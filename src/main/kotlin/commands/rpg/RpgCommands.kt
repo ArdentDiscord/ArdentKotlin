@@ -15,16 +15,15 @@ class Balance : Command(Category.RPG, "bal", "see someone's balance (or yours)",
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val actionUser = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         val prefix = event.guild.getPrefix()
-        event.channel.send("**${actionUser.withDiscrim()}**'s balance is *${actionUser.getData().gold}* gold\n" +
-                "You can use `${prefix}topserver` or `${prefix}top` to compare your balance to others in your server or globally")
+        event.channel.send("**{0}**'s balance is *{1}* gold\nYou can use `{2}topserver` or `{2}top` to compare your balance to others in your server or globally".tr(event, actionUser.withDiscrim(), actionUser.getData().gold.toString(), prefix))
     }
 }
 
 class Daily : Command(Category.RPG, "daily", "get a daily stipend of gold") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.author.getData()
-        if (data.canCollect()) event.channel.send("You got **${data.collect()}** gold today!")
-        else event.channel.send("You already got your daily today!")
+        if (data.canCollect()) event.channel.send("You got **{0}** gold today!".tr(event, data.collect()))
+        else event.channel.send("You already got your daily today!".tr(event))
     }
 }
 
@@ -71,32 +70,29 @@ class MarryCommand : Command(Category.RPG, "marry", "really fond of someone? mak
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val spouse = event.author.getMarriage()
         if (arguments.size == 0 || event.message.mentionedUsers.size == 0) {
-            event.channel.send(if (spouse != null) "You're married to **${spouse.asMention}** ${BlackjackGame.Suit.HEART}" else "You're lonely :( Marry someone by " +
-                    "typing **${event.guild.getPrefix()}marry @User**!")
+            event.channel.send(if (spouse != null) "You're married to **{0}** ♥".tr(event, spouse.asMention) else "You're lonely :( Marry someone by typing **{0}marry @User**!".tr(event, event.guild.getPrefix()))
             return
         }
         val proposed = event.message.mentionedUsers[0]
         if (proposed.isBot || proposed.id == event.author.id) {
-            event.channel.send("You can't marry a bot or yourself :) Get some friends!")
+            event.channel.send("You can't marry a bot or yourself :) Get some friends!".tr(event))
             return
         }
         when {
-            spouse != null -> event.channel.send("We live in the 21st century! No polygamic marriages!")
-            proposed.getMarriage() != null -> event.channel.send("This person's already married. Sorry :-(")
+            spouse != null -> event.channel.send("We live in the 21st century! No polygamic marriages!".tr(event))
+            proposed.getMarriage() != null -> event.channel.send("This person's already married. Sorry :-(".tr(event))
             else -> {
-                event.channel.send("${proposed.asMention}, ${event.author.asMention} is proposing to you! Do you want to accept? Type `yes` to get married or `no` to break " +
-                        "their heart")
+                event.channel.send("{0}, {1} is proposing to you! Do you want to accept? Type `yes` to get married or `no` to break their heart".tr(event, proposed.asMention, event.author.asMention))
                 waiter.waitForMessage(Settings(proposed.id, event.channel.id, event.guild.id), { response ->
                     if (response.content.startsWith("ye", true)) {
-                        if (event.author.getMarriage() != null || proposed.getMarriage() != null) event.channel.send("Unable to create marriage, one of you was just " +
-                                "recently married")
+                        if (event.author.getMarriage() != null || proposed.getMarriage() != null) event.channel.send("Unable to create marriage, one of you was just recently married".tr(event))
                         else {
-                            event.channel.send("Congrats, ${event.author.asMention} & ${proposed.asMention}, you've been married ${BlackjackGame.Suit.HEART}")
+                            event.channel.send("Congrats, {0} and {1}, you've been married ♥".tr(event, event.author.asMention, proposed.asMention))
                             Marriage(event.author.id, proposed.id).insert("marriages")
                         }
-                    } else event.channel.send("Ouch, ${event.author.asMention} just got rejected")
+                    } else event.channel.send("Ouch, {0} just got rejected".tr(event, event.author.asMention))
                 }, {
-                    event.channel.send("${proposed.asMention} didn't answer... Try again later ;)")
+                    event.channel.send("{0} didn't answer... Try again later ;)".tr(event, proposed.asMention))
                 }, time = 45)
             }
         }
@@ -108,8 +104,7 @@ class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working ou
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val marriage = event.author.getMarriageModeled()
         if (marriage != null) {
-            event.channel.send("Are you sure you want to go through divorce? Half of your gold could go to your ex-spouse as part of your agreement." +
-                    "Type `yes` if you understand and want to go through with the divorce, or `no` to cancel")
+            event.channel.send("Are you sure you want to go through divorce? Half of your gold could go to your ex-spouse as part of your agreement.\n\nType `yes` if you understand and want to go through with the divorce, or `no` to cancel".tr(event))
             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { response ->
                 if (response.content.startsWith("ye", true)) {
                     r.table("marriages").get(marriage.first.id).delete().runNoReply(conn)
@@ -120,12 +115,12 @@ class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working ou
                         data.gold /= 2
                         data.update()
                         spouseData.update()
-                        event.channel.send("Half of your net worth was given to ${marriage.second!!.asMention}")
+                        event.channel.send("Half of your net worth was given to {0}".tr(event, marriage.second!!.asMention))
                     }
-                    event.channel.send("You successfully divorced")
-                } else event.channel.send("Cancelled divorce, but I'd recommend some couple's therapy")
-            }, { event.channel.send("Cancelled divorce, but I'd recommend some couple's therapy") })
-        } else event.channel.send("You're not married!")
+                    event.channel.send("You successfully divorced".tr(event))
+                } else event.channel.send("Cancelled divorce, but I'd recommend some couple's therapy".tr(event))
+            }, { event.channel.send("Cancelled divorce, but I'd recommend some couple's therapy".tr(event)) })
+        } else event.channel.send("You're not married!".tr(event))
     }
 }
 
@@ -133,7 +128,7 @@ class TopMoney : Command(Category.RPG, "top", "see who has the most money in the
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         var page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
         if (page <= 0) page = 1
-        val embed = event.member.embed("Global Money Leaderboards | Page $page")
+        val embed = event.member.embed("Global Money Leaderboards | Page {0}".tr(event, page))
                 .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
         val builder = StringBuilder()
         val top = r.table("playerData").orderBy().optArg("index", r.desc("gold")).slice(((page - 1) * 10))
@@ -142,7 +137,7 @@ class TopMoney : Command(Category.RPG, "top", "see who has the most money in the
             if (playerData != null && playerData.id.toUser() != null) builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${playerData.id.toUser()!!.withDiscrim()}** " +
                     "*${playerData.gold} gold* (#${index + 1 + ((page - 1) * 10)})\n")
         }
-        builder.append("\n*You can see different pages by typing ${event.guild.getPrefix()}top __page_number__*")
+        builder.append("\n").append("*You can see different pages by typing {0}top __page_number__*".tr(event, event.guild.getPrefix()))
         event.channel.send(embed.setDescription(builder.toString()))
     }
 }
@@ -150,7 +145,7 @@ class TopMoney : Command(Category.RPG, "top", "see who has the most money in the
 class TopMoneyServer : Command(Category.RPG, "topserver", "see who has the most money in your server", "topmoneyserver") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
-        val embed = event.member.embed("${event.guild.name}'s Money Leaderboards | Page $page")
+        val embed = event.member.embed("{0}'s Money Leaderboards | Page {1}".tr(event, event.guild.name, page))
                 .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
         val builder = StringBuilder()
         val members = hashMapOf<String, Double>()
@@ -166,7 +161,7 @@ class TopMoneyServer : Command(Category.RPG, "topserver", "see who has the most 
             }
         } catch (ignored: Exception) {
         }
-        builder.append("\n*You can see different pages by typing ${event.guild.getPrefix()}top __page_number__*")
+        builder.append("\n").append("*You can see different pages by typing {0}topserver __page_number__*".tr(event, event.guild.getPrefix()))
         event.channel.send(embed.setDescription(builder.toString()))
     }
 }

@@ -139,8 +139,7 @@ fun getVoiceChannelById(id: String): VoiceChannel? {
         try {
             val voice = jda.getVoiceChannelById(id)
             if (voice != null) return voice
-        }
-        catch (ignored: Exception) {
+        } catch (ignored: Exception) {
         }
     }
     return null
@@ -339,24 +338,26 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
     return servers
 }
 
-fun String.tr(language: ArdentLanguage, vararg new: String): String {
+fun String.tr(language: ArdentLanguage, vararg new: Any): String {
     return language.translate(String.format(this.replace("\n", "%n")))?.trReplace(language, *new) ?: translationDoesntExist(language, *new)
 }
 
-fun String.translationDoesntExist(language: ArdentLanguage, vararg new: String): String {
+fun String.translationDoesntExist(language: ArdentLanguage, vararg new: Any): String {
     val phrase = ArdentPhraseTranslation(this, "Unknown").instantiate(this)
     translationData.phrases.put(this, phrase)
-    phrase.insert("phrases")
-    logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
-    "355817985052508160".toChannel()?.send("${"355817985052508160".toChannel()?.guild?.getRolesByName("Translator", true)?.get(0)?.asMention}, a new phrase was automatically detected and added at https://ardentbot.com/translation/")
+    if (r.table("phrases").filter(r.hashMap("english", this)).count().run<Long>(conn) == 0.toLong()) {
+        phrase.insert("phrases")
+        logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
+        "355817985052508160".toChannel()?.send("A new phrase was automatically detected and added at <https://ardentbot.com/translation/>")
+    }
     return this.trReplace(language, *new)
 }
 
-fun String.tr(messageReceivedEvent: MessageReceivedEvent, vararg new: String): String {
+fun String.tr(messageReceivedEvent: MessageReceivedEvent, vararg new: Any): String {
     return tr(messageReceivedEvent.guild, *new)
 }
 
-fun String.tr(guild: Guild, vararg new: String): String {
+fun String.tr(guild: Guild, vararg new: Any): String {
     return tr(guild.getLanguage(), *new)
 }
 
@@ -409,7 +410,7 @@ class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Dou
     fun ticTacToeData(): TicTacToePlayerData {
         val data = TicTacToePlayerData()
         r.table("Tic_Tac_ToeData").run<Any>(conn).queryAsArrayList(GameDataTicTacToe::class.java).forEach { game ->
-            if (game != null && (game.playerOne == id|| game.playerTwo == id)) {
+            if (game != null && (game.playerOne == id || game.playerTwo == id)) {
                 if (game.winner == null) data.ties++
                 else {
                     if (game.winner == id) data.wins++
@@ -500,12 +501,14 @@ class Internals {
     var uptime: Long = 0
     var uptimeFancy: String = ""
     var apiCalls: Long = 0
+    var musicPlayed: Long = 0
 
     init {
         waiterExecutor.scheduleAtFixedRate({
             loadedMusicPlayers = 0
             queueLength = 0
             apiCalls = 0
+            musicPlayed = 0
             messagesReceived = factory.messagesReceived.get()
             commandsReceived = factory.commandsReceived().toLong()
             commandCount = factory.commands.size
@@ -546,6 +549,8 @@ class Internals {
             if (seconds == 1.toLong()) builder.append("$minutes second")
             else builder.append("$seconds seconds")
             uptimeFancy = builder.toString()
+
+            r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach { if (it != null) musicPlayed += it.position }
         }, 0, 5, TimeUnit.SECONDS)
     }
 }
