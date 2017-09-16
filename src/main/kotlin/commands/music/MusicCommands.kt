@@ -33,7 +33,7 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
             return
         }
         if (arguments[0].equals("start", true)) {
-            if (event.member.voiceChannel() == null) event.channel.send("You need to be in a voice channel!")
+            if (event.member.voiceChannel() == null) event.channel.send("You need to be in a voice channel!".tr(event))
             else {
                 event.channel.selectFromList(event.member, "Select the playlist that you want to listen to", stations, { selection, _ ->
                     if (event.channel.requires(event.member, DonationLevel.BASIC)) {
@@ -58,17 +58,17 @@ class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio
 class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs by the authors' names", "artistsearch", "artist", "searchauthor", "author") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (event.member.voiceChannel() == null) {
-            event.channel.send("You need to be in a voice channel to use this command!")
+            event.channel.send("You need to be in a voice channel to use this command!".tr(event))
             return
         }
         val artistName = arguments.concat()
-        if (artistName.isEmpty()) event.channel.send("You need to include an author!")
+        if (artistName.isEmpty()) event.channel.send("You need to include an author!".tr(event))
         else {
             if (event.channel.requires(event.member, DonationLevel.BASIC)) {
                 try {
                     val searchResults = spotifyApi.searchArtists(artistName).build().get().items
                     if (searchResults.size == 0) {
-                        event.channel.send("No author name was found with that query :(")
+                        event.channel.send("No author name was found with that query :(".tr(event))
                         println(artistName)
                     } else {
                         val options = searchResults
@@ -79,10 +79,10 @@ class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs b
                             selectionMessage.delete().queue()
                             val artist = options[option]
                             val tracks = spotifyApi.getTopTracksForArtist(artist.id, "us").build().get()
-                            if (tracks.size == 0) event.channel.send("No tracks were found with that author :(")
+                            if (tracks.size == 0) event.channel.send("No tracks were found with that author :(".tr(event))
                             else {
-                                val embed = event.member.embed("Top tracks for ${artist.name}")
-                                        .appendDescription("**Select reactions corresponding to the choices you want to add those songs to the queue**")
+                                val embed = event.member.embed("Top tracks for {0}".tr(event, artist.name))
+                                        .appendDescription("**Select reactions corresponding to the choices you want to add those songs to the queue**".tr(event))
                                 var current = 0
                                 while (current < 7 && tracks.size > current) {
                                     embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND} [**${current + 1}**] ${tracks[current].name}")
@@ -114,9 +114,9 @@ class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs b
                                             }
                                         }
                                     }, {
-                                        if (songsToQueue.size == 0) event.channel.send("You didn't select any songs!")
+                                        if (songsToQueue.size == 0) event.channel.send("You didn't select any songs!".tr(event))
                                         else {
-                                            event.channel.send("**Adding __${songsToQueue.size}__ songs to the queue by __${artist.name}__!**")
+                                            event.channel.send("**Adding __{0}__ songs to the queue by __{1}__!**".tr(event, songsToQueue.size, artist.name))
                                             songsToQueue.forEach {
                                                 it.getSingleTrack(event.guild, { foundTrack ->
                                                     play(event.textChannel, event.member, ArdentTrack(event.author.id, event.channel.id, foundTrack))
@@ -129,7 +129,7 @@ class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs b
                         })
                     }
                 } catch (e: BadRequestException) {
-                    event.channel.send("You provided an invalid author name :(")
+                    event.channel.send("You provided an invalid author name :(".tr(event))
                 }
             }
         }
@@ -141,8 +141,8 @@ class RemoveAt : Command(Category.MUSIC, "removeat", "remove a song from the que
         if (event.member.hasOverride(event.textChannel, true, djCommand = true)) {
             if (!event.member.checkSameChannel(event.textChannel)) return
             if (event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.removeAt(arguments.getOrNull(0)?.toIntOrNull()?.minus(1))) {
-                event.channel.send("Removed song from the queue ${Emoji.WHITE_HEAVY_CHECKMARK}")
-            } else event.channel.send("Failed to remove track... check the number in the queue?")
+                event.channel.send("Removed song from the queue".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
+            } else event.channel.send("Failed to remove track... check the number in the queue?".tr(event))
         }
     }
 }
@@ -150,7 +150,7 @@ class RemoveAt : Command(Category.MUSIC, "removeat", "remove a song from the que
 class Play : Command(Category.MUSIC, "play", "play a song by its url or search a song to look it up on youtube", "p") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
-            event.channel.send("You need to specify a URL or search query!")
+            event.channel.send("You need to specify a URL or search query!".tr(event))
             return
         }
         arguments.concat().load(event.member, event.textChannel, event.message)
@@ -165,7 +165,7 @@ class Leave : Command(Category.MUSIC, "leave", "makes me leave the voice channel
         guild.audioManager.closeAudioConnection()
         manager.resetQueue()
         val vc = guild.audioManager.connectedChannel
-        if (vc != null) event.channel.send("Successfully disconnected from **${vc.name}** ${Emoji.MULTIPLE_MUSICAL_NOTES}")
+        if (vc != null) event.channel.send("Successfully disconnected from **{0}**".tr(event, vc.name) + " ${Emoji.MULTIPLE_MUSICAL_NOTES}")
     }
 }
 
@@ -186,8 +186,8 @@ fun pause(event: MessageReceivedEvent, value: Boolean) {
     val player = event.guild.getGuildAudioPlayer(event.textChannel).player
     if (!player.currentlyPlaying(event.textChannel)) return
     player.isPaused = value
-    if (!value) event.channel.send("Resumed playback ${Emoji.WHITE_HEAVY_CHECKMARK}")
-    else event.channel.send("Paused playback ${Emoji.WHITE_HEAVY_CHECKMARK}")
+    if (!value) event.channel.send("Resumed playback".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
+    else event.channel.send("Paused playback".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
 
 }
 
@@ -198,7 +198,7 @@ class Skip : Command(Category.MUSIC, "skip", "skips the currently playing track"
         if (!manager.player.currentlyPlaying(event.textChannel)) return
         val track = manager.scheduler.manager.current!!
         manager.player.playingTrack.position = manager.player.playingTrack.duration - 1
-        event.channel.send("Skipped current track: **${track.track.info.title}** by *${track.track.info.author}* ${track.track.getCurrentTime()} - added by **${track.author.toUser()?.withDiscrim()}**")
+        event.channel.send("Skipped current track: **{0}** by *{1}* {2} - added by **{3}**".tr(event, track.track.info.title, track.track.info.author, track.track.getCurrentTime(), track.author.toUser()!!.withDiscrim()))
     }
 }
 
@@ -209,7 +209,7 @@ class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tra
         manager.scheduler.autoplay = false
         manager.player.stopTrack()
         manager.scheduler.manager.resetQueue()
-        event.channel.send("Stopped and reset the player ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        event.channel.send("Stopped and reset the player".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
     }
 }
 
@@ -218,7 +218,7 @@ class SongUrl : Command(Category.MUSIC, "songlink", "get the link for the curren
         if (!event.member.checkSameChannel(event.textChannel)) return
         val player = event.guild.getGuildAudioPlayer(event.textChannel).player
         if (!player.currentlyPlaying(event.textChannel)) return
-        event.channel.send("**${player.playingTrack.info.title}** by **${player.playingTrack.info.author}**: ${player.playingTrack.info.uri}")
+        event.channel.send("**{0}** by **{1}**: {2}".tr(event, player.playingTrack.info.title, player.playingTrack.info.author, player.playingTrack.info.uri))
     }
 }
 
@@ -226,7 +226,7 @@ class Shuffle : Command(Category.MUSIC, "shuffle", "shuffle the current queue") 
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
         event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.shuffle()
-        event.channel.send("Shuffled the current queue ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        event.channel.send("Shuffled the current queue".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
     }
 }
 
@@ -237,7 +237,7 @@ class Repeat : Command(Category.MUSIC, "repeat", "repeat the track that's curren
         val player = manager.player
         if (!player.currentlyPlaying(event.textChannel)) return
         manager.scheduler.manager.addToBeginningOfQueue(manager.scheduler.manager.current)
-        event.channel.send("Added the current track as Up Next ${Emoji.WHITE_HEAVY_CHECKMARK}")
+        event.channel.send("Added the current track to the front of the queue".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
     }
 }
 
@@ -247,7 +247,8 @@ class Playing : Command(Category.MUSIC, "playing", "shows information about the 
         val player = manager.player
         if (!player.currentlyPlaying(event.textChannel)) return
         val track = manager.scheduler.manager.current!!
-        event.channel.send("**${track.track.info.title}** by *${track.track.info.author}* ${track.track.getCurrentTime()} - added by **${track.author.toUser()?.withDiscrim()}**")
+        val info = track.track.info
+        event.channel.send("**{0}** by *{1}* {2} - added by **{3}**".tr(event, info.title, info.author, track.track.getCurrentTime(), track.author.toUser()!!.withDiscrim()))
     }
 }
 
@@ -256,18 +257,17 @@ class Volume : Command(Category.MUSIC, "volume", "see and change the volume of t
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
         val player = manager.player
         if (arguments.size == 0) {
-            event.channel.send("The volume of this server's music player is **${player.volume}**% ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
-            event.channel.send("If the owner of your server or if you are an Ardent patron, type *${event.guild.getPrefix()}volume percentage_here* to set " +
-                    "the volume")
+            event.channel.send("The volume of this server's music player is **{0}**%".tr(event, player.volume) + " ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
+            event.channel.send("If the owner of your server or if you are an Ardent patron, type *{0}volume percentage_here* to set the volume".tr(event, event.guild.getPrefix()))
             return
         }
         if (!event.member.hasDonationLevel(event.textChannel, DonationLevel.BASIC)) return
         if (!event.member.checkSameChannel(event.textChannel)) return
         val setTo: Int? = arguments[0].replace("%", "").toIntOrNull()
-        if (setTo == null || setTo < 0 || setTo > 100) event.channel.send("You need to specify a valid percentage. Example: *${event.guild.getPrefix()}volume 99%")
+        if (setTo == null || setTo < 0 || setTo > 100) event.channel.send("You need to specify a valid percentage. Example: *{0}volume 99%".tr(event, event.guild.getPrefix()))
         else {
             player.volume = setTo
-            event.channel.send("Set player volume to **$setTo**% ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
+            event.channel.send("Set player volume to **{0}**%".tr(event, setTo) + " ${Emoji.PUBLIC_ADDRESS_LOUDSPEAKER}")
         }
     }
 }
@@ -276,11 +276,11 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
         if (manager.scheduler.manager.queue.size == 0) {
-            event.channel.send("${Emoji.MULTIPLE_MUSICAL_NOTES} There aren't any songs in the queue at the moment!")
+            event.channel.send("${Emoji.MULTIPLE_MUSICAL_NOTES} " + "There aren't any songs in the queue at the moment!".tr(event))
             return
         }
-        val embed = event.member.embed("Current Queue: ${event.guild.name}")
-                .appendDescription("*This shows the state of the queue at the current moment*\n")
+        val embed = event.member.embed("Current Queue for {0}".tr(event, event.guild.name))
+                .appendDescription("*This shows the state of the queue at the current moment*".tr(event)).appendDescription("\n")
         val remaining = manager.scheduler.manager.queue.size - 10
         val show: Int
         show = if (remaining > 0) 9
@@ -290,7 +290,7 @@ class Queue : Command(Category.MUSIC, "queue", "see a list of tracks in the queu
             val track = queue[number]
             embed.appendDescription("\n [**${number + 1}**] : **${track.track.info.title}** by *${track.track.info.author}*\n${track.track.getCurrentTime()} - added by __${track.author.toUser()?.withDiscrim()}__")
         }
-        if (remaining > 0) embed.appendDescription("\n\n   *...and $remaining tracks after*")
+        if (remaining > 0) embed.appendDescription("\n\n   " + "*...and {0} tracks after*".tr(event, remaining))
         event.channel.send(embed)
     }
 }
@@ -302,7 +302,7 @@ class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq"
             val scheduler = event.guild.getGuildAudioPlayer(event.textChannel).scheduler
             scheduler.autoplay = false
             scheduler.manager.resetQueue()
-            event.channel.send("Cleared the queue ${Emoji.BALLOT_BOX_WITH_CHECK}")
+            event.channel.send("Cleared the queue".tr(event) + " ${Emoji.BALLOT_BOX_WITH_CHECK}")
         }
     }
 }
@@ -312,10 +312,10 @@ class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks 
         if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true)) return
         val mentioned = event.message.mentionedUsers
         if (mentioned.size == 0) {
-            event.channel.send("You need to mention at least one person to remove songs from!")
+            event.channel.send("You need to mention at least one person to remove songs from!".tr(event))
         } else {
             mentioned.forEach { removeFrom -> event.guild.getGuildAudioPlayer(event.textChannel).scheduler.manager.removeFrom(removeFrom) }
-            event.channel.send("Successfully removed any queued tracks from **${mentioned.map { it.withDiscrim() }.toList().stringify()}** ${Emoji.WHITE_HEAVY_CHECKMARK}")
+            event.channel.send("Successfully removed any queued tracks from **{0}**".tr(event, mentioned.map { it.withDiscrim() }.toList().stringify()) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
         }
     }
 }
@@ -325,7 +325,7 @@ fun VoiceChannel.connect(textChannel: TextChannel?) {
     try {
         audioManager.openAudioConnection(this)
     } catch (e: Throwable) {
-        textChannel?.send("${Emoji.CROSS_MARK} I cannot join that voice channel ($name)! Reason: *${e.localizedMessage}*")
+        textChannel?.send("${Emoji.CROSS_MARK} " + "I cannot join that voice channel ({0})! Reason: *{1}*".tr(textChannel.guild, name, e.localizedMessage))
     }
 }
 
@@ -346,7 +346,7 @@ fun play(member: Member, guild: Guild, channel: VoiceChannel, musicManager: Guil
 
 fun Member.checkSameChannel(textChannel: TextChannel): Boolean {
     if (voiceState.channel == null) {
-        textChannel.send("${Emoji.CROSS_MARK} You need to be connected to a voice channel")
+        textChannel.send("${Emoji.CROSS_MARK} " + "You need to be connected to a voice channel".tr(textChannel.guild))
         return false
     }
     if (guild.selfMember.voiceState.channel == null) {
@@ -355,7 +355,7 @@ fun Member.checkSameChannel(textChannel: TextChannel): Boolean {
         return false
     }
     if (guild.selfMember.voiceState.channel != voiceState.channel) {
-        textChannel.send("${Emoji.CROSS_MARK} We need to be connected to the **same** voice channel")
+        textChannel.send("${Emoji.CROSS_MARK} " + "We need to be connected to the **same** voice channel".tr(textChannel.guild))
         return false
     }
     return true
@@ -381,7 +381,7 @@ fun String.getSingleTrack(guild: Guild, foundConsumer: (AudioTrack) -> (Unit), s
 
 fun String.load(member: Member, textChannel: TextChannel?, message: Message?, search: Boolean = false, radioName: String? = null, autoplay: Boolean = false, guild: Guild? = null) {
     if (member.voiceState.channel == null) {
-        textChannel?.send("${Emoji.CROSS_MARK} You need to be connected to a voice channel")
+        textChannel?.send("${Emoji.CROSS_MARK} " + "You need to be connected to a voice channel".tr(member.guild))
         return
     }
     if (guild != null && !guild.selfMember.voiceState.inVoiceChannel()) {
@@ -395,7 +395,7 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
                 tr.name.load(member, textChannel, message, search, radioName, autoplay)
                 return
             } else {
-                textChannel?.send("You specified an invalid url.. Please try again after checking the link")
+                textChannel?.send("You specified an invalid url.. Please try again after checking the link".tr(member.guild))
                 return
             }
         } catch (e: BadRequestException) {
@@ -409,24 +409,23 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
         override fun loadFailed(exception: FriendlyException) {
             if (exception.message?.contains("503") == true) {
                 val results = this@load.searchYoutubeOfficial()
-                if (results == null || results.isEmpty()) textChannel?.send("There was an issue searching the official YouTube API... please try again later :(")
+                if (results == null || results.isEmpty()) textChannel?.send("There was an issue searching the official YouTube API... please try again later :(".tr(member.guild))
                 else {
                     textChannel?.selectFromList(member, "Select Song", results.map { it.first }.toMutableList(), { response, _ ->
                         "https://www.youtube.com/watch?v=${results[response].second}".load(member, textChannel, message, false, guild = guild)
                     })
                 }
                 logChannel!!.send("Fell back to YouTube API in ${textChannel?.guild?.name} for search **${this@load}**")
-            } else textChannel?.send("YouTube won't let us search music at the moment, please try again later... (blame google) **You can still play tracks by using the Youtube URL of the video**")
+            } else textChannel?.send("YouTube won't let us search music at the moment, please try again later... (blame google) **You can still play tracks by using the Youtube URL of the video**".tr(member.guild))
         }
 
         override fun trackLoaded(track: AudioTrack) {
             if (textChannel != null && track.info.length > (15 * 60 * 1000) && !member.hasDonationLevel(textChannel, DonationLevel.BASIC)) {
-                textChannel.send("${Emoji.NO_ENTRY_SIGN} Sorry, but only servers or members with the **Basic** donation " +
-                        "level can play songs longer than 15 minutes")
+                textChannel.send("${Emoji.NO_ENTRY_SIGN} " + "Sorry, but only servers or members with the **Basic** donation level can play songs longer than 15 minutes".tr(member.guild))
                 return
             }
-            if (radioName == null) textChannel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
-            else textChannel?.send("${Emoji.MULTIPLE_MUSICAL_NOTES} Starting to play the radio station **$radioName**...")
+            if (radioName == null) textChannel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "Adding **{0} by {1}** to the queue...".tr(member.guild, track.info.title, track.info.author))
+            else textChannel?.send("${Emoji.MULTIPLE_MUSICAL_NOTES} " + "Starting to play the radio station **{0}**...".tr(member.guild, radioName))
             play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
         }
 

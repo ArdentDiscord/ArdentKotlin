@@ -18,6 +18,7 @@ import utils.*
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.TimeUnit
 
 class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHandler {
     private var lastFrame: AudioFrame? = null
@@ -144,15 +145,22 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     var manager: ArdentMusicManager = ArdentMusicManager(player, channel?.id)
     var autoplay = true
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
+        waiterExecutor.schedule({
+            if (manager.current?.track == track && manager.current?.track?.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel()) {
+                val vch = guild.selfMember.voiceChannel()
+                guild.audioManager.closeAudioConnection()
+                guild.audioManager.openAudioConnection(vch)
+            }
+        }, 10, TimeUnit.SECONDS)
         autoplay = true
         if (channel?.guild?.getData()?.musicSettings?.announceNewMusic == true) {
-            val builder = guild.selfMember.embed("Now Playing: ${track.info.title}")
+            val builder = guild.selfMember.embed("Now Playing: {0}".tr(channel!!.guild, track.info.title))
             builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
-            builder.addField("Title", track.info.title, true)
-                    .addField("Author", track.info.author, true)
-                    .addField("Duration", track.getDurationFancy(), true)
-                    .addField("URL", track.info.uri, true)
-                    .addField("Is Stream", track.info.isStream.toString(), true)
+            builder.addField("Title".tr(channel!!.guild), track.info.title, true)
+                    .addField("Author".tr(channel!!.guild), track.info.author, true)
+                    .addField("Duration".tr(channel!!.guild), track.getDurationFancy(), true)
+                    .addField("URL".tr(channel!!.guild), track.info.uri, true)
+                    .addField("Is Stream".tr(channel!!.guild), track.info.isStream.toString(), true)
             channel?.send(builder)
         }
     }
@@ -164,7 +172,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                 val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
                 val get = songSearch.get()
                 if (get.items.size == 0) {
-                    channel?.send("Couldn't find this song in the Spotify database, no autoplay available.")
+                    channel?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(channel!!.guild))
                     return
                 }
                 val songId = get.items[0].id
@@ -185,8 +193,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
         guild.getGuildAudioPlayer(channel).scheduler.manager.nextTrack()
-        channel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} The player got stuck... attempting to skip now now (this is Discord's fault) - If you encounter this multiple " +
-                "times, please type ${guild.getPrefix()}leave")
+        channel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "The player got stuck... attempting to skip now now (this is Discord's fault) - If you encounter this multiple times, please type {0}leave".tr(channel!!.guild, guild.getPrefix()))
     }
 
     override fun onTrackException(player: AudioPlayer, track: AudioTrack, exception: FriendlyException) {
@@ -198,7 +205,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
         manager.current = null
         manager.nextTrack()
         try {
-            manager.getChannel()?.sendMessage("I wasn't able to play that track, skipping... **Reason: **${exception.localizedMessage}")?.queue()
+            manager.getChannel()?.sendMessage("I wasn't able to play that track, skipping... **Reason: **{0}".tr(manager.getChannel()!!.guild, exception.localizedMessage))?.queue()
         } catch (e: Exception) {
             e.log()
         }
@@ -320,8 +327,7 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
         val playlist = spotifyApi.getPlaylist(info[0], info[1]).build().get()
         if (playlist == null || playlist.tracks.items.size == 0) channel.send("No playlist was found with this query")
         else {
-            channel.sendMessage("Beginning track loading from Spotify playlist **${playlist.name}**... This could take a few minutes. I'll add progress bars as the " +
-                    "playlist is processed")
+            channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes. I'll add progress bars as the playlist is processed".tr(channel.guild, playlist.name))
                     .queue { message ->
                         var percentage = 0.1
                         var current = 0
@@ -363,6 +369,6 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                     }
         }
     } catch (e: BadRequestException) {
-        channel.send("You specified an invalid url.. Please try again after checking the link")
+        channel.send("You specified an invalid url.. Please try again after checking the link".tr(channel.guild))
     }
 }

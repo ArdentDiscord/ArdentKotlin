@@ -132,7 +132,8 @@ abstract class Command(val category: Category, val name: String, val description
     }
 
     fun containsAlias(arg: String, guild: Guild): Boolean {
-        return arg.startsWith(name.tr(guild)) || name.equals(arg, true) || aliases.contains(arg) || aliases.any { arg.startsWith(it) }
+        val a = arg.split(" ")[0]
+        return arg.startsWith(name.tr(guild)) || name.equals(a, true) || aliases.contains(a) || aliases.any {a == it }
     }
 
     override fun toString(): String {

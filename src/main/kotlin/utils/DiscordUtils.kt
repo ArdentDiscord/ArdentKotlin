@@ -339,7 +339,7 @@ fun getMutualGuildsWith(user: User): MutableList<Guild> {
 }
 
 fun String.tr(language: ArdentLanguage, vararg new: Any): String {
-    return language.translate(String.format(this.replace("\n", "%n")))?.trReplace(language, *new) ?: translationDoesntExist(language, *new)
+    return language.translate(this)?.trReplace(language, *new) ?: translationDoesntExist(language, *new)
 }
 
 fun String.translationDoesntExist(language: ArdentLanguage, vararg new: Any): String {

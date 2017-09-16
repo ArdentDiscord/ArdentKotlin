@@ -130,13 +130,13 @@ data class Settings(val id: String? = null, val channel: String? = null, val gui
  * Message in the consumer is the list selection message
  */
 fun MessageChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
-    val embed = member.embed(title)
+    val embed = member.embed(title.tr(member.guild))
     val builder = StringBuilder()
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
     }
     if (footerText != null) builder.append("\n$footerText\n")
-    builder.append("\n" + "__Please select **OR** type the number corresponding with the choice that you'd like to select or select **X** to cancel__".tr(id.toChannel()!!.guild) + "\n")
+    builder.append("\n" + "__Please select **OR** type the number corresponding with the choice that you'd like to select or select **X** to cancel__".tr(member.guild) + "\n")
     try {
         sendMessage(embed.setDescription(builder).build()).queue { message ->
             for (x in 1..options.size) {
@@ -185,13 +185,11 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                     else -> 69999999
                 } - 1
                 when {
-                    chosen in 0..(options.size - 1) -> {
-                        consumer.invoke(chosen, message)
-                        waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
-                    }
+                    chosen in 0..(options.size - 1) -> consumer.invoke(chosen, message)
                     chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
                     else -> failure?.invoke()
                 }
+                waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
                 invoked = true
             }, {
                 if (!invoked) send("You didn't specify a reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
