@@ -142,7 +142,7 @@ enum class Languages(val language: ArdentLanguage) {
     EMOJI(ArdentLanguage("ej", "Emoji")),
     POLISH(ArdentLanguage("po", "Polish")),
     SPANISH(ArdentLanguage("es", "Spanish")),
-    MANDARIN_PINYIN(ArdentLanguage("zh", "Mandarin Pinyin"))
+    MANDARIN_PINYIN(ArdentLanguage("zh-PY", "Mandarin Pinyin"))
     ;
 }
 
