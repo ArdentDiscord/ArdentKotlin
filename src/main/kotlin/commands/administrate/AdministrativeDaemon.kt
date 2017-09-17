@@ -32,18 +32,17 @@ class AdministrativeDaemon : Runnable {
                         when (punishment.type) {
                             Punishment.Type.TEMPBAN -> {
                                 guild.controller.unban(user.id).queue({
-                                    user.openPrivateChannel().queue { privateChannel -> privateChannel.send("You were unbanned from **${guild.name}**") }
+                                    user.openPrivateChannel().queue { privateChannel -> privateChannel.send("You were unbanned from **{0}**".tr(guild, guild.name)) }
 
                                 }, {
                                     user.openPrivateChannel().queue { privateChannel ->
-                                        privateChannel.send("Your punishment expired but I do not have " +
-                                                "the permissions to unban you. Please contact ${guild.owner.asMention}")
+                                        privateChannel.send("Your punishment expired but I do not have the permissions to unban you. Please contact {0}".tr(guild, guild.owner.asMention))
                                     }
 
                                 })
                             }
                             Punishment.Type.MUTE -> {
-                                user.openPrivateChannel().queue { privateChannel -> privateChannel.send("You were unmuted in **${guild.name}**") }
+                                user.openPrivateChannel().queue { privateChannel -> privateChannel.send("You were unmuted in **{0}**".tr(guild, guild.name)) }
                             }
                         }
                     }
