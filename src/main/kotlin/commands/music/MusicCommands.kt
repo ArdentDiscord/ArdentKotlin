@@ -198,7 +198,7 @@ class Skip : Command(Category.MUSIC, "skip", "skips the currently playing track"
         if (!manager.player.currentlyPlaying(event.textChannel)) return
         val track = manager.scheduler.manager.current!!
         manager.player.playingTrack.position = manager.player.playingTrack.duration - 1
-        event.channel.send("Skipped current track: **{0}** by *{1}* {2} - added by **{3}**".tr(event, track.track.info.title, track.track.info.author, track.track.getCurrentTime(), track.author.toUser()!!.withDiscrim()))
+        event.channel.send("Skipped current track: **{0}** by *{1}* {2} - added by **{3}**".tr(event, track.track.info.title, track.track.info.author, track.track.getCurrentTime(), track.author.toUser()?.withDiscrim() ?: "unable to determine"))
     }
 }
 

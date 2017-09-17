@@ -38,11 +38,11 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 } else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
         } else if (type != GameType.BLACKJACK && type != GameType.BETTING && playerCount > 1) {
-            channel.send("${creator.toUser()!!.asMention}, use **/gameinvite @User** to invite someone to your game")
+            channel.send("{0}, use **/gameinvite @User** to invite someone to your game".tr(channel.guild, creator.toUser()?.asMention ?: "unable to determine creator"))
         }
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
-                channel.sendMessage("Starting a game of type **${type.readable}** with **${players.size}** players (${players.toUsers()})")
+                channel.sendMessage("Starting a game of type **{0}** with **{1}** players ({2})".tr(channel.guild, type.readable, players.size, players.toUsers()))
                         .queueAfter(5, TimeUnit.SECONDS, { _ -> startEvent() })
                 scheduledExecutor.shutdown()
             }
@@ -56,11 +56,11 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         val prefix = channel.guild.getPrefix()
         val member = channel.guild.selfMember
         val embed = member.embed("${type.readable} Game Lobby", Color.ORANGE)
-                .setFooter("Ardent Game Engine - Adam#9261", member.user.avatarUrl)
-                .setDescription("This lobby has been active for ${((System.currentTimeMillis() - creation) / 1000).formatMinSec()}\n" +
-                        "It currently has **${players.size}** of **$playerCount** players required to start | ${players.toUsers()}\n" +
-                        "To start, the host can also type *${prefix}forcestart*\n\n" +
-                        "This game was created by __${creator.toUser()?.withDiscrim()}__")
+                .setFooter("Ardent Game Engine By Adam#9261".tr(channel.guild), member.user.avatarUrl)
+                .setDescription("This lobby has been active for {0}".tr(channel.guild, ((System.currentTimeMillis() - creation) / 1000).formatMinSec()) + "\n" +
+                        "It currently has **{0}** of **{1}** players required to start | {2}".tr(channel.guild, players.size, playerCount, players.toUsers()) + "\n" +
+                        "To start, the host can also type *{0}forcestart*".tr(channel.guild, prefix) + "\n\n" +
+                        "This game was created by __{0}__".tr(channel.guild, creator.toUser()?.withDiscrim() ?: "unable to determine"))
         var me: Message? = null
         channel.sendMessage(embed.build()).queue { m ->
             channel.send("Join by typing **${prefix}join #$gameId**\n" +
@@ -98,7 +98,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     fun cancel(user: User) {
         gamesInLobby.remove(this)
         activeGames.remove(this)
-        channel.send("**${user.withDiscrim()}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(")
+        channel.send("**{0}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(".tr(channel.guild, user.withDiscrim()))
         scheduledExecutor.shutdownNow()
     }
 
@@ -114,20 +114,18 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         } else {
             val newGameId = type.findNextId()
             gameData.id = gameId
-            channel.send("This Game ID has already been inserted into the database. Your new Game ID is **#$newGameId**")
+            channel.send("This Game ID has already been inserted into the database. Your new Game ID is **{0}**".tr(channel.guild, newGameId))
             gameData.insert("${type.readable}Data")
         }
-        channel.send("Game Data has been successfully inserted into the database. To view the results and statistics for this match, " +
-                "you can go to https://ardentbot.com/games/${type.name.toLowerCase()}/$gameId\n\n" +
-                "*Please consider making a small monthly pledge at <https://patreon.com/ardent> if you enjoyed this game to support our hosting and development costs\n   - Adam*")
+        channel.send("Game Data has been successfully inserted into the database. To view the results and statistics for this match, you can go to https://ardentbot.com/games/{0}/{1}".tr(channel.guild, type.name.toLowerCase(), gameId) + "\n\n" +
+                "*Please consider making a small monthly pledge at {0} if you enjoyed this game to support our hosting and development costs".tr(channel.guild, "<https://patreon.com/ardent>") + "\n   - Adam*")
     }
 
     private fun announceCreation() {
         if (players.size > 1 && isPublic) {
             val prefix = channel.guild.getPrefix()
             if (isPublic) {
-                channel.send("You successfully created a **Public ${type.readable}** game with ID #__${gameId}__!\n" +
-                        "Anyone in this server can join by typing *${prefix}minigames join #$gameId*")
+                channel.send("You successfully created a **Public {0}** game with ID #__{1}__!\nAnyone in this server can join by typing *{2}minigames join #{1}*".tr(channel.guild, type.readable, gameId, prefix))
             }
         }
     }
@@ -188,7 +186,7 @@ class BlackjackPlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0) : Playe
 
 class BettingPlayerData(wins: Int = 0, losses: Int = 0, var netWinnings: Double = 0.0) : PlayerGameData(wins, losses)
 
-class TicTacToePlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0): PlayerGameData(wins, losses, ties)
+class TicTacToePlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0) : PlayerGameData(wins, losses, ties)
 
 abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: Int = 0) {
     fun gamesPlayed(): Int {
@@ -212,9 +210,9 @@ class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner:
         val scoresTemp = hashMapOf<String, Int>()
         scores.forEach { t, u -> scoresTemp.put(t.toUser()!!.withDiscrim(), u) }
         val roundsTemp = mutableListOf<SanitizedTriviaRound>()
-        rounds.forEach { r ->
-            roundsTemp.add(SanitizedTriviaRound(r.winners.isNotEmpty(),
-                    r.winners.getOrNull(0)?.toUser(), r.losers.map { it.toUser() }, r.question))
+        rounds.forEach { (winners, losers1, question) ->
+            roundsTemp.add(SanitizedTriviaRound(winners.isNotEmpty(),
+                    winners.getOrNull(0)?.toUser(), losers1.map { it.toUser() }, question))
         }
         return SanitizedTrivia(creator.toUser()!!, id, winner.toUser()!!, losers.map { it.toUser()!! }, scoresTemp.sort(true).toList() as List<Pair<String, Int>>, roundsTemp)
     }
