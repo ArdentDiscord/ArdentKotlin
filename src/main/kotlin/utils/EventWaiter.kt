@@ -135,7 +135,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
     }
-    if (footerText != null) builder.append("\n$footerText\n")
+    if (footerText != null) builder.append("\n" + footerText.tr(member.guild) + "\n")
     builder.append("\n" + "__Please select **OR** type the number corresponding with the choice that you'd like to select or select **X** to cancel__".tr(member.guild) + "\n")
     try {
         sendMessage(embed.setDescription(builder).build()).queue { message ->
