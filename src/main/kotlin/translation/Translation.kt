@@ -46,13 +46,6 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
         return null
     }
 
-    fun getByEnglish(string: String?): ArdentPhraseTranslation? {
-        phrases.forEach {
-            if (it.value.english.equals(string, true) || it.key.equals(string, true)) return it.value
-        }
-        return null
-    }
-
     fun get(english: String, command: String): ArdentPhraseTranslation? {
         phrases.forEach { if (it.value.english == english && command == it.value.command) return it.value }
         return null
@@ -67,10 +60,6 @@ data class ArdentPhraseTranslation(var english: String, val command: String, var
 
     fun translate(languages: Languages): String? {
         return translate(languages.language)
-    }
-
-    fun translate(language: String): String? {
-        return translate(language.toLanguage() ?: Languages.ENGLISH.language)
     }
 
     fun translate(language: ArdentLanguage): String {
@@ -120,6 +109,7 @@ fun String.toLanguage(): ArdentLanguage? {
         "es" -> Languages.SPANISH
         "po" -> Languages.POLISH
         "zh-PY" -> Languages.MANDARIN_PINYIN
+        "pt-BR" -> Languages.PORTUGESE_BRAZIL
         else -> null
     }?.language
 }
@@ -142,7 +132,8 @@ enum class Languages(val language: ArdentLanguage) {
     EMOJI(ArdentLanguage("ej", "Emoji")),
     POLISH(ArdentLanguage("po", "Polish")),
     SPANISH(ArdentLanguage("es", "Spanish")),
-    MANDARIN_PINYIN(ArdentLanguage("zh-PY", "Mandarin Pinyin"))
+    MANDARIN_PINYIN(ArdentLanguage("zh-PY", "Mandarin Pinyin")),
+    PORTUGESE_BRAZIL(ArdentLanguage("pt-BR", "Brazilian Portugese"))
     ;
 }
 

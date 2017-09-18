@@ -32,6 +32,8 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
+import translation.LanguageCommand
+import translation.Translate
 import utils.*
 import web.Web
 import java.io.File
@@ -133,7 +135,7 @@ fun addCommands() {
             Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
-            LanguageCommand(), TicTacToeCommand())
+            LanguageCommand(), TicTacToeCommand(), CommandDistribution())
 }
 
 fun checkQueueBackups() {
@@ -144,16 +146,13 @@ fun checkQueueBackups() {
             val channel = it.channelId?.toChannel()
             val voiceChannel = getVoiceChannelById(it.voiceId)
             if (voiceChannel != null && voiceChannel.members.size > 0) {
-                voiceChannel.connect(channel)
-                Thread.sleep(2000)
                 val guild = getGuildById(it.guildId)
                 val manager = guild?.getGuildAudioPlayer(channel)
                 if (guild != null && manager != null && it.music.size > 0) {
-                    channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at <https://patreon.com/ardent> - we'd really appreciate it")
-
-                    it.music.forEach { trackUri ->
-                        trackUri.load(guild.selfMember, null, null, guild = guild)
-                    }
+                    voiceChannel.connect(channel)
+                    Thread.sleep(1250)
+                    channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at {0} - we'd really appreciate it".tr(guild, "<https://patreon.com/ardent>"))
+                    it.music.forEach { trackUri -> trackUri.load(guild.selfMember, null, null, guild = guild) }
                     println("Successfully resumed playback for ${guild.name}")
                 }
             }

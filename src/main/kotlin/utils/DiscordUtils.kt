@@ -239,11 +239,22 @@ fun MessageChannel.send(message: String) {
 
 fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: String): Message? {
     try {
-        val message = sendMessage(embedBuilder.build()).complete()
-        for (reaction in reactions) {
-            message.addReaction(EmojiParser.parseToUnicode(reaction)).queue()
+        if (embedBuilder.descriptionBuilder.length < 2048) {
+            val message = sendMessage(embedBuilder.build()).complete()
+            for (reaction in reactions) {
+                message.addReaction(EmojiParser.parseToUnicode(reaction)).queue()
+            }
+            return message
         }
-        return message
+        else {
+            val description = embedBuilder.descriptionBuilder.toString()
+            embedBuilder.setDescription("")
+            val builtEmbed = embedBuilder.build()
+            for (i in 0..Math.ceil(description.length / 2048.toDouble()).toInt()) {
+                sendEmbed(EmbedBuilder().setColor(builtEmbed.color).setAuthor(builtEmbed.author.name, builtEmbed.author.url,builtEmbed.author.iconUrl)
+                        .setDescription(description.substring(2048 * i, if ((2048 * i + 2048 > description.length)) 2048 * i else (2048 * i) + 2048)))
+            }
+        }
     } catch (ex: Exception) {
     }
     return null
@@ -502,13 +513,16 @@ class Internals {
     var uptimeFancy: String = ""
     var apiCalls: Long = 0
     var musicPlayed: Long = 0
-
+    val languageStatuses = hashMapOf<ArdentLanguage, Double>()
     init {
         waiterExecutor.scheduleAtFixedRate({
             loadedMusicPlayers = 0
             queueLength = 0
             apiCalls = 0
-            musicPlayed = 0
+            roleCount = 0
+            channelCount = 0
+            voiceCount = 0
+            languageStatuses.clear()
             messagesReceived = factory.messagesReceived.get()
             commandsReceived = factory.commandsReceived().toLong()
             commandCount = factory.commands.size
@@ -550,6 +564,19 @@ class Internals {
             else builder.append("$seconds seconds")
             uptimeFancy = builder.toString()
 
+            val totalPhrases = translationData.phrases.size
+            val tempCount = hashMapOf<ArdentLanguage, Int>()
+            Languages.values().forEach { tempCount.put(it.language, 0) }
+            translationData.phrases.forEach { _, phrase ->
+                phrase.translations.forEach { key, value ->
+                    val lang = key.toLanguage()
+                    if (lang != null) tempCount.incrementValue(lang)
+                }
+            }
+
+            tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble() ) }
+
+            musicPlayed = 0
             r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach { if (it != null) musicPlayed += it.position }
         }, 0, 5, TimeUnit.SECONDS)
     }

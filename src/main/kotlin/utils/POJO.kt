@@ -13,6 +13,10 @@ data class TriviaCategory(val title: String, val created_at: String, val updated
     }
 }
 
+data class SimpleLoggedEvent(val guildId: String, val eventType: EventType, val time: Long = System.currentTimeMillis(), val id: String = r.uuid().run(conn))
+
+enum class EventType { LEFT_GUILD, JOINED_GUILD }
+
 data class PlayedMusic(val guildId: String, val position: Long, val id: String = r.uuid().run(conn))
 
 data class TriviaQuestion(val question: String, val answers: List<String>, val category: String, val value: Int)

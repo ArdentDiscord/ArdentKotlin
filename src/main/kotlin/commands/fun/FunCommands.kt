@@ -87,8 +87,7 @@ class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your fu
                 event.channel.send(getGson().fromJson(Jsoup.connect("https://8ball.delegator.com/magic/JSON/${URLEncoder.encode(arguments.concat())}")
                         .ignoreContentType(true).userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
                         "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!.body().text(), EightBallResult::class.java).magic.answer)
-            }
-            catch(e: Exception) {
+            } catch (e: Exception) {
                 event.channel.send("You need to ask the 8ball a question!".tr(event.guild))
             }
         }
@@ -100,30 +99,6 @@ class FML : Command(Category.FUN, "fml", "someone's had a shitty day.") {
         val doc = Jsoup.connect("http://www.fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
                 "rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").ignoreContentType(true).get()!!
         event.channel.send(doc.getElementsByTag("p")[0].getElementsByTag("a")[0].allElements[0].text())
-    }
-}
-
-class Translate : Command(Category.FUN, "translate", "translate text to the provided language", "tr") {
-    val api = YTranslateApiImpl("trnsl.1.1.20170227T013942Z.6878bfdf518abdf6.a6574733436345112da24eb08e7ee1ef2a0d6a97")
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (arguments.size < 2) {
-            val prefix = event.guild.getPrefix()
-            event.channel.send("""Using the translation command is simple. The format for requesting one is as follows:
-**{0}translate language_code_here your text goes here**
-
-As follows are the language codes of some languages, but if you don't see the code for the language you want, go to {1} to view a full list.
-**English**: en, **French**: fr, **Spanish**: es, **Russian**: ru
-
-**Example**: *{0}translate en Bonjour tout le monde!* will return *Hello everyone!*""".tr(event, prefix, "<https://ardentbot.com/translation/languages>"))
-        } else {
-            try {
-                val code = arguments[0]
-                arguments.removeAt(0)
-                event.channel.send(api.translationApi().translate(arguments.concat(), Language.of(code)).text()!!)
-            } catch (e: Exception) {
-                event.channel.send("You need to include a valid language code! Please visit {0} for a guide".tr(event, "<https://ardentbot.com/translation/languages>"))
-            }
-        }
     }
 }
 

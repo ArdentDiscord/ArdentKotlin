@@ -236,16 +236,11 @@ class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPubl
             val sc = getScores().first.sort(true) as MutableMap<String, Int>
             val winner = sc.toList()[0]
             val winnerUser = winner.first.toUser()!!
-            if (players.size > 1) {
-                channel.send("Congrats to {0} for winning with **{1}** points! They'll receive that amount in gold as a prize!".tr(channel.guild, winnerUser.asMention, winner.second) + "\n" +
-                        "**Cleaning game up..**")
-                val data = winnerUser.getData()
-                data.gold += winner.second
-                data.update()
-            } else {
-                channel.send("Thanks for playing, {0}!".tr(channel.guild, winnerUser.asMention) + "\n" +
-                        "**Cleaning game up..**".tr(channel.guild))
-            }
+            channel.send("Congrats to {0} for winning with **{1}** points! They'll receive that amount in gold as a prize!".tr(channel.guild, winnerUser.asMention, winner.second) + "\n" +
+                    "**Cleaning game up..**")
+            val data = winnerUser.getData()
+            data.gold += winner.second
+            data.update()
             cleanup(GameDataTrivia(gameId, creator, startTime!!, winner.first, players.without(winner.first), sc, rounds))
         } else {
             if (currentRound == (roundTotal - 3)) channel.send("${Emoji.INFORMATION_SOURCE} " + "There are only **3** rounds left!".tr(channel.guild))

@@ -416,7 +416,9 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
                     })
                 }
                 logChannel!!.send("Fell back to YouTube API in ${textChannel?.guild?.name} for search **${this@load}**")
-            } else textChannel?.send("YouTube won't let us search music at the moment, please try again later... (blame google) **You can still play tracks by using the Youtube URL of the video**".tr(member.guild))
+            } else {
+                textChannel?.send("Something went wrong :/ **Exception**: {0}".tr(member.guild, exception.localizedMessage))
+            }
         }
 
         override fun trackLoaded(track: AudioTrack) {

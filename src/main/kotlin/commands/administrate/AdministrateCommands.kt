@@ -10,8 +10,6 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import org.apache.commons.lang.WordUtils
 import translation.ArdentPhraseTranslation
-import translation.Languages
-import translation.fromLangName
 import utils.*
 import java.awt.Color
 import java.util.*
@@ -32,25 +30,6 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
             data.update()
             event.channel.send("The prefix has been updated to **{0}**".tr(event, data.prefix ?: "/"))
         } else event.channel.send("${Emoji.NO_ENTRY_SIGN} " + "Type **{0}prefix** to learn how to use this command".tr(event, data.prefix ?: "/"))
-    }
-}
-
-class LanguageCommand : Command(Category.ADMINISTRATE, "language", "view or change Ardent's language on this server!", "lang") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (arguments.size == 0 || !arguments[0].equals("set", true)) {
-            event.channel.send(("Your server language is **{0}** - You can change it by using {1}lang set **language** - Language list: {2}").tr(event).trReplace(event.guild, event.guild.getLanguage().readable, event.guild.getPrefix(), Languages.values().map { "**${it.language.readable}**" }.stringify()))
-        } else {
-            if (event.member.hasOverride(event.textChannel)) {
-                val lang = arguments.without(arguments[0]).concat().fromLangName()
-                if (lang == null) event.channel.send("You specified an invalid language! Remember: You must add accents if your language requires that. Type **{0}lang** to see a language list".tr(event).trReplace(event.guild, event.guild.getPrefix()))
-                else {
-                    val guildData = event.guild.getData()
-                    guildData.language = lang
-                    guildData.update()
-                    event.channel.send("Successfully updated your language to **{0}**!0".tr(event, lang.readable))
-                }
-            }
-        }
     }
 }
 
@@ -241,7 +220,27 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                 }
                 when (arguments[0]) {
                     "eval" -> {
-                        eval(arguments, event)
+                        eval(arguments.without(arguments[0]), event)
+                    }
+                    "announce" -> {
+                        jdas.forEach {
+                            it.guilds.forEach { guild ->
+                                var default = guild.getTextChannelsByName("general", true)
+                                if (default.size == 0) default = guild.getTextChannelsByName("default", true)
+                                if (default.size == 0) guild.textChannels.forEach {
+                                    if (it.canTalk()) {
+                                        it.send(arguments.without(arguments[0]).concat())
+                                        return
+                                    }
+                                }
+                                else default[0].send(arguments.without(arguments[0]).concat())
+                            }
+                        }
+                    }
+                    "addmoney" -> {
+                        val data = event.message.mentionedUsers[0].getData()
+                        data.gold += arguments[1].toInt()
+                        data.update()
                     }
                     "shutdown" -> {
                         managers.forEach {

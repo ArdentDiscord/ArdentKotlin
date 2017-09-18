@@ -90,7 +90,7 @@ class CommandFactory {
                                         LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
                             } catch (e: Throwable) {
                                 e.log()
-                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support") + "\n${ExceptionUtils.getStackTrace(e)}")
+                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support>") + "\n${ExceptionUtils.getStackTrace(e)}")
                             }
                         }
                     }
@@ -133,7 +133,7 @@ abstract class Command(val category: Category, val name: String, val description
 
     fun containsAlias(arg: String, guild: Guild): Boolean {
         val a = arg.split(" ")[0]
-        return arg.startsWith(name.tr(guild)) || name.equals(a, true) || aliases.contains(a) || aliases.any {a == it }
+        return a == name.tr(guild) || name.equals(a, true) || aliases.contains(a) || aliases.any {a == it }
     }
 
     override fun toString(): String {
@@ -152,6 +152,7 @@ fun String.toCategory(): Category {
         "Games" -> Category.GAMES
         "Fun" -> Category.FUN
         "RPG" -> Category.RPG
+        "Language" -> Category.LANGUAGE
         else -> Category.BOT_INFO
     }
 }
@@ -163,7 +164,9 @@ enum class Category(val fancyName: String, val description: String) {
     SERVER_INFO("ServerInfo", "Check current information about different aspects of your server"),
     ADMINISTRATE("Administrate", "Administrate your server: this category includes commands like warnings and mutes"),
     FUN("Fun", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
-    RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!");
+    RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!"),
+    LANGUAGE("Language", "Want to change your server's language or translate a phrase?")
+    ;
 
     override fun toString(): String {
         return fancyName

@@ -3,23 +3,23 @@ package events
 import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.guild.GuildJoinEvent
+import net.dv8tion.jda.core.events.guild.GuildLeaveEvent
 import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent
 import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
-import utils.getData
-import utils.send
-import utils.tr
-import utils.withDiscrim
+import utils.*
 
 class JoinRemoveEvents {
     @SubscribeEvent
     fun onGuildAdd(e: GuildJoinEvent) {
         val guild = e.guild
+        logChannel?.send("\uD83D\uDC4D Joined guild ${guild.name} - ${guild.members.size} members and ${guild.members.filter { it.user.isBot }.size} bots")
+        SimpleLoggedEvent(guild.id, EventType.JOINED_GUILD).insert("events")
         try {
-            guild.publicChannel.sendMessage("Thanks for adding Ardent! To open an interactive list where you can see our list of commands, please " +
+            guild.defaultChannel?.sendMessage("Thanks for adding Ardent! To open an interactive list where you can see our list of commands, please " +
                     "type `/help` or `ardent help`. You can change the default prefix, which is a forward slash, by typing `/prefix set prefix_here`, " +
                     "but if you forget what you set it as, remember that `ardent help` will always work.\n" +
-                    "Happy Discording and best wishes from the development team!").queue()
+                    "Happy Discording and best wishes from the development team!")?.queue()
         } catch (e: Exception) {
             return
         }
@@ -74,5 +74,10 @@ class JoinRemoveEvents {
                 }
             }
         }
+    }
+
+    @SubscribeEvent
+    fun onGuildLeave(e: GuildLeaveEvent) {
+        SimpleLoggedEvent(e.guild.id, EventType.LEFT_GUILD).insert("events")
     }
 }
