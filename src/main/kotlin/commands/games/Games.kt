@@ -862,6 +862,38 @@ class SlotsGame(channel: TextChannel, creator: String, playerCount: Int, isPubli
     data class Round(val bet: Int, val won: Boolean, val game: String)
 }
 
+class GuessTheNumberGame(channel: TextChannel, creator: String, type: Type, difficulty: Difficulty, playerCount: Int, isPublic: Boolean) : Game(GameType.GUESS_THE_NUMBER, channel, creator, playerCount, isPublic) {
+    override fun onStart() {
+
+    }
+
+    private fun Member.guess(guess: Int, gameData: GameDataGuessTheNumber): Boolean {
+        gameData.rounds.add(Round(guess, (guess - gameData.number) / gameData.number * 100))
+        return if (guess == gameData.number) true
+        else {
+            if (guess > gameData.number) channel.send("{0}, your guess was too **high**! *Guess Counter: [**{1}**]*".tr(channel.guild, asMention, gameData.rounds.size))
+            else channel.send("{0}, your guess was too **low**! *Guess Counter: [**{1}**]*".tr(channel.guild, asMention, gameData.rounds.size))
+            false
+        }
+    }
+
+    data class Game(val type: Type, val difficulty: Difficulty, val data: GameDataGuessTheNumber)
+    abstract class GameDataGuessTheNumber(val game: Game, val number: Int = Random().nextInt(when (game.difficulty) {
+        Difficulty.EASY -> 10000
+        Difficulty.MEDIUM -> 100000
+        Difficulty.HARD -> 1000000
+        else -> 100000000
+    }), val rounds: MutableList<Round> = mutableListOf())
+
+    data class Round(val guess: Int, val errorPercentage: Int)
+
+    class GameDataGuessThatNumberSolo(game: Game) : GameDataGuessTheNumber(game)
+    class GameDataGuessThatNumberCoOp(game: Game, val players: MutableList<String>) : GameDataGuessTheNumber(game)
+    class GameDataGuessThatNumberCompetition(game: Game, val winner: String, val losers: MutableList<String>) : GameDataGuessTheNumber(game)
+    enum class Type { SOLO, CO_OP, COMPETITION  }
+    enum class Difficulty { EASY, MEDIUM, HARD, EXTREME }
+}
+
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val member = event.member

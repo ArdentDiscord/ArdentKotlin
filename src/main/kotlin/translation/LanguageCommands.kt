@@ -25,7 +25,7 @@ class LanguageCommand : Command(Category.LANGUAGE, "language", "view or change A
                     val guildData = event.guild.getData()
                     guildData.language = lang
                     guildData.update()
-                    event.channel.send("Successfully updated your language to **{0}**!0".tr(event, lang.readable))
+                    event.channel.send("Successfully updated your language to **{0}**!".tr(event, lang.readable))
                 }
             }
         }

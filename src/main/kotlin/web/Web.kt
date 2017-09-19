@@ -235,6 +235,7 @@ class Web {
                                     map.put("undoneTotal", nullTranslations.size)
                                     map.put("completedTotal", completedTranslations.size)
                                     map.put("language", language)
+                                    map.put("percent", "%.2f".format(internals.languageStatuses[language]?.toFloat()) ?: "NaN")
                                     map.put("title", "${language.readable} Translations")
                                     ModelAndView(map, "languageHome.hbs")
                                 } else if (request.splat().getOrNull(1) == "proofread" && request.splat().getOrNull(2) == "all") {

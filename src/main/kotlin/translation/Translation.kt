@@ -133,7 +133,7 @@ enum class Languages(val language: ArdentLanguage) {
     POLISH(ArdentLanguage("po", "Polish")),
     SPANISH(ArdentLanguage("es", "Spanish")),
     MANDARIN_PINYIN(ArdentLanguage("zh-PY", "Mandarin Pinyin")),
-    PORTUGESE_BRAZIL(ArdentLanguage("pt-BR", "Brazilian Portugese"))
+    PORTUGESE_BRAZIL(ArdentLanguage("pt-BR", "Português"))
     ;
 }
 

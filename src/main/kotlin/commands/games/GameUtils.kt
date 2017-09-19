@@ -137,7 +137,8 @@ enum class GameType(val readable: String, val description: String, val id: Int) 
     BETTING("Betting", "this is a placeholder", 4),
     CONNECT_4("Connect_4", "this is a placeholder", 5),
     TIC_TAC_TOE("Tic_Tac_Toe", "this is a placeholder", 7),
-    SLOTS("Slots", "this is a placeholder", 6);
+    SLOTS("Slots", "this is a placeholder", 6),
+    GUESS_THE_NUMBER("Guess_The_Number", "this is a placeholder", 8);
 
     override fun toString(): String {
         return readable

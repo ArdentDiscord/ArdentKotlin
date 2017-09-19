@@ -146,10 +146,11 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     var autoplay = true
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
         waiterExecutor.schedule({
-            if (manager.current?.track == track && manager.current?.track?.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel()) {
+            if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel()) {
                 val vch = guild.selfMember.voiceChannel()
                 guild.audioManager.closeAudioConnection()
                 guild.audioManager.openAudioConnection(vch)
+                player.isPaused = false
             }
         }, 10, TimeUnit.SECONDS)
         autoplay = true

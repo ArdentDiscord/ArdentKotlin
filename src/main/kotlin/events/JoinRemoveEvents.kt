@@ -79,5 +79,7 @@ class JoinRemoveEvents {
     @SubscribeEvent
     fun onGuildLeave(e: GuildLeaveEvent) {
         SimpleLoggedEvent(e.guild.id, EventType.LEFT_GUILD).insert("events")
+        val guild = e.guild
+        logChannel?.send("\uD83D\uDC4E Left guild ${guild.name} - ${guild.members.size} members and ${guild.members.filter { it.user.isBot }.size} bots")
     }
 }
