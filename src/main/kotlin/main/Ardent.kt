@@ -75,22 +75,26 @@ fun main(args: Array<String>) {
     Web()
     val shards = 2
     for (sh in 1..shards) {
-        val tempJda = JDABuilder(AccountType.BOT)
-                .setCorePoolSize(10)
-                .setGame(Game.of("Try out /trivia!", "https://twitch.tv/ "))
-                .addEventListener(waiter)
-                .addEventListener(factory)
-                .addEventListener(JoinRemoveEvents())
-                .addEventListener(VoiceUtils())
-                .setEventManager(AnnotatedEventManager())
-                .useSharding(sh - 1, shards)
-                .setToken(config.getValue("token"))
-                .buildBlocking()
-        val logCh: TextChannel? = tempJda.getTextChannelById("351368131639246848")
-        if (logCh != null) logChannel = logCh
-        jdas.add(tempJda)
+        factory.executor.execute {
+            val tempJda = JDABuilder(AccountType.BOT)
+                    .setCorePoolSize(10)
+                    .setGame(Game.of("Try out /trivia!", "https://twitch.tv/ "))
+                    .addEventListener(waiter)
+                    .addEventListener(factory)
+                    .addEventListener(JoinRemoveEvents())
+                    .addEventListener(VoiceUtils())
+                    .setEventManager(AnnotatedEventManager())
+                    .useSharding(sh - 1, shards)
+                    .setToken(config.getValue("token"))
+                    .buildBlocking()
+            val logCh: TextChannel? = tempJda.getTextChannelById("351368131639246848")
+            if (logCh != null) logChannel = logCh
+            val tempHangout = tempJda.getGuildById("351220166018727936")
+            if (tempHangout != null) hangout = tempHangout
+            jdas.add(tempJda)
+        }
     }
-    hangout = getGuildById("351220166018727936")
+    logChannel
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
     playerManager.registerSourceManager(SoundCloudAudioSourceManager())
@@ -100,7 +104,6 @@ fun main(args: Array<String>) {
     addCommands()
     startAdministrativeDaemon()
     waiter.executor.schedule({ checkQueueBackups() }, 5, TimeUnit.SECONDS)
-    println("Successfully set up. Essentially ready to receive commands (daemon commencement could delay this a few seconds)!")
 }
 
 data class Config(val url: String) {

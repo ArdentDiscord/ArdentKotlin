@@ -401,7 +401,6 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
         } catch (e: BadRequestException) {
             if (textChannel != null && member.hasDonationLevel(textChannel, DonationLevel.INTERMEDIATE, false)) {
                 this.getSpotifyPlaylist(textChannel, member)
-                return
             }
         }
     }

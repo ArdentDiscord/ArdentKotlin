@@ -8,6 +8,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
 import com.wrapper.spotify.exceptions.BadRequestException
+import com.wrapper.spotify.models.Album
+import com.wrapper.spotify.models.Playlist
 import main.*
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
@@ -325,15 +327,15 @@ fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
 fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
     try {
         val info = this.removePrefix("https://open.spotify.com/user/").split("/playlist/")
-        val playlist = spotifyApi.getPlaylist(info[0], info[1]).build().get()
-        if (playlist == null || playlist.tracks.items.size == 0) channel.send("No playlist was found with this query")
+        val playlist = (if (info.size > 1) spotifyApi.getPlaylist(info[0], info[1]).build().get() as Any? else spotifyApi.getAlbum(this.removePrefix("https://open.spotify.com/album/")).build().get() as Any?)
+        if (playlist == null || (playlist is Playlist && playlist.tracks.items.size == 0) || (playlist is Album && playlist.tracks.items.size == 0)) channel.send("No playlist with tracks was found with this search query".tr(channel.guild))
         else {
-            channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes. I'll add progress bars as the playlist is processed".tr(channel.guild, playlist.name))
+            channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes. I'll add progress bars as the playlist is processed".tr(channel.guild, ((playlist as? Playlist)?.name) ?: (playlist as Album).name))
                     .queue { message ->
-                        var percentage = 0.1
+                        var percentage = 0.0
                         var current = 0
-                        playlist.tracks.items.forEach { playlistTrack ->
-                            "${playlistTrack.track.name} ${playlistTrack.track.artists[0].name}".getSingleTrack(member.guild, { foundTrack ->
+                        (playlist as? Playlist) ?: (playlist as Album).tracks.items.forEach { playlistTrack ->
+                            "${playlistTrack.name} ${playlistTrack.artists[0].name}".getSingleTrack(member.guild, { foundTrack ->
                                 current++
                                 val ardentTrack = ArdentTrack(member.id(), channel.id, foundTrack)
                                 play(channel, member, ardentTrack)
@@ -346,8 +348,9 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                                     "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva" -> vivaLatino.add(foundTrack)
                                     "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda" -> hotCountry.add(foundTrack)
                                 }
-                                if (current / playlist.tracks.items.size.toDouble() >= percentage && percentage <= 1) {
-                                    percentage += 0.2
+                                val db = ((playlist as? Playlist)?.tracks?.items?.size?.toDouble() ?: playlist.tracks.items.size.toDouble())
+                                if (current / db >= percentage && percentage <= 1) {
+                                    percentage += 0.1
                                     when (percentage) {
                                         0.1 -> message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
                                         0.2 -> message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
@@ -361,7 +364,7 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                                         1.0 -> message.addReaction(Emoji.KEYCAP_TEN.symbol).queue()
                                     }
                                 }
-                                if (current / playlist.tracks.items.size.toDouble() == 1.0) {
+                                if (current / db == 1.0) {
                                     message.addReaction(Emoji.HEAVY_CHECK_MARK.symbol).queue()
                                 }
                                 Thread.sleep(750)

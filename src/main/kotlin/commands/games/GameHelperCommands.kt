@@ -14,7 +14,7 @@ class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running gam
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id) {
                 event.channel.send("${Emoji.HEAVY_EXCLAMATION_MARK_SYMBOL}" +
-                        "Are you sure you want to cancel your __{0}__ game? Type **" + "yes".tr(event) + "** if so or **" + "no".tr(event) + "** if you're not sure.".tr(event, game.type.readable) + "\n" +
+                        "Are you sure you want to cancel your __{0}__ game? Type **".tr(event, game.type.readable) + "yes".tr(event) + "** if so or **" + "no".tr(event) + "** if you're not sure.".tr(event, game.type.readable) + "\n" +
                         "Current players in lobby: *{0}*".tr(event, game.players.toUsers()))
                 waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { message ->
                     if (message.content.equals("yes".tr(event), true)) {
