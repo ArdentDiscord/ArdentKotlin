@@ -225,7 +225,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
 class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPublic: Boolean) : Game(GameType.TRIVIA, channel, creator, playerCount, isPublic) {
     val ardent = channel.guild.selfMember!!
     private val rounds = mutableListOf<Round>()
-    private val roundTotal = if (test) 4 else 15
+    private val roundTotal = if (test) 4 else 10
     private val questions = roundTotal.getTrivia()
     override fun onStart() {
         doRound(0, questions)
@@ -340,6 +340,7 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
                     if (bet > data.gold || bet <= 0) {
                         channel.send("You specified an invalid bet amount! Please retry or type `cancel` to cancel the game".tr(channel.guild))
                         doRound(user)
+                        return@waitForMessage
                     } else {
                         channel.selectFromList(channel.guild.getMember(user), "What color will the next card I draw be?", mutableListOf("Black".tr(channel.guild), "Red".tr(channel.guild)), { selection, _ ->
                             val suit = BlackjackGame.Hand(false, end = false).generate().suit
@@ -392,7 +393,7 @@ class BetGame(channel: TextChannel, creator: String) : Game(GameType.BETTING, ch
                     }
                 }
             }
-        }, { cancel(user) })
+        }, { cancel(user) }, time = 20)
     }
 
     data class Round(val won: Boolean, val betAmount: Double, val suit: BlackjackGame.Suit)
@@ -862,36 +863,80 @@ class SlotsGame(channel: TextChannel, creator: String, playerCount: Int, isPubli
     data class Round(val bet: Int, val won: Boolean, val game: String)
 }
 
-class GuessTheNumberGame(channel: TextChannel, creator: String, type: Type, difficulty: Difficulty, playerCount: Int, isPublic: Boolean) : Game(GameType.GUESS_THE_NUMBER, channel, creator, playerCount, isPublic) {
+class GuessTheNumberGame(channel: TextChannel, creator: String, val gameType: Type, val difficulty: Difficulty, playerCount: Int, isPublic: Boolean) : Game(GameType.GUESS_THE_NUMBER, channel, creator, playerCount, isPublic) {
     override fun onStart() {
+        if (gameType == Type.SOLO) {
+            val member = channel.guild.getMemberById(creator)
+            val game = Game(gameType, difficulty)
+            game.data = GameDataGuessThatNumberSolo(gameId, creator, startTime!!, game)
+            channel.send("{0}, it's time to guess! Your number will be between **1** and **{1}**".tr(channel.guild, member.asMention, difficulty.toValue()))
+            doSolo(game, member)
+        }
+    }
 
+    private fun doSolo(game: Game, member: Member, cancelIfExpire: Boolean = false) {
+        waiter.waitForMessage(Settings(member.id(), channel.id, channel.guild.id), { message ->
+            val guess = message.rawContent.toIntOrNull()
+            if (guess == null || guess !in 1..difficulty.toValue()) {
+                channel.send("You specified an invalid value! It has to be **within** 1 and **{0}**. Please try again..".tr(channel.guild, difficulty.toValue()))
+                doSolo(game, member, false)
+            } else {
+                if (!member.guess(guess, game.data!!)) doSolo(game, member)
+                else {
+                    channel.send("You got the correct number of **{0}** after **{1}** guesses!".tr(channel.guild, game.data!!.number, game.data!!.rounds.size))
+                    val roundSize = game.data!!.rounds.size
+                    if (roundSize < 15) {
+                        val bonus = 150 * (15 - roundSize)
+                        Thread.sleep(1500)
+                        channel.send("You got a bonus reward of **{0}** gold because of your score count!".tr(channel.guild, bonus))
+                        val userData = member.data()
+                        userData.gold += bonus
+                        userData.update()
+                    }
+                    game.data!!.game = null
+                    cleanup(game.data!!)
+                }
+            }
+        }, {
+            if (!cancelIfExpire) {
+                channel.send("You didn't guess in time! You have **30** more seconds to answer or I'll cancel the game".tr(channel.guild))
+                doSolo(game, member, true)
+            } else cancel(member)
+        }, time = 30)
     }
 
     private fun Member.guess(guess: Int, gameData: GameDataGuessTheNumber): Boolean {
-        gameData.rounds.add(Round(guess, (guess - gameData.number) / gameData.number * 100))
+        gameData.rounds.add(Round(guess, ((guess - gameData.number) / gameData.number.toDouble() * 100).toInt()))
         return if (guess == gameData.number) true
         else {
-            if (guess > gameData.number) channel.send("{0}, your guess was too **high**! *Guess Counter: [**{1}**]*".tr(channel.guild, asMention, gameData.rounds.size))
-            else channel.send("{0}, your guess was too **low**! *Guess Counter: [**{1}**]*".tr(channel.guild, asMention, gameData.rounds.size))
+            channel.sendMessage((if (guess > gameData.number) "Your guess was too **high**!" else "Your guess was too **low**!").tr(channel.guild)).queue { m ->
+                m.delete().queueAfter(25, TimeUnit.SECONDS)
+            }
             false
         }
     }
 
-    data class Game(val type: Type, val difficulty: Difficulty, val data: GameDataGuessTheNumber)
-    abstract class GameDataGuessTheNumber(val game: Game, val number: Int = Random().nextInt(when (game.difficulty) {
-        Difficulty.EASY -> 10000
-        Difficulty.MEDIUM -> 100000
-        Difficulty.HARD -> 1000000
-        else -> 100000000
-    }), val rounds: MutableList<Round> = mutableListOf())
+    data class Game(val type: Type, val difficulty: Difficulty, var data: GameDataGuessTheNumber? = null)
+    abstract class GameDataGuessTheNumber(gameId: Long, creator: String, startTime: Long, var game: Game?, val number: Int = Random().nextInt(game!!.difficulty.toValue()) + 1, val rounds: MutableList<Round> = mutableListOf()) : GameData(gameId, creator, startTime)
 
     data class Round(val guess: Int, val errorPercentage: Int)
 
-    class GameDataGuessThatNumberSolo(game: Game) : GameDataGuessTheNumber(game)
-    class GameDataGuessThatNumberCoOp(game: Game, val players: MutableList<String>) : GameDataGuessTheNumber(game)
-    class GameDataGuessThatNumberCompetition(game: Game, val winner: String, val losers: MutableList<String>) : GameDataGuessTheNumber(game)
-    enum class Type { SOLO, CO_OP, COMPETITION  }
-    enum class Difficulty { EASY, MEDIUM, HARD, EXTREME }
+    class GameDataGuessThatNumberSolo(gameId: Long, creator: String, startTime: Long, game: Game) : GameDataGuessTheNumber(gameId, creator, startTime, game)
+    class GameDataGuessThatNumberCoOp(gameId: Long, creator: String, startTime: Long, game: Game, val players: MutableList<String>) : GameDataGuessTheNumber(gameId, creator, startTime, game)
+    class GameDataGuessThatNumberCompetition(gameId: Long, creator: String, startTime: Long, game: Game, val winner: String, val losers: MutableList<String>) : GameDataGuessTheNumber(gameId, creator, startTime, game)
+    enum class Type { SOLO, CO_OP, COMPETITION }
+    enum class Difficulty { EASY, MEDIUM, HARD, EXTREME;
+
+        fun toValue(): Int {
+            return when (this) {
+                Difficulty.EASY -> 10000
+                Difficulty.MEDIUM -> 100000
+                Difficulty.HARD -> 1000000
+                else -> 100000000
+            }
+        }
+
+    }
 }
 
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
@@ -926,6 +971,44 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
     }
 
 }
+
+class GuessTheNumberCommand : Command(Category.GAMES, "guessthenumber", "start a Guess The Number game", "gtn") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val channel = event.textChannel
+        val member = event.member
+        if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
+        else if (event.guild.hasGameType(GameType.GUESS_THE_NUMBER) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+            channel.send("There can only be one *{0}* game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at {1} to start more than one game per type at a time**".tr(event, "Trivia", "<https://ardentbot.com/patreon>"))
+        } else {
+            channel.send("Guess The Number is a simple game where the goal is to guess the generated number in as few attempts as possible. You can play **solo**, **co-op**, or **competitive** against your friends! You can choose between **Easy**, **Medium**, and **Hard** difficulties".tr(event))
+            Thread.sleep(2000)
+            channel.selectFromList(member, "Which difficulty do you want to play with?", mutableListOf("Easy".tr(event), "Medium".tr(event), "Hard".tr(event)), { diff, sm ->
+                val difficulty = when (diff) { 0 -> GuessTheNumberGame.Difficulty.EASY; 1 -> GuessTheNumberGame.Difficulty.MEDIUM; else -> GuessTheNumberGame.Difficulty.HARD
+                }
+                channel.selectFromList(member, "Which Gamemode would you like to play?", mutableListOf("Solo".tr(event), "Co-Op".tr(event), "Competition".tr(event)), { gamemodeResponse, selectionMessage ->
+                    when (gamemodeResponse) {
+                        0 -> gamesInLobby.add(GuessTheNumberGame(channel, member.id(), GuessTheNumberGame.Type.SOLO, difficulty, 1, false))
+                        else -> {
+                            channel.send("How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)".tr(event))
+                            waiter.waitForMessage(Settings(member.user.id, channel.id, event.guild.id), { playerCount ->
+                                val count = playerCount.content.toIntOrNull() ?: 999
+                                if (count == 0) channel.send("Invalid number provided, cancelling setup".tr(event))
+                                else {
+                                    if (gamemodeResponse == 1) gamesInLobby.add(GuessTheNumberGame(channel, member.id(), GuessTheNumberGame.Type.CO_OP, difficulty, count, false))
+                                    else gamesInLobby.add(GuessTheNumberGame(channel, member.id(), GuessTheNumberGame.Type.COMPETITION, difficulty, count, false))
+                                }
+                            })
+                        }
+                    }
+                    selectionMessage.delete().queue()
+                })
+                sm.delete().queue()
+            })
+        }
+    }
+
+}
+
 
 class SlotsCommand : Command(Category.GAMES, "slots", "start slots games") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {

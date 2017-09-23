@@ -159,7 +159,9 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
             waiter.waitForMessage(Settings(member.user.id, id, member.guild.id, message.id), { response ->
                 invoked = true
                 val responseInt = response.rawContent.toIntOrNull()?.minus(1)
-                if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) send("You specified an invalid response!".tr(id.toChannel()!!.guild))
+                if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) {
+                    failure?.invoke() ?: send("You specified an invalid response!".tr(id.toChannel()!!.guild))
+                }
                 else {
                     if (options.containsEq(response.rawContent)) {
                         consumer.invoke(options.get(response.rawContent)!!.first, message)
@@ -193,6 +195,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 invoked = true
             }, {
                 if (!invoked) send("You didn't specify a reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
+                message.delete().queue()
             }, time = 25, silentExpiration = true)
         }
     } catch (e: Exception) {

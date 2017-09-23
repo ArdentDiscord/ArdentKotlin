@@ -2,7 +2,6 @@ package translation
 
 import main.conn
 import main.r
-import utils.insert
 import utils.queryAsArrayList
 import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
@@ -108,7 +107,7 @@ fun String.toLanguage(): ArdentLanguage? {
         "ej" -> Languages.EMOJI
         "es" -> Languages.SPANISH
         "po" -> Languages.POLISH
-        "zh-PY" -> Languages.MANDARIN_PINYIN
+        "zh-TR" -> Languages.MANDARIN_TRADITIONAL
         "pt-BR" -> Languages.PORTUGESE_BRAZIL
         else -> null
     }?.language
@@ -132,7 +131,7 @@ enum class Languages(val language: ArdentLanguage) {
     EMOJI(ArdentLanguage("ej", "Emoji")),
     POLISH(ArdentLanguage("po", "Polish")),
     SPANISH(ArdentLanguage("es", "Spanish")),
-    MANDARIN_PINYIN(ArdentLanguage("zh-PY", "Mandarin Pinyin")),
+    MANDARIN_TRADITIONAL(ArdentLanguage("zh-TR", "Traditional Mandarin")),
     PORTUGESE_BRAZIL(ArdentLanguage("pt-BR", "Português"))
     ;
 }

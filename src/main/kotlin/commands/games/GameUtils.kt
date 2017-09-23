@@ -6,12 +6,12 @@ import net.dv8tion.jda.core.entities.*
 import utils.*
 import java.awt.Color
 import java.util.*
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-val gamesInLobby = CopyOnWriteArrayList<Game>()
-val activeGames = CopyOnWriteArrayList<Game>()
+val gamesInLobby = ConcurrentLinkedQueue<Game>()
+val activeGames = ConcurrentLinkedQueue<Game>()
 
 /**
  * Abstracted Game features, providing standardized methods for cleanup, startup, and lobbies.
@@ -24,10 +24,12 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     val players = mutableListOf<String>()
     private val creation: Long
     var startTime: Long? = null
+    var started = false
 
     init {
         gameId = type.findNextId()
         players.add(creator)
+        channel.send("You've successfully created a game of **{0}**!".tr(channel.guild, type.readable))
         this.announceCreation()
         creation = System.currentTimeMillis()
         if (isPublic) {
@@ -43,7 +45,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
                 channel.sendMessage("Starting a game of type **{0}** with **{1}** players ({2})".tr(channel.guild, type.readable, players.size, players.toUsers()))
-                        .queueAfter(5, TimeUnit.SECONDS, { _ -> startEvent() })
+                        .queueAfter(2, TimeUnit.SECONDS, { _ -> startEvent() })
                 scheduledExecutor.shutdown()
             }
         }, 1, 1, TimeUnit.SECONDS)
@@ -74,19 +76,21 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
      * Commence game startup, this must be called. Removes pending invites & changes game state
      */
     fun startEvent() {
-        invites.forEach { i, g -> if (g.gameId == gameId) invites.remove(i) }
-        scheduledExecutor.shutdownNow()
-        gamesInLobby.remove(this)
-        activeGames.add(this)
-        startTime = System.currentTimeMillis()
-        onStart()
+        if (!started) {
+            invites.forEach { i, g -> if (g.gameId == gameId) invites.remove(i) }
+            scheduledExecutor.shutdownNow()
+            gamesInLobby.remove(this)
+            activeGames.add(this)
+            startTime = System.currentTimeMillis()
+            onStart()
+            started = true
+        }
     }
 
     /**
      * Logic to run after the [Game] starts. This <b>cannot</b> be called instead of startEvent()
      */
     abstract fun onStart()
-
 
     fun cancel(member: Member) {
         cancel(member.user)
@@ -96,10 +100,12 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
      * Cancel a game (either ending it or during lobby). This should be called in [Game] logic.
      */
     fun cancel(user: User) {
-        gamesInLobby.remove(this)
-        activeGames.remove(this)
-        channel.send("**{0}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(".tr(channel.guild, user.withDiscrim()))
-        scheduledExecutor.shutdownNow()
+        if (activeGames.contains(this)) {
+            gamesInLobby.remove(this)
+            activeGames.remove(this)
+            channel.send("**{0}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(".tr(channel.guild, user.withDiscrim()))
+            scheduledExecutor.shutdownNow()
+        }
     }
 
     /**
@@ -107,18 +113,21 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
      * @param gameData <b>[Game] specific</b> data class that extends the [GameData] class. This is what is inserted and must be serializable.
      */
     fun cleanup(gameData: GameData) {
-        activeGames.remove(this)
-        if (r.table("${type.readable}Data").get(gameId).run<Any?>(conn) == null) {
-            gameData.id = gameId
-            gameData.insert("${type.readable}Data")
-        } else {
-            val newGameId = type.findNextId()
-            gameData.id = gameId
-            channel.send("This Game ID has already been inserted into the database. Your new Game ID is **{0}**".tr(channel.guild, newGameId))
-            gameData.insert("${type.readable}Data")
+        if (activeGames.contains(this)) {
+            gamesInLobby.remove(this)
+            activeGames.remove(this)
+            if (r.table("${type.readable}Data").get(gameId).run<Any?>(conn) == null) {
+                gameData.id = gameId
+                gameData.insert("${type.readable}Data")
+            } else {
+                val newGameId = type.findNextId()
+                gameData.id = gameId
+                channel.send("This Game ID has already been inserted into the database. Your new Game ID is **{0}**".tr(channel.guild, newGameId))
+                gameData.insert("${type.readable}Data")
+            }
+            channel.send("Game Data has been successfully inserted into the database. To view the results and statistics for this match, you can go to https://ardentbot.com/games/{0}/{1}".tr(channel.guild, type.name.toLowerCase(), gameId) + "\n\n" +
+                    "*Please consider making a small monthly pledge at {0} if you enjoyed this game to support our hosting and development costs".tr(channel.guild, "<https://patreon.com/ardent>") + "\n   - Adam*")
         }
-        channel.send("Game Data has been successfully inserted into the database. To view the results and statistics for this match, you can go to https://ardentbot.com/games/{0}/{1}".tr(channel.guild, type.name.toLowerCase(), gameId) + "\n\n" +
-                "*Please consider making a small monthly pledge at {0} if you enjoyed this game to support our hosting and development costs".tr(channel.guild, "<https://patreon.com/ardent>") + "\n   - Adam*")
     }
 
     private fun announceCreation() {

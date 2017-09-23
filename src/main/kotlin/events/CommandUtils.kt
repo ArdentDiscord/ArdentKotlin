@@ -114,7 +114,7 @@ abstract class Command(val category: Category, val name: String, val description
     abstract fun execute(arguments: MutableList<String>, event: MessageReceivedEvent)
 
     fun withHelp(syntax: String, description: String, event: MessageReceivedEvent): Command {
-        help.add(Pair(syntax.tr(event), description.tr(event)))
+        help.add(Pair(syntax, description.tr(event)))
         return this
     }
 
@@ -124,7 +124,7 @@ abstract class Command(val category: Category, val name: String, val description
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
                 .setFooter("Aliases: {0}".tr(channel.guild).trReplace(channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
                 .appendDescription("*${description.tr(channel.guild)}*\n")
-        help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first.tr(channel.guild)}**: *${it.second.tr(channel.guild)}*") }
+        help.forEach { embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND}**${it.first}**: *${it.second}*") }
         if (help.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild).trReplace(channel.guild, "$prefix$name ${help[0].first}"))
         embed.appendDescription("\n\nType {0}help to view a full list of commands".tr(channel.guild).trReplace(channel.guild, member.guild.getPrefix()))
         channel.send(embed)
@@ -153,6 +153,7 @@ fun String.toCategory(): Category {
         "Fun" -> Category.FUN
         "RPG" -> Category.RPG
         "Language" -> Category.LANGUAGE
+        "Statistics" -> Category.STATISTICS
         else -> Category.BOT_INFO
     }
 }
@@ -165,7 +166,8 @@ enum class Category(val fancyName: String, val description: String) {
     ADMINISTRATE("Administrate", "Administrate your server: this category includes commands like warnings and mutes"),
     FUN("Fun", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
     RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!"),
-    LANGUAGE("Language", "Want to change your server's language or translate a phrase?")
+    LANGUAGE("Language", "Want to change your server's language or translate a phrase?"),
+    STATISTICS("Statistics", "Interested in Ardent or how our system's been running?")
     ;
 
     override fun toString(): String {

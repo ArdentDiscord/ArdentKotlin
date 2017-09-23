@@ -166,10 +166,10 @@ fun guilds(): ArrayList<Guild> {
     return guilds
 }
 
-fun users(): ArrayList<User> {
-    val users = arrayListOf<User>()
+fun users(): MutableList<User> {
+    val users = hashSetOf<User>()
     jdas.forEach { users.addAll(it.users) }
-    return users
+    return users.toMutableList()
 }
 
 fun List<String>.toUsers(): String {
@@ -283,7 +283,7 @@ enum class DonationLevel(val readable: String, val level: Int) {
 }
 
 fun Guild.isPatronGuild(): Boolean {
-    return donationLevel() != DonationLevel.NONE
+    return members.size > 300 || donationLevel() != DonationLevel.NONE
 }
 
 fun Guild.donationLevel(): DonationLevel {
@@ -318,7 +318,7 @@ fun User.donationLevel(): DonationLevel {
 }
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
-    if (user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
+    if (guild.members.size > 300 || user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
     if (!failQuietly) channel.requires(this, donationLevel)
     return false
 }

@@ -3,10 +3,7 @@ package commands.administrate
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.wrapper.spotify.models.ClientCredentials
-import main.config
-import main.conn
-import main.r
-import main.spotifyApi
+import main.*
 import org.jsoup.Jsoup
 import utils.*
 import java.util.concurrent.Executors
@@ -82,9 +79,9 @@ fun startAdministrativeDaemon() {
         })
     }
     refresh.invoke()
-    administrativeExecutor.scheduleAtFixedRate(refresh, 9, 9, TimeUnit.MINUTES)
+    administrativeExecutor.scheduleAtFixedRate(refresh, 15, 9, TimeUnit.MINUTES)
     val administrativeDaemon = AdministrativeDaemon()
-    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 6, 30, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 15, 30, TimeUnit.SECONDS)
     val ranksDaemon = RanksDaemon()
-    administrativeExecutor.scheduleAtFixedRate(ranksDaemon, 6, 30, TimeUnit.SECONDS)
+    administrativeExecutor.scheduleAtFixedRate(ranksDaemon, 15, 30, TimeUnit.SECONDS)
 }

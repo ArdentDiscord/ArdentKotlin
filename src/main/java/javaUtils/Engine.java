@@ -1,8 +1,9 @@
-package utils;
+package javaUtils;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import kotlin.Triple;
 import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl;
+import utils.KotlinUtilsKt;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;

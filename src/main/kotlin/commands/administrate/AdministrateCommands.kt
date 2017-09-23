@@ -2,6 +2,7 @@ package commands.administrate
 
 import events.Category
 import events.Command
+import javaUtils.Engine
 import main.*
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
@@ -227,10 +228,11 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             it.guilds.forEach { guild ->
                                 var default = guild.getTextChannelsByName("general", true)
                                 if (default.size == 0) default = guild.getTextChannelsByName("default", true)
+                                var sent = true
                                 if (default.size == 0) guild.textChannels.forEach {
-                                    if (it.canTalk()) {
+                                    if (it.canTalk() && sent) {
                                         it.send(arguments.without(arguments[0]).concat())
-                                        return
+                                        sent = false
                                     }
                                 }
                                 else default[0].send(arguments.without(arguments[0]).concat())
@@ -250,7 +252,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             val guild = getGuildById(it.key.toString())
                             if (guild != null) {
                                 QueueModel(guild.id, guild.selfMember.voiceChannel()?.id ?: "", it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
-                                it.value.scheduler.manager.getChannel()?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(event))
+                                it.value.scheduler.manager.getChannel()?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(guild))
                             }
                         }
                         event.channel.send("Shutting down now!")

@@ -45,7 +45,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-sheets:v4-rev483-1.22.0" level="project" />
-    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.3.0_270" level="project" />
+    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.3.1_276" level="project" />
     <orderEntry type="library" name="Gradle: com.sedmelluq:jda-nas:1.0.3" level="project" />
     <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer:1.2.43" level="project" />
     <orderEntry type="library" name="Gradle: com.github.jonasfugedi:spotify-web-api-java:browse-SNAPSHOT" level="project" />
@@ -64,6 +64,7 @@
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-youtube:v3-rev183-1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: junit:junit:4.12" level="project" />
     <orderEntry type="library" name="Gradle: com.google.code.findbugs:jsr305:3.0.2" level="project" />
+    <orderEntry type="library" name="Gradle: org.slf4j:slf4j-api:1.7.25" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-collections4:4.1" level="project" />
     <orderEntry type="library" name="Gradle: org.json:json:20160810" level="project" />
     <orderEntry type="library" name="Gradle: net.sf.trove4j:trove4j:3.0.3" level="project" />
@@ -116,7 +117,6 @@
     <orderEntry type="library" name="Gradle: com.google.http-client:google-http-client:1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpcore-nio:4.4.4" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.okio:okio:1.13.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.slf4j:slf4j-api:1.7.25" level="project" />
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-http:9.4.4.v20170414" level="project" />
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-io:9.4.4.v20170414" level="project" />
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-xml:9.4.4.v20170414" level="project" />

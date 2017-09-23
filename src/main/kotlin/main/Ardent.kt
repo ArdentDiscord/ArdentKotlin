@@ -10,6 +10,7 @@ import com.rethinkdb.net.Connection
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
+import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.wrapper.spotify.Api
@@ -21,6 +22,8 @@ import commands.info.Settings
 import commands.music.*
 import commands.music.Queue
 import commands.rpg.*
+import commands.statistics.CommandDistribution
+import commands.statistics.ServerLanguagesDistribution
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
@@ -78,7 +81,7 @@ fun main(args: Array<String>) {
         factory.executor.execute {
             val tempJda = JDABuilder(AccountType.BOT)
                     .setCorePoolSize(10)
-                    .setGame(Game.of("Try out /trivia!", "https://twitch.tv/ "))
+                    .setGame(Game.of("Try out /language :)", "https://twitch.tv/ "))
                     .addEventListener(waiter)
                     .addEventListener(factory)
                     .addEventListener(JoinRemoveEvents())
@@ -94,11 +97,10 @@ fun main(args: Array<String>) {
             jdas.add(tempJda)
         }
     }
-    logChannel
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
     playerManager.registerSourceManager(SoundCloudAudioSourceManager())
-    playerManager.useRemoteNodes(config.getValue("node1"), config.getValue("node2"))
+    playerManager.registerSourceManager(HttpAudioSourceManager())
     AudioSourceManagers.registerRemoteSources(playerManager)
     AudioSourceManagers.registerLocalSource(playerManager)
     addCommands()
@@ -138,11 +140,11 @@ fun addCommands() {
             Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
-            LanguageCommand(), TicTacToeCommand(), CommandDistribution())
+            LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution())
 }
 
 fun checkQueueBackups() {
-    Thread.sleep(1500)
+    Thread.sleep(15000)
     val queues = r.table("queues").run<Any>(conn).queryAsArrayList(QueueModel::class.java)
     queues.forEach {
         if (it != null) {

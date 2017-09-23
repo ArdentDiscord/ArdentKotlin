@@ -380,6 +380,10 @@ class Web {
             val map = hashMapOf<String, Any>()
             handle(request, map)
             when (request.splat()[0]) {
+                "guess_the_number" -> {
+                    map.put("title", "Guess The Number")
+                    ModelAndView(map, "guessthenumber.hbs")
+                }
                 "blackjack" -> {
                     val id = request.splat()[1].toIntOrNull() ?: 999999999
                     val game = asPojo(r.table("BlackjackData").get(id).run(conn), GameDataBlackjack::class.java)
@@ -810,7 +814,7 @@ class Web {
                                         "remove" -> {
                                             val content = request.queryParams("content")?.split("||")
                                             if (content?.size == 2) {
-                                                val phrase = translationData.get(content[0], content[1])
+                                                val phrase = translationData.getByEncoded(content[0])
                                                 if (phrase != null) {
                                                     translationData.phrases.forEach { t, u -> if (phrase == u) translationData.phrases.remove(t) }
                                                     "355817985052508160".toChannel()?.send("${request.session().attribute<User>("user").asMention} just removed a phrase :(")
@@ -1213,7 +1217,7 @@ fun handle(request: Request, map: HashMap<String, Any>) {
         } else {
             val whitelisted = user.whitelisted()
             map.put("hasWhitelists", whitelisted.isNotEmpty())
-            map.put("whitelisted", whitelisted.filter { it != null }.map { it!!.id.toUser()!! })
+            map.put("whitelisted", whitelisted.filter { it != null }.map { it?.id?.toUser() })
             map.put("isAdmin", role.role == Staff.StaffRole.ADMINISTRATOR)
             map.put("isStaff", true)
             map.put("role", role.role)

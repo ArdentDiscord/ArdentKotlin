@@ -256,9 +256,10 @@ fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
         audioManager.sendingHandler = musicManager.sendHandler
         managers.put(guildId, musicManager)
     } else {
-        val ardentMusicManager = musicManager.scheduler.manager
-        musicManager.scheduler.channel = channel
-        ardentMusicManager.setChannel(channel)
+        if (channel != null) {
+            musicManager.scheduler.channel = channel
+            musicManager.scheduler.manager.setChannel(channel)
+        }
     }
     return musicManager
 }
@@ -334,8 +335,15 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                     .queue { message ->
                         var percentage = 0.0
                         var current = 0
-                        (playlist as? Playlist) ?: (playlist as Album).tracks.items.forEach { playlistTrack ->
-                            "${playlistTrack.name} ${playlistTrack.artists[0].name}".getSingleTrack(member.guild, { foundTrack ->
+                        val items = hashMapOf<String, String>()
+                        if (playlist is Playlist) {
+                            playlist.tracks.items.forEach { items.put(it.track.name, it.track.artists[0].name) }
+                        }
+                        else if (playlist is Album) {
+                            playlist.tracks.items.forEach { items.put(it.name, it.artists[0].name) }
+                        }
+                        items.forEach { playlistTrack ->
+                            "${playlistTrack.key} ${playlistTrack.value}".getSingleTrack(member.guild, { foundTrack ->
                                 current++
                                 val ardentTrack = ArdentTrack(member.id(), channel.id, foundTrack)
                                 play(channel, member, ardentTrack)
@@ -348,8 +356,7 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                                     "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva" -> vivaLatino.add(foundTrack)
                                     "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda" -> hotCountry.add(foundTrack)
                                 }
-                                val db = ((playlist as? Playlist)?.tracks?.items?.size?.toDouble() ?: playlist.tracks.items.size.toDouble())
-                                if (current / db >= percentage && percentage <= 1) {
+                                if (current / items.size.toDouble() >= percentage && percentage <= 1) {
                                     percentage += 0.1
                                     when (percentage) {
                                         0.1 -> message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
@@ -364,7 +371,7 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                                         1.0 -> message.addReaction(Emoji.KEYCAP_TEN.symbol).queue()
                                     }
                                 }
-                                if (current / db == 1.0) {
+                                if (current / items.size.toDouble() == 1.0) {
                                     message.addReaction(Emoji.HEAVY_CHECK_MARK.symbol).queue()
                                 }
                                 Thread.sleep(750)
@@ -372,7 +379,7 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                         }
                     }
         }
-    } catch (e: BadRequestException) {
+    } catch (e: Exception) {
         channel.send("You specified an invalid url.. Please try again after checking the link".tr(channel.guild))
     }
 }

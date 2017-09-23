@@ -14,7 +14,7 @@ class VoiceUtils {
         val member = e.guild.selfMember
         if (member.voiceState.channel != null && member.voiceState.channel != null && member.voiceState.channel == e.channelLeft && e.channelLeft.members.size == 1) {
             e.guild.audioManager.closeAudioConnection()
-            e.guild.getGuildAudioPlayer(null).scheduler.manager.getChannel()?.send("Disconnected from **{0}** because I was left all alone :(".tr(e.guild, e.channelLeft.name))
+            e.guild.getGuildAudioPlayer(null).scheduler.channel?.send("Disconnected from **{0}** because I was left all alone :(".tr(e.guild, e.channelLeft.name))
             managers.remove(e.guild.idLong)
         }
     }
