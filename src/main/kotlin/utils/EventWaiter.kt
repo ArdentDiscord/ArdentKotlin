@@ -169,6 +169,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                         consumer.invoke(responseInt, message)
                         waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
                     }
+                    message.delete().queue()
                 }
             }, silentExpiration = true)
             waiter.waitForReaction(Settings(member.user.id, id, member.guild.id, message.id), { messageReaction ->

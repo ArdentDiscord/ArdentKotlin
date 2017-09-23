@@ -23,6 +23,7 @@ import commands.music.*
 import commands.music.Queue
 import commands.rpg.*
 import commands.statistics.CommandDistribution
+import commands.statistics.MusicInfo
 import commands.statistics.ServerLanguagesDistribution
 import events.CommandFactory
 import events.JoinRemoveEvents
@@ -105,7 +106,18 @@ fun main(args: Array<String>) {
     AudioSourceManagers.registerLocalSource(playerManager)
     addCommands()
     startAdministrativeDaemon()
-    waiter.executor.schedule({ checkQueueBackups() }, 5, TimeUnit.SECONDS)
+    waiter.executor.schedule({ checkQueueBackups() }, 21, TimeUnit.SECONDS)
+    waiter.executor.schedule({
+        r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach {
+            if (it != null && !it.guildId.equals("unknown")) {
+                val ch = it.guildId.toChannel()
+                if (ch != null) {
+                    r.table("musicPlayed").get(it.id).update(r.hashMap("guildId", ch.guild.id)).runNoReply(conn)
+                    println("Updated track")
+                }
+            }
+        }
+    }, 30, TimeUnit.SECONDS)
 }
 
 data class Config(val url: String) {
@@ -140,11 +152,10 @@ fun addCommands() {
             Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
-            LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution())
+            LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo())
 }
 
 fun checkQueueBackups() {
-    Thread.sleep(15000)
     val queues = r.table("queues").run<Any>(conn).queryAsArrayList(QueueModel::class.java)
     queues.forEach {
         if (it != null) {

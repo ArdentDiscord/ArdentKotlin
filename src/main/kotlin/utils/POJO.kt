@@ -17,7 +17,7 @@ data class SimpleLoggedEvent(val guildId: String, val eventType: EventType, val 
 
 enum class EventType { LEFT_GUILD, JOINED_GUILD }
 
-data class PlayedMusic(val guildId: String, val position: Long)
+data class PlayedMusic(val guildId: String, val position: Long, val id: String = r.uuid().run(conn))
 
 data class TriviaQuestion(val question: String, val answers: List<String>, val category: String, val value: Int)
 

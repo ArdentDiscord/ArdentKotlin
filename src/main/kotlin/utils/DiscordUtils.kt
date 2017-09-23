@@ -318,7 +318,7 @@ fun User.donationLevel(): DonationLevel {
 }
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
-    if (guild.members.size > 300 || user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
+    if (usageBonus() || guild.members.size > 300 || user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
     if (!failQuietly) channel.requires(this, donationLevel)
     return false
 }
@@ -337,8 +337,12 @@ fun Member.isWhitelisted(): Boolean {
     return asPojo(r.table("specialPeople").get(id()).run(conn), SpecialPerson::class.java) != null
 }
 
+fun usageBonus(): Boolean {
+    return false // for implementation at a later date
+}
+
 fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel): Boolean {
-    if (member.isPatron() || member.isStaff() || member.isWhitelisted() || member.guild.isPatronGuild()) return true
+    if (usageBonus() || member.isPatron() || member.isStaff() || member.isWhitelisted() || member.guild.isPatronGuild()) return true
     else send("${Emoji.CROSS_MARK} " + "This command requires that you or this server have a donation level of **{0}** to be able to use it".tr(member.guild, requiredLevel.readable.tr(member.guild)))
     return false
 }

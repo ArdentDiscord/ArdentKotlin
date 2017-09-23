@@ -4,11 +4,46 @@ import events.Category
 import events.Command
 import main.conn
 import main.factory
+import main.managers
 import main.r
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.ArdentLanguage
 import translation.Languages
 import utils.*
+import java.awt.Color
+import java.util.concurrent.TimeUnit
+
+class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many servers we're currently serving with music", "minfo") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val embed = event.member.embed("Ardent | Music Status".tr(event), Color.MAGENTA)
+                .setThumbnail("https://yt3.ggpht.com/-zK8v1xKkZtY/AAAAAAAAAAI/AAAAAAAAAAA/SmyGR2XCwXw/s900-c-k-no-mo-rj-c0xffffff/photo.jpg")
+        var total = 0
+        managers.forEachIndexed { index, id, manager ->
+            val guild = getGuildById(id.toString())
+            if (manager.player.playingTrack != null && guild != null) {
+                var lengthMs = 0L
+                r.table("musicPlayed").filter(r.hashMap("guildId", guild.id)).run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach {
+                    if (it != null) lengthMs += it.position
+                }
+                embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol + " " +
+                        ("**{0}**:\n" +
+                                "           Now Playing: *{1}*\n" +
+                                "           Queue Length: *{2}*\n" +
+                                "           Total playback: *{3} hours, {4} minutes*")
+                                .replace("{0}", guild.name)
+                                .replace("{1}", manager.player.playingTrack.info.title)
+                                .replace("{2}", manager.scheduler.manager.queue.size.toString())
+                                .replace("{3}", TimeUnit.MILLISECONDS.toHours(lengthMs).format())
+                                .replace("{4}", ((lengthMs / 1000 / 60) % 60).toString())
+                        + "\n")
+                total++
+            }
+        }
+        embed.appendDescription("\n" + "**Total Players Active**: {0}".replace("{0}", total.toString()))
+        embed.appendDescription("\n\n" + "**" + "Total Music Played".tr(event) + ":** " + "{0} hours, {1} minutes".tr(event, TimeUnit.MILLISECONDS.toHours(internals.musicPlayed).format(), (internals.musicPlayed / 1000 / 60) % 60))
+        event.channel.send(embed)
+    }
+}
 
 class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", "see how many Ardent servers are using which bot locale", "glangs", "slangs") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {

@@ -60,6 +60,12 @@ class Web {
             map.put("title", "404 Not Found")
             handlebars.render(ModelAndView(map, "404.hbs"))
         })
+        get("/robots.txt", { request, response ->
+            "User-Agent: *\n" +
+                    "Disallow: \n" +
+                    "Disallow: /manage\n" +
+                    "Disallow: /administrators"
+        })
         get("/", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)

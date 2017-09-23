@@ -45,7 +45,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-sheets:v4-rev483-1.22.0" level="project" />
-    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.3.1_276" level="project" />
+    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.3.1_278" level="project" />
     <orderEntry type="library" name="Gradle: com.sedmelluq:jda-nas:1.0.3" level="project" />
     <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer:1.2.43" level="project" />
     <orderEntry type="library" name="Gradle: com.github.jonasfugedi:spotify-web-api-java:browse-SNAPSHOT" level="project" />

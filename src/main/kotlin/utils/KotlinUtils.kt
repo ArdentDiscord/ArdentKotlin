@@ -214,7 +214,7 @@ fun <T> MutableList<T>.without(t: T): MutableList<T> {
 }
 
 fun List<String>.containsEq(string: String): Boolean {
-    forEach { if (string.toLowerCase() == it.toLowerCase()) return true }
+    forEach { if (string.toLowerCase().equals(it, true)) return true }
     return false
 }
 
