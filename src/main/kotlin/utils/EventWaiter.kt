@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 
 class EventWaiter : EventListener {
-    val executor = Executors.newScheduledThreadPool(50)
+    val executor = Executors.newScheduledThreadPool(35)
     val gameEvents = CopyOnWriteArrayList<Triple<String, Long, Pair<((Message) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
     val reactionEvents = CopyOnWriteArrayList<Quadruple<String, String, /* Message ID */ Long, Pair<((User, MessageReaction) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
     val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
@@ -169,7 +169,6 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                         consumer.invoke(responseInt, message)
                         waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
                     }
-                    message.delete().queue()
                 }
             }, silentExpiration = true)
             waiter.waitForReaction(Settings(member.user.id, id, member.guild.id, message.id), { messageReaction ->

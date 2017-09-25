@@ -41,6 +41,7 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
         }
         embed.appendDescription("\n" + "**Total Players Active**: {0}".replace("{0}", total.toString()))
         embed.appendDescription("\n\n" + "**" + "Total Music Played".tr(event) + ":** " + "{0} hours, {1} minutes".tr(event, TimeUnit.MILLISECONDS.toHours(internals.musicPlayed).format(), (internals.musicPlayed / 1000 / 60) % 60))
+        embed.appendDescription("\n" + "**Total Tracks Played**: {0}".tr(event, internals.tracksPlayed.format()))
         event.channel.send(embed)
     }
 }

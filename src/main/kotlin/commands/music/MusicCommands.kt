@@ -7,7 +7,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.wrapper.spotify.exceptions.BadRequestException
 import events.Category
 import events.Command
-import main.managers
 import main.playerManager
 import main.spotifyApi
 import main.waiter
@@ -208,8 +207,8 @@ class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tra
         if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
         val manager = event.guild.getGuildAudioPlayer(event.textChannel)
         manager.scheduler.autoplay = false
-        manager.player.stopTrack()
         manager.scheduler.manager.resetQueue()
+        manager.player.stopTrack()
         event.channel.send("Stopped and reset the player".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
     }
 }
@@ -239,6 +238,50 @@ class Repeat : Command(Category.MUSIC, "repeat", "repeat the track that's curren
         if (!player.currentlyPlaying(event.textChannel)) return
         manager.scheduler.manager.addToBeginningOfQueue(manager.scheduler.manager.current)
         event.channel.send("Added the current track to the front of the queue".tr(event) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
+    }
+}
+
+class FastForward : Command(Category.MUSIC, "fastforward", "fast forward a certain amount of time in a track", "ff") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
+        val manager = event.guild.getGuildAudioPlayer(event.textChannel)
+        val time = arguments.getOrNull(0)?.toIntOrNull() ?: -4
+        if (manager.player.currentlyPlaying(event.textChannel)) {
+            val current = manager.player.playingTrack
+            when {
+                time <= 0 -> event.channel.send("You need to type a valid number of seconds to skip forward!".tr(event))
+                (current.position + (time * 1000)) > current.duration -> {
+                    event.channel.send("Time specified was greater than song duration, skipping now..".tr(event))
+                    manager.scheduler.manager.nextTrack()
+                }
+                else -> {
+                    event.channel.send("${Emoji.BLK_RGT_POINT_DBL_TRIANGLE} " + "Fast Forwarding **{0}** by **{1}** seconds".tr(event, current.info.title, time))
+                    current.position += (time * 1000)
+                }
+            }
+        }
+    }
+}
+
+class Rewind : Command(Category.MUSIC, "rewind", "rewind a track by a specified amount of time", "rw") {
+    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (!event.member.checkSameChannel(event.textChannel) || !event.member.hasOverride(event.textChannel, true, djCommand = true)) return
+        val manager = event.guild.getGuildAudioPlayer(event.textChannel)
+        val time = arguments.getOrNull(0)?.toIntOrNull() ?: -4
+        if (manager.player.currentlyPlaying(event.textChannel)) {
+            val current = manager.player.playingTrack
+            when {
+                time <= 0 -> event.channel.send("You need to type a valid number of seconds to rewind!".tr(event))
+                (current.position - (time * 1000)) < 0 -> {
+                    event.channel.send("Rewinding past song beginning, restarting now..".tr(event))
+                    current.position = 0
+                }
+                else -> {
+                    event.channel.send("${Emoji.BLK_LFT_POINT_DBL_TRIANGLE} " + "Rewinding **{0}** by **{1}** seconds".tr(event, current.info.title, time))
+                    current.position -= (time * 1000)
+                }
+            }
+        }
     }
 }
 
@@ -408,15 +451,14 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
     }
     playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {
         override fun loadFailed(exception: FriendlyException) {
-            if (exception.message?.contains("503") == true) {
-                val results = this@load.searchYoutubeOfficial()
-                if (results == null || results.isEmpty()) textChannel?.send("There was an issue searching the official YouTube API... please try again later :(".tr(member.guild))
+            if (exception.message?.contains("Something went wrong when looking up the track") == true) {
+                val results = this@load.removePrefix("ytsearch: ").searchYoutubeOfficial()
+                if (results == null || results.isEmpty()) textChannel?.send("This track wasn't found on YouTube!".tr(member.guild))
                 else {
                     textChannel?.selectFromList(member, "Select Song", results.map { it.first }.toMutableList(), { response, _ ->
                         "https://www.youtube.com/watch?v=${results[response].second}".load(member, textChannel, message, false, guild = guild)
                     })
                 }
-                logChannel!!.send("Fell back to YouTube API in ${textChannel?.guild?.name} for search **${this@load}**")
             } else {
                 textChannel?.send("Something went wrong :/ **Exception**: {0}".tr(member.guild, exception.localizedMessage))
             }
@@ -465,7 +507,7 @@ fun String.load(member: Member, textChannel: TextChannel?, message: Message?, se
                     }
                 }
             } else {
-               val selectFrom = mutableListOf<String>()
+                val selectFrom = mutableListOf<String>()
                 val num: Int = if (playlist.tracks.size >= 7) 7
                 else playlist.tracks.size
                 (1..num)

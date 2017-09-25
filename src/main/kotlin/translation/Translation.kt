@@ -108,6 +108,7 @@ fun String.toLanguage(): ArdentLanguage? {
         "es" -> Languages.SPANISH
         "po" -> Languages.POLISH
         "zh-TR" -> Languages.MANDARIN_TRADITIONAL
+        "zh-SI" -> Languages.MANDARIN_SIMPLIFIED
         "pt-BR" -> Languages.PORTUGESE_BRAZIL
         else -> null
     }?.language
@@ -121,19 +122,19 @@ fun String.fromLangName(): ArdentLanguage? {
 enum class Languages(val language: ArdentLanguage) {
     ENGLISH(ArdentLanguage("en", "English", LanguageMaturity.DEVELOPMENT)),
     FRENCH(ArdentLanguage("fr", "Français")),
+    GERMAN(ArdentLanguage("de", "Deutsch")),
+    RUSSIAN(ArdentLanguage("ru", "Russian")),
     DANISH(ArdentLanguage("da", "Dansk")),
     DUTCH(ArdentLanguage("nl", "Nederlands")),
-    GERMAN(ArdentLanguage("de", "Deutsch")),
     HINDI(ArdentLanguage("hi", "Hindi")),
-    RUSSIAN(ArdentLanguage("ru", "Russian")),
     ITALIAN(ArdentLanguage("it", "Italian")),
     CROATIAN(ArdentLanguage("cr", "Croatian")),
     EMOJI(ArdentLanguage("ej", "Emoji")),
     POLISH(ArdentLanguage("po", "Polish")),
     SPANISH(ArdentLanguage("es", "Spanish")),
     MANDARIN_TRADITIONAL(ArdentLanguage("zh-TR", "Traditional Mandarin")),
+    MANDARIN_SIMPLIFIED(ArdentLanguage("zh-SI", "Simplified Mandarin")),
     PORTUGESE_BRAZIL(ArdentLanguage("pt-BR", "Português"))
-    ;
 }
 
 enum class LanguageMaturity(val readable: String) {

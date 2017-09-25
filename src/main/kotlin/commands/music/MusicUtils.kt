@@ -7,7 +7,6 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
-import com.wrapper.spotify.exceptions.BadRequestException
 import com.wrapper.spotify.models.Album
 import com.wrapper.spotify.models.Playlist
 import main.*
@@ -169,7 +168,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     }
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
-        PlayedMusic(channel?.id ?: manager.getChannel()?.id ?: "unknown", track.position).insert("musicPlayed")
+        PlayedMusic(guild.id ?: "unknown", track.position).insert("musicPlayed")
         if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
             try {
                 val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
@@ -318,7 +317,7 @@ fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
         search.maxResults = 7
         val response = search.execute()
         val items = response.items ?: return null
-        items.map { Pair(it.snippet.title, it.id.videoId ?: "none") }
+        items.filter { it != null }.map { Pair(it?.snippet?.title ?: "unavailable", it?.id?.videoId ?: "none") }
     } catch (e: Exception) {
         e.log()
         null
@@ -338,8 +337,7 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                         val items = hashMapOf<String, String>()
                         if (playlist is Playlist) {
                             playlist.tracks.items.forEach { items.put(it.track.name, it.track.artists[0].name) }
-                        }
-                        else if (playlist is Album) {
+                        } else if (playlist is Album) {
                             playlist.tracks.items.forEach { items.put(it.name, it.artists[0].name) }
                         }
                         items.forEach { playlistTrack ->

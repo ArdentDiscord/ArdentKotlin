@@ -33,7 +33,7 @@ fun String.toChannel(): TextChannel? {
 
 fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
     if (playingTrack != null && channel.guild.getGuildAudioPlayer(channel).scheduler.manager.current != null) return true
-    channel.send("${Emoji.HEAVY_MULTIPLICATION_X} There isn't a currently playing track!")
+    channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "There isn't a currently playing track!".tr(channel.guild))
     return false
 }
 
@@ -120,7 +120,7 @@ fun User.withDiscrim(): String {
 fun Member.embed(title: String, color: Color = Color.DARK_GRAY): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
             .setColor(color)
-            .setFooter("Served by Ardent {0} | By {1} and {2}".tr(guild, Emoji.COPYRIGHT_SIGN.symbol, getUserById("169904324980244480")!!.withDiscrim(), getUserById("188505107057475585")!!.withDiscrim()), user.avatarUrl)
+            .setFooter("Served by Ardent {0} | By {1} and {2}".tr(guild, Emoji.COPYRIGHT_SIGN.symbol, getUserById("169904324980244480")?.withDiscrim() ?: "Unknown", getUserById("188505107057475585")!!.withDiscrim()), user.avatarUrl)
 }
 
 fun String.toUser(): User? {
@@ -173,7 +173,7 @@ fun users(): MutableList<User> {
 }
 
 fun List<String>.toUsers(): String {
-    return map { it.toUser()!!.withDiscrim() }.stringify()
+    return map { it.toUser()?.withDiscrim() ?: "Unknown" }.stringify()
 }
 
 fun Guild.getData(): GuildData {
@@ -245,13 +245,12 @@ fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: Strin
                 message.addReaction(EmojiParser.parseToUnicode(reaction)).queue()
             }
             return message
-        }
-        else {
+        } else {
             val description = embedBuilder.descriptionBuilder.toString()
             embedBuilder.setDescription("")
             val builtEmbed = embedBuilder.build()
             for (i in 0..Math.ceil(description.length / 2048.toDouble()).toInt()) {
-                sendEmbed(EmbedBuilder().setColor(builtEmbed.color).setAuthor(builtEmbed.author.name, builtEmbed.author.url,builtEmbed.author.iconUrl)
+                sendEmbed(EmbedBuilder().setColor(builtEmbed.color).setAuthor(builtEmbed.author.name, builtEmbed.author.url, builtEmbed.author.iconUrl)
                         .setDescription(description.substring(2048 * i, if ((2048 * i + 2048 > description.length)) 2048 * i else (2048 * i) + 2048)))
             }
         }
@@ -517,7 +516,9 @@ class Internals {
     var uptimeFancy: String = ""
     var apiCalls: Long = 0
     var musicPlayed: Long = 0
+    var tracksPlayed: Long = 0
     val languageStatuses = hashMapOf<ArdentLanguage, Double>()
+
     init {
         waiterExecutor.scheduleAtFixedRate({
             loadedMusicPlayers = 0
@@ -578,10 +579,13 @@ class Internals {
                 }
             }
 
-            tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble() ) }
+            tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble()) }
 
             musicPlayed = 0
-            r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach { if (it != null) musicPlayed += it.position }
+            tracksPlayed = 0
+            val query = r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java)
+            tracksPlayed = query.size.toLong()
+            query.forEach { if (it != null) musicPlayed += it.position }
         }, 0, 5, TimeUnit.SECONDS)
     }
 }

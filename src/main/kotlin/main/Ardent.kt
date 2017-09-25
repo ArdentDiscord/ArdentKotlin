@@ -79,10 +79,10 @@ fun main(args: Array<String>) {
     Web()
     val shards = 2
     for (sh in 1..shards) {
-        factory.executor.execute {
+        waiter.executor.execute {
             val tempJda = JDABuilder(AccountType.BOT)
                     .setCorePoolSize(10)
-                    .setGame(Game.of("Try out /language :)", "https://twitch.tv/ "))
+                    .setGame(Game.of("Try out /lang :)", "https://twitch.tv/ "))
                     .addEventListener(waiter)
                     .addEventListener(factory)
                     .addEventListener(JoinRemoveEvents())
@@ -106,18 +106,21 @@ fun main(args: Array<String>) {
     AudioSourceManagers.registerLocalSource(playerManager)
     addCommands()
     startAdministrativeDaemon()
-    waiter.executor.schedule({ checkQueueBackups() }, 21, TimeUnit.SECONDS)
-    waiter.executor.schedule({
-        r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach {
-            if (it != null && !it.guildId.equals("unknown")) {
-                val ch = it.guildId.toChannel()
-                if (ch != null) {
-                    r.table("musicPlayed").get(it.id).update(r.hashMap("guildId", ch.guild.id)).runNoReply(conn)
-                    println("Updated track")
-                }
-            }
+    waiter.executor.scheduleWithFixedDelay({
+        jdas.forEach { jda ->
+            jda.presence.game = Game.of(
+                    when (random.nextInt(7)) {
+                        0 -> "Serving ${internals.guilds} guilds"
+                        1 -> "Serving ${internals.users} users"
+                        2 -> "${internals.loadedMusicPlayers} servers playing music"
+                        3 -> "Fluent in 3 languages"
+                        4 -> "Try out /lang"
+                        5 -> "${internals.commandCount} available commands"
+                        else -> "Adam Approved ${Emoji.COPYRIGHT_SIGN}"
+                    }, "https://twitch.tv/ ")
         }
-    }, 30, TimeUnit.SECONDS)
+    }, 20, 25, TimeUnit.SECONDS)
+    waiter.executor.schedule({ checkQueueBackups() }, 60, TimeUnit.SECONDS)
 }
 
 data class Config(val url: String) {
@@ -152,7 +155,8 @@ fun addCommands() {
             Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
-            LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo())
+            LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
+            Rewind())
 }
 
 fun checkQueueBackups() {
