@@ -254,7 +254,7 @@ class Status : Command(Category.BOT_INFO, "status", "check realtime statistics a
                 .addField("Users".tr(event), formatter.format(internals.users), true)
                 .addField("Loaded Music Players".tr(event), formatter.format(internals.loadedMusicPlayers), true)
                 .addField("Queue Length".tr(event), "{0} tracks".tr(event, formatter.format(internals.queueLength)), true)
-                .addField("Total Music Played".tr(event), "{0} hours, {1} minutes".tr(event, TimeUnit.MILLISECONDS.toHours(internals.musicPlayed).format(), (internals.musicPlayed / 1000 / 60) % 60), true)
+                .addField("Total Music Played".tr(event), "{0} hours, {1} minutes".tr(event, internals.musicPlayed.toInt().format(), internals.musicPlayed.toMinutes()), true)
                 .addField("CPU Usage".tr(event), "${internals.cpuUsage}%", true)
                 .addField("RAM Usage".tr(event), "${internals.ramUsage.first} / ${internals.ramUsage.second} mb", true)
                 .addField("Uptime".tr(event), internals.uptimeFancy, true)

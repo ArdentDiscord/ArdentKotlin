@@ -13,6 +13,7 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.*
 import java.awt.Color
 import java.lang.management.ManagementFactory
+import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -515,12 +516,12 @@ class Internals {
     var uptime: Long = 0
     var uptimeFancy: String = ""
     var apiCalls: Long = 0
-    var musicPlayed: Long = 0
+    var musicPlayed: Double = 0.0
     var tracksPlayed: Long = 0
     val languageStatuses = hashMapOf<ArdentLanguage, Double>()
 
     init {
-        waiterExecutor.scheduleAtFixedRate({
+        waiterExecutor.scheduleWithFixedDelay({
             loadedMusicPlayers = 0
             queueLength = 0
             apiCalls = 0
@@ -581,11 +582,11 @@ class Internals {
 
             tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble()) }
 
-            musicPlayed = 0
+            musicPlayed = 0.0
             tracksPlayed = 0
             val query = r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java)
             tracksPlayed = query.size.toLong()
             query.forEach { if (it != null) musicPlayed += it.position }
-        }, 0, 5, TimeUnit.SECONDS)
+        }, 0, 10, TimeUnit.SECONDS)
     }
 }

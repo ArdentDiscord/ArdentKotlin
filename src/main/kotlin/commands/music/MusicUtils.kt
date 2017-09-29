@@ -7,14 +7,14 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
-import com.wrapper.spotify.models.Album
-import com.wrapper.spotify.models.Playlist
 import main.*
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
+import obj.Album
+import obj.Playlist
 import utils.*
 import java.time.Instant
 import java.util.*
@@ -147,42 +147,59 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
     var autoplay = true
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
         waiterExecutor.schedule({
-            if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel()) {
+            if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel() && !player.isPaused && player.playingTrack != null && player.playingTrack == track) {
+                val queue = mutableListOf<ArdentTrack>(manager.current ?: ArdentTrack(guild.selfMember.id(), channel?.id, track))
+                queue.addAll(manager.queue)
                 val vch = guild.selfMember.voiceChannel()
                 guild.audioManager.closeAudioConnection()
                 guild.audioManager.openAudioConnection(vch)
                 player.isPaused = false
+                manager.resetQueue()
+                manager.nextTrack()
+                queue.forEach { manager.queue(it) }
             }
-        }, 10, TimeUnit.SECONDS)
+        }, 5, TimeUnit.SECONDS)
         autoplay = true
         if (channel?.guild?.getData()?.musicSettings?.announceNewMusic == true) {
-            val builder = guild.selfMember.embed("Now Playing: {0}".tr(channel!!.guild, track.info.title))
-            builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
-            builder.addField("Title".tr(channel!!.guild), track.info.title, true)
-                    .addField("Author".tr(channel!!.guild), track.info.author, true)
-                    .addField("Duration".tr(channel!!.guild), track.getDurationFancy(), true)
-                    .addField("URL".tr(channel!!.guild), track.info.uri, true)
-                    .addField("Is Stream".tr(channel!!.guild), track.info.isStream.toString(), true)
-            channel?.send(builder)
+            if (guild.selfMember.voiceChannel() != null) {
+                val builder = guild.selfMember.embed("Now Playing: {0}".tr(channel!!.guild, track.info.title))
+                builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
+                builder.addField("Title".tr(channel!!.guild), track.info.title, true)
+                        .addField("Author".tr(channel!!.guild), track.info.author, true)
+                        .addField("Duration".tr(channel!!.guild), track.getDurationFancy(), true)
+                        .addField("URL".tr(channel!!.guild), track.info.uri, true)
+                        .addField("Is Stream".tr(channel!!.guild), track.info.isStream.toString(), true)
+                channel?.send(builder)
+            } else {
+                player.stopTrack()
+            }
         }
     }
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
-        PlayedMusic(guild.id ?: "unknown", track.position).insert("musicPlayed")
-        if (manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
-            try {
-                val songSearch = spotifyApi.searchTracks(track.info.title.rmCharacters("()").rmCharacters("[]").replace("ft.", "").replace("feat", "").replace("feat.", "")).build()
-                val get = songSearch.get()
-                if (get.items.size == 0) {
-                    channel?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(channel!!.guild))
-                    return
-                }
-                val songId = get.items[0].id
-                spotifyApi.getRecommendations().tracks(mutableListOf(songId)).build().get()[0].name.load(guild.selfMember,
-                        channel ?: guild.defaultChannel!!, null, false, autoplay = true)
-            } catch (ignored: Exception) {
+        try {
+            if (guild.audioManager.isConnected) {
+                PlayedMusic(guild.id ?: "unknown", track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
+                if (player.playingTrack == null && manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
+                    try {
+                        val get = spotifyApi.search.searchTrack(track.info.title.rmCharacters("()").rmCharacters("[]")
+                                .replace("ft.", "").replace("feat", "")
+                                .replace("feat.", ""), 1)
+                        if (get.items.isEmpty()) {
+                            (channel ?: manager.getChannel())?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(channel!!.guild))
+                            return
+                        }
+                        spotifyApi.browse.getRecommendations(seedTracks = listOf(get.items[0].id), limit = 1).tracks[0].name
+                                .load(guild.selfMember, channel ?: guild.defaultChannel, null, false, autoplay = true)
+                    } catch (ignored: Exception) {
+                    }
+                } else manager.nextTrack()
             }
-        } else manager.nextTrack()
+        } catch (e: Exception) {
+            managers.remove(guild.idLong)
+            guild.audioManager.closeAudioConnection()
+            e.log()
+        }
     }
 
     private fun String.rmCharacters(characterSymbol: String): String {
@@ -327,8 +344,8 @@ fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
 fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
     try {
         val info = this.removePrefix("https://open.spotify.com/user/").split("/playlist/")
-        val playlist = (if (info.size > 1) spotifyApi.getPlaylist(info[0], info[1]).build().get() as Any? else spotifyApi.getAlbum(this.removePrefix("https://open.spotify.com/album/")).build().get() as Any?)
-        if (playlist == null || (playlist is Playlist && playlist.tracks.items.size == 0) || (playlist is Album && playlist.tracks.items.size == 0)) channel.send("No playlist with tracks was found with this search query".tr(channel.guild))
+        val playlist = (if (info.size > 1) spotifyApi.playlists.getPlaylist(info[0], info[1]) as Any? else spotifyApi.albums.getAlbum(this.removePrefix("https://open.spotify.com/album/")) as Any?)
+        if (playlist == null || (playlist is Playlist && playlist.tracks.items.isEmpty()) || (playlist is Album && playlist.tracks.items.isEmpty())) channel.send("No playlist with tracks was found with this search query".tr(channel.guild))
         else {
             channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes. I'll add progress bars as the playlist is processed".tr(channel.guild, ((playlist as? Playlist)?.name) ?: (playlist as Album).name))
                     .queue { message ->

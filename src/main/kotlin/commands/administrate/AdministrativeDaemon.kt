@@ -1,9 +1,8 @@
 package commands.administrate
 
-import com.google.common.util.concurrent.FutureCallback
-import com.google.common.util.concurrent.Futures
-import com.wrapper.spotify.models.ClientCredentials
-import main.*
+import main.config
+import main.conn
+import main.r
 import org.jsoup.Jsoup
 import utils.*
 import java.util.concurrent.Executors
@@ -67,19 +66,6 @@ class AdministrativeDaemon : Runnable {
 }
 
 fun startAdministrativeDaemon() {
-    val refresh = {
-        val request = spotifyApi.clientCredentialsGrant().build()
-        val responseFuture = request.async
-        Futures.addCallback(responseFuture, object : FutureCallback<ClientCredentials> {
-            override fun onSuccess(result: ClientCredentials?) {
-                spotifyApi.setAccessToken(result!!.accessToken)
-            }
-
-            override fun onFailure(throwable: Throwable) {}
-        })
-    }
-    refresh.invoke()
-    administrativeExecutor.scheduleAtFixedRate(refresh, 15, 9, TimeUnit.MINUTES)
     val administrativeDaemon = AdministrativeDaemon()
     administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 15, 30, TimeUnit.SECONDS)
     val ranksDaemon = RanksDaemon()

@@ -10,7 +10,7 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
-import org.apache.commons.lang.WordUtils
+import org.apache.commons.lang3.text.WordUtils
 import spark.ModelAndView
 import spark.Request
 import spark.Response
@@ -43,7 +43,7 @@ class Web {
                 }
             }
             port(443)
-            secure("/root/Ardent/keystore.p12", "ardent", null, null)
+            secure("/root/Ardent/ssl/keystore.p12", "mortimer5", null, null)
         } else port(80)
 
         settings.add(Setting("/defaultrole", "Default Role", "Remove or set the role given to all new members. Can fail if Ardent doesn't " +

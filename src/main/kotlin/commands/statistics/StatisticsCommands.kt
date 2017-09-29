@@ -11,7 +11,6 @@ import translation.ArdentLanguage
 import translation.Languages
 import utils.*
 import java.awt.Color
-import java.util.concurrent.TimeUnit
 
 class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many servers we're currently serving with music", "minfo") {
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -21,9 +20,9 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
         managers.forEachIndexed { index, id, manager ->
             val guild = getGuildById(id.toString())
             if (manager.player.playingTrack != null && guild != null) {
-                var lengthMs = 0L
+                var lengthHours = 0.0
                 r.table("musicPlayed").filter(r.hashMap("guildId", guild.id)).run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach {
-                    if (it != null) lengthMs += it.position
+                    if (it != null) lengthHours += it.position
                 }
                 embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol + " " +
                         ("**{0}**:\n" +
@@ -33,14 +32,14 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
                                 .replace("{0}", guild.name)
                                 .replace("{1}", manager.player.playingTrack.info.title)
                                 .replace("{2}", manager.scheduler.manager.queue.size.toString())
-                                .replace("{3}", TimeUnit.MILLISECONDS.toHours(lengthMs).format())
-                                .replace("{4}", ((lengthMs / 1000 / 60) % 60).toString())
+                                .replace("{3}", lengthHours.toInt().format())
+                                .replace("{4}", lengthHours.toMinutes().format())
                         + "\n")
                 total++
             }
         }
         embed.appendDescription("\n" + "**Total Players Active**: {0}".replace("{0}", total.toString()))
-        embed.appendDescription("\n\n" + "**" + "Total Music Played".tr(event) + ":** " + "{0} hours, {1} minutes".tr(event, TimeUnit.MILLISECONDS.toHours(internals.musicPlayed).format(), (internals.musicPlayed / 1000 / 60) % 60))
+        embed.appendDescription("\n\n" + "**" + "Total Music Played".tr(event) + ":** " + "{0} hours, {1} minutes".tr(event, internals.musicPlayed.toInt().format(), internals.musicPlayed.toMinutes()))
         embed.appendDescription("\n" + "**Total Tracks Played**: {0}".tr(event, internals.tracksPlayed.format()))
         event.channel.send(embed)
     }
@@ -64,7 +63,7 @@ class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", 
         val embed = event.member.embed("Ardent | Server Languages".tr(event))
         langs.forEachIndexed { index, l, usages ->
             embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND).symbol +
-                    " **${l.readable}**: *${usages} servers* (${"%.2f".format(usages * 100 / guilds.size.toFloat())}%)\n")
+                    " **${l.readable}**: *$usages servers* (${"%.2f".format(usages * 100 / guilds.size.toFloat())}%)\n")
         }
         event.channel.send(embed)
     }
@@ -80,7 +79,7 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
                         val temp = hashMapOf<String, Int>()
                         r.table("commands").run<Any>(conn).queryAsArrayList(LoggedCommand::class.java).forEach { if (it != null) if (temp.containsKey(it.commandId)) temp.incrementValue(it.commandId) else temp.put(it.commandId, 1) }
                         temp.sort(true)
-                    } as HashMap<String, Int>
+                    }
             val embed = event.member.embed((if (isOverall) "Ardent | Lifetime Command Distribution" else "Ardent | Current Session Command Distribution").tr(event))
             embed.setThumbnail("https://www.wired.com/wp-content/uploads/blogs/magazine/wp-content/images/18-05/st_thompson_statistics_f.jpg")
             var total = 0
@@ -95,7 +94,7 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
                     embed.setDescription("")
                 } else {
                     embed.appendDescription("\n   " + (if (current.index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol
-                            + " " + "{0}: **{1}**% ({2} commands) - [**{3}**]".tr(event, name, "%.2f".format(current.value.value * 100 / total.toFloat()), current.value.value.format(), "#" + (current.index + 1).toString()))
+                            + " " + "{0}: **{1}**% ({2} commands) - [**{3}**]".tr(event, current.value.key, "%.2f".format(current.value.value * 100 / total.toFloat()), current.value.value.format(), "#" + (current.index + 1).toString()))
                 }
             }
             if (embed.descriptionBuilder.isNotEmpty()) {

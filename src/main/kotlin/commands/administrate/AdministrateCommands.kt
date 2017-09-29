@@ -9,7 +9,7 @@ import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
-import org.apache.commons.lang.WordUtils
+import org.apache.commons.lang3.text.WordUtils
 import translation.ArdentPhraseTranslation
 import utils.*
 import java.awt.Color
@@ -221,6 +221,7 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                 }
                 when (arguments[0]) {
                     "eval" -> {
+                        println(arguments.without(arguments[0]))
                         eval(arguments.without(arguments[0]), event)
                     }
                     "announce" -> {
@@ -250,9 +251,10 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                             if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
                             it.value.scheduler.manager.queue.forEach { song -> if (song != null) tracks.add(song.track.info.uri) }
                             val guild = getGuildById(it.key.toString())
-                            if (guild != null) {
+                            if (guild != null && guild.audioManager.isConnected) {
                                 QueueModel(guild.id, guild.selfMember.voiceChannel()?.id ?: "", it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
-                                it.value.scheduler.manager.getChannel()?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(guild))
+                                (it.value.scheduler.manager.getChannel() ?: it.value.scheduler.channel)
+                                        ?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(guild))
                             }
                         }
                         event.channel.send("Shutting down now!")
@@ -311,7 +313,6 @@ class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who d
 }
 
 fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
-    arguments.removeAt(0)
     val message = event.message
     val shortcuts = hashMapOf<String, Any>()
     shortcuts.put("jda", message.jda)
@@ -325,7 +326,7 @@ fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
     shortcuts.put("config", config)
     shortcuts.put("jdas", jdas)
     val timeout = 10
-    val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.without(arguments[0]).concat())
+    val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.concat())
     val builder = MessageBuilder()
     if (result.first is RestAction<*>)
         (result.first as RestAction<*>).queue()

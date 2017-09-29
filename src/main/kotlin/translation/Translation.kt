@@ -15,7 +15,7 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
     init {
         executor.scheduleAtFixedRate({
             update()
-        }, 0, 1, TimeUnit.MINUTES)
+        }, 0, 2, TimeUnit.MINUTES)
     }
 
     private fun update() {

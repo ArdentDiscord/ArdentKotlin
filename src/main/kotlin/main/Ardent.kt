@@ -13,7 +13,6 @@ import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
-import com.wrapper.spotify.Api
 import commands.`fun`.*
 import commands.administrate.*
 import commands.games.*
@@ -62,9 +61,7 @@ var config: Config = if (test) Config("C:\\Users\\Adam\\Desktop\\config.txt") el
 val playerManager = DefaultAudioPlayerManager()
 val managers = hashMapOf<Long, GuildMusicManager>()
 
-val spotifyApi: Api = Api.builder().clientId("79d455af5aea45c094c5cea04d167ac1").clientSecret(config.getValue("spotifySecret"))
-        .redirectURI("https://ardentbot.com").build()
-
+val spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
 
 var transport: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
 var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
@@ -78,40 +75,32 @@ fun main(args: Array<String>) {
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
     Web()
     val shards = 2
-    for (sh in 1..shards) {
-        waiter.executor.execute {
-            val tempJda = JDABuilder(AccountType.BOT)
-                    .setCorePoolSize(10)
-                    .setGame(Game.of("Try out /lang :)", "https://twitch.tv/ "))
-                    .addEventListener(waiter)
-                    .addEventListener(factory)
-                    .addEventListener(JoinRemoveEvents())
-                    .addEventListener(VoiceUtils())
-                    .setEventManager(AnnotatedEventManager())
-                    .useSharding(sh - 1, shards)
-                    .setToken(config.getValue("token"))
-                    .buildBlocking()
-            val logCh: TextChannel? = tempJda.getTextChannelById("351368131639246848")
-            if (logCh != null) logChannel = logCh
-            val tempHangout = tempJda.getGuildById("351220166018727936")
-            if (tempHangout != null) hangout = tempHangout
-            jdas.add(tempJda)
-        }
+    (1..shards).forEach { sh ->
+        jdas.add(JDABuilder(AccountType.BOT)
+                .setCorePoolSize(10)
+                .setGame(Game.of("Try out /lang :)", "https://twitch.tv/ "))
+                .addEventListener(waiter)
+                .addEventListener(factory)
+                .addEventListener(JoinRemoveEvents())
+                .addEventListener(VoiceUtils())
+                .setEventManager(AnnotatedEventManager())
+                .useSharding(sh - 1, shards)
+                .setToken(config.getValue("token"))
+                .buildBlocking())
     }
-    playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
-    playerManager.registerSourceManager(YoutubeAudioSourceManager())
-    playerManager.registerSourceManager(SoundCloudAudioSourceManager())
-    playerManager.registerSourceManager(HttpAudioSourceManager())
-    AudioSourceManagers.registerRemoteSources(playerManager)
-    AudioSourceManagers.registerLocalSource(playerManager)
+    logChannel = "351368131639246848".toChannel()
+    hangout = getGuildById("351220166018727936")
+
+    registerAudioSettings()
     addCommands()
     startAdministrativeDaemon()
+
     waiter.executor.scheduleWithFixedDelay({
         jdas.forEach { jda ->
             jda.presence.game = Game.of(
                     when (random.nextInt(7)) {
-                        0 -> "Serving ${internals.guilds} guilds"
-                        1 -> "Serving ${internals.users} users"
+                        0 -> "Serving ${internals.guilds.format()} guilds"
+                        1 -> "Serving ${internals.users.format()} users"
                         2 -> "${internals.loadedMusicPlayers} servers playing music"
                         3 -> "Fluent in 3 languages"
                         4 -> "Try out /lang"
@@ -123,6 +112,9 @@ fun main(args: Array<String>) {
     waiter.executor.schedule({ checkQueueBackups() }, 60, TimeUnit.SECONDS)
 }
 
+/**
+ * Config class represents a text file with the following syntax on each line: KEY :: VALUE
+ */
 data class Config(val url: String) {
     private val keys: MutableMap<String, String>
 
@@ -159,6 +151,9 @@ fun addCommands() {
             Rewind())
 }
 
+/**
+ * Procedurally go through the "queue" table and resume playback for guilds.
+ */
 fun checkQueueBackups() {
     val queues = r.table("queues").run<Any>(conn).queryAsArrayList(QueueModel::class.java)
     queues.forEach {
@@ -179,6 +174,15 @@ fun checkQueueBackups() {
         }
     }
     r.table("queues").delete().runNoReply(conn)
+}
+
+fun registerAudioSettings() {
+    playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
+    playerManager.registerSourceManager(YoutubeAudioSourceManager())
+    playerManager.registerSourceManager(SoundCloudAudioSourceManager())
+    playerManager.registerSourceManager(HttpAudioSourceManager())
+    AudioSourceManagers.registerRemoteSources(playerManager)
+    AudioSourceManagers.registerLocalSource(playerManager)
 }
 
 fun setupDrive(): Sheets {

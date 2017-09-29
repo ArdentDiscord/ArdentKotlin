@@ -183,6 +183,10 @@ fun after(consumer: () -> Unit, time: Int, unit: TimeUnit = TimeUnit.SECONDS) {
     waiterExecutor.schedule({ consumer.invoke() }, time.toLong(), unit)
 }
 
+fun Double.toMinutes(): Int {
+    return ((this % 1) * 60).toInt()
+}
+
 fun <E> List<E>.limit(int: Int): List<E> {
     return if (size <= int) this
     else subList(0, int - 1)
@@ -196,7 +200,7 @@ inline fun <E, T> Map<E, T>.forEachIndexed(function: (index: Int, E, T) -> Unit)
     }
 }
 
-fun Map<*, *>.sort(descending: Boolean = true): MutableMap<*, *> {
+fun <A, B : Number> Map<A, B>.sort(descending: Boolean = true): MutableMap<A, B> {
     var list = toList().sortedWith(compareBy { (it.second as Number).toDouble() })
     if (descending) list = list.reversed()
     return list.toMap().toMutableMap()
