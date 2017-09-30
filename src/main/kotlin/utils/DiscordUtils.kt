@@ -371,6 +371,10 @@ fun String.tr(messageReceivedEvent: MessageReceivedEvent, vararg new: Any): Stri
     return tr(messageReceivedEvent.guild, *new)
 }
 
+fun String.tr(textChannel: TextChannel, vararg new: Any): String {
+    return tr(textChannel.guild.getLanguage(), new)
+}
+
 fun String.tr(guild: Guild, vararg new: Any): String {
     return tr(guild.getLanguage(), *new)
 }

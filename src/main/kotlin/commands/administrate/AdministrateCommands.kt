@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()
 
         if (arguments.size != 2) {
@@ -32,10 +32,13 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
             event.channel.send("The prefix has been updated to **{0}**".tr(event, data.prefix ?: "/"))
         } else event.channel.send("${Emoji.NO_ENTRY_SIGN} " + "Type **{0}prefix** to learn how to use this command".tr(event, data.prefix ?: "/"))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the channel you're sending the command in") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!event.member.hasOverride(event.textChannel)) return
         if (!event.guild.selfMember.hasPermission(event.textChannel, Permission.MESSAGE_MANAGE)) {
             event.channel.send("I need the `Message Manage` permission to be able to delete messages!".tr(event))
@@ -71,10 +74,13 @@ class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the cha
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someone", "tban") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0 || arguments.size < 2) {
             event.channel.send("You need to mention a member and the amount of hours to ban them! **Example**: `{0}tempban @User 4` - the 4 represents the amount of hours".tr(event, event.guild.getPrefix()))
@@ -101,12 +107,14 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
                 }
             } else event.channel.send("I don't have permission to ban this user!".tr(event))
         } else event.channel.send("You cannot ban this person!".tr(event))
+    }
 
+    override fun registerSubcommands() {
     }
 }
 
 class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of everyone in this server who currently has a punishment") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = event.member.embed("Punishments in {0}".tr(event, event.guild.name))
         val builder = StringBuilder()
         val punishments = event.guild.punishments()
@@ -118,16 +126,22 @@ class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of
         }
         event.channel.send(embed.setColor(Color.RED).setDescription(builder.toString()))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
-class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+class Automessages : Command(Category.ADMINISTRATE, "joinmessage", "set join or leave messages for new or leaving members") {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("You can manage settings for the **join** and **leave** messages on the web panel at {0}".tr(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class Mute : Command(Category.ADMINISTRATE, "mute", "temporarily mute members who abuse their ability to send messages") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0 || arguments.size != 2) event.channel.send("""**Muting**: The first parameter for this command must be a mention of the member you wish to mute (obviously)
 The second parameter is the amount of time to mute them for - this can be in minutes, hours, or days.
@@ -178,10 +192,13 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are muted") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) event.channel.send("Please mention the member you want to unmute!".tr(event))
         else {
@@ -206,9 +223,17 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
             event.channel.send("This person isn't muted!".tr(event))
         }
     }
+    override fun registerSubcommands() {
+    }
 }
 
 class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administrators only") {
+    override fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        showHelp(event)
+    }
+    override fun registerSubcommands() {
+
+    }
     override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
         staff.forEach {
             if (event.author.id == "169904324980244480" || (event.author.id == it.id && it.role == Staff.StaffRole.ADMINISTRATOR)) {
