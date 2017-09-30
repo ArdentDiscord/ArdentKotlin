@@ -307,8 +307,12 @@ fun Member.id(): String {
     return user.id
 }
 
+fun User.isPatron(): Boolean {
+    return donationLevel() != DonationLevel.NONE
+}
+
 fun Member.isPatron(): Boolean {
-    return user.donationLevel() != DonationLevel.NONE
+    return user.isPatron()
 }
 
 fun User.donationLevel(): DonationLevel {

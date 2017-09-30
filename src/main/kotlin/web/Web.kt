@@ -1128,10 +1128,47 @@ class Web {
                                     else {
                                         val member = guild.getMemberById(id)
                                         if (member == null) Failure("invalid user specified")
-                                        else GuildMemberModel(id, member.effectiveName, member.roles.map { it.name }, member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
-
+                                        //else GuildMemberModel(id, member.effectiveName, member.roles.map { it.name }, member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
+                                        else 1
                                     }
                                 })
+                            })
+                        })
+                    })
+                    path("/v2", {
+                        get("/information", { _, _ -> internals.toJson() })
+                        get("/commands", { _, _ -> factory.commands })
+                        get("/staff", { _, _ -> staff.toJson() })
+                        path("/data", {
+                            get("/user/*", { request, _ ->
+                                val user = getUserById(request.splat().getOrNull(0))
+                                (if (user == null) APIError(401, "User not found")
+                                else UserModel(user.id, user.name, user.discriminator, user.effectiveAvatarUrl)).toJson()
+                            })
+                            path("/member/*/*", {
+                                get("/", { request, _ ->
+                                    (if (request.splat().size != 2) APIError(401, "Invalid parameters")
+                                    else {
+                                        val member = getGuildById(request.splat()[0])?.getMemberById(request.splat()[1])
+                                        if (member == null) APIError(401, "No member found with this id")
+                                        else GuildMemberModel(member.id(), member.effectiveName, member.roles.map { it.id }, member.hasOverride(member.guild.defaultChannel ?: member.guild.textChannels[0]), UserModel(member.id(), member.user.name, member.user.discriminator, member.user.effectiveAvatarUrl))
+                                    }).toJson()
+                                })
+                                get("/permissions", { request, _ ->
+                                    (if (request.splat().size != 2) APIError(401, "Invalid parameters")
+                                    else {
+                                        val member = getGuildById(request.splat()[0])?.getMemberById(request.splat()[1])
+                                        member?.permissions?.map { it.rawValue } ?: APIError(401, "No member found with this id")
+                                    }).toJson()
+                                })
+                                get("/roles", { request, _ ->
+                                    (if (request.splat().size != 2) APIError(401, "Invalid parameters")
+                                    else {
+                                        val member = getGuildById(request.splat()[0])?.getMemberById(request.splat()[1])
+                                        member?.roles?.map { "${it.name} :: ${it.permissionsRaw}" } ?: APIError(401, "No member found with this id")
+                                    }).toJson()
+                                })
+
                             })
                         })
                     })
@@ -1231,7 +1268,8 @@ fun createUserModel(id: String): Any {
 
 data class LangModel(val name: String, val code: String)
 
-data class UserModel(val id: String, val username: String, val discrim: String, val avatar: String)
+data class UserModel(val id: String, val username: String, val discrim: String, val avatar: String, val isPatron: Boolean = id.toUser()!!.isPatron())
 
-data class GuildMemberModel(val id: String, val effectiveName: String, val roles: List<String>, val hasOverride: Boolean)
+data class GuildMemberModel(val id: String, val effectiveName: String, val roles: List<String>, val hasOverride: Boolean, val userModel: UserModel)
 
+data class APIError(val code: Int, val message: String)
