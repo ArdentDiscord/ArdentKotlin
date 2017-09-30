@@ -150,9 +150,6 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
             if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel() && !player.isPaused && player.playingTrack != null && player.playingTrack == track) {
                 val queue = mutableListOf<ArdentTrack>(manager.current ?: ArdentTrack(guild.selfMember.id(), channel?.id, track))
                 queue.addAll(manager.queue)
-                val vch = guild.selfMember.voiceChannel()
-                guild.audioManager.closeAudioConnection()
-                guild.audioManager.openAudioConnection(vch)
                 player.isPaused = false
                 manager.resetQueue()
                 manager.nextTrack()
@@ -180,7 +177,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
         try {
             if (guild.audioManager.isConnected) {
                 PlayedMusic(guild.id ?: "unknown", track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
-                if (player.playingTrack == null && manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
+                if (track.position != 0L && player.playingTrack == null && manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
                     try {
                         val get = spotifyApi.search.searchTrack(track.info.title.rmCharacters("()").rmCharacters("[]")
                                 .replace("ft.", "").replace("feat", "")
@@ -190,15 +187,12 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                             return
                         }
                         spotifyApi.browse.getRecommendations(seedTracks = listOf(get.items[0].id), limit = 1).tracks[0].name
-                                .load(guild.selfMember, channel ?: guild.defaultChannel, null, false, autoplay = true)
+                                .load(guild.selfMember, channel ?: guild.defaultChannel, null, false, autoplay = true, guild = guild)
                     } catch (ignored: Exception) {
                     }
                 } else manager.nextTrack()
             }
         } catch (e: Exception) {
-            managers.remove(guild.idLong)
-            guild.audioManager.closeAudioConnection()
-            e.log()
         }
     }
 
@@ -395,6 +389,7 @@ fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
                     }
         }
     } catch (e: Exception) {
-        channel.send("You specified an invalid url.. Please try again after checking the link".tr(channel.guild))
+        e.log()
+        channel.send(("You specified an invalid url.. Please try again after checking the link").tr(channel.guild))
     }
 }

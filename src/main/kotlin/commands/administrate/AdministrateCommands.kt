@@ -247,11 +247,11 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                     }
                     "shutdown" -> {
                         managers.forEach {
-                            val tracks = mutableListOf<String>()
-                            if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
-                            it.value.scheduler.manager.queue.forEach { song -> if (song != null) tracks.add(song.track.info.uri) }
                             val guild = getGuildById(it.key.toString())
                             if (guild != null && guild.audioManager.isConnected) {
+                                val tracks = mutableListOf<String>()
+                                if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
+                                it.value.scheduler.manager.queue.forEach { song -> if (song != null) tracks.add(song.track.info.uri) }
                                 QueueModel(guild.id, guild.selfMember.voiceChannel()?.id ?: "", it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
                                 (it.value.scheduler.manager.getChannel() ?: it.value.scheduler.channel)
                                         ?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(guild))

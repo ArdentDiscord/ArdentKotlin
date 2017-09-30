@@ -58,6 +58,7 @@ class CommandFactory {
                 args[0].startsWith("/") && !test -> args[0] = args[0].replace("/", "")
                 args[0] == "ardent" && !test -> args.removeAt(0)
                 args[0] == "test" && test -> args.removeAt(0)
+                args[0] == "<@339101087569281045>" || args[0] == "<@!339101087569281045>" -> args.removeAt(0)
                 else -> return
             }
             commands.forEach { cmd ->

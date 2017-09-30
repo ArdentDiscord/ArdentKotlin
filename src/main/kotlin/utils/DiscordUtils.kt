@@ -319,8 +319,7 @@ fun User.donationLevel(): DonationLevel {
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
     if (usageBonus() || guild.members.size > 300 || user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
-    if (!failQuietly) channel.requires(this, donationLevel)
-    return false
+     return if (!failQuietly) channel.requires(this, donationLevel) else true
 }
 
 fun Int.getTrivia(): List<TriviaQuestion> {
