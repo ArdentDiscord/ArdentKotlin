@@ -1,7 +1,5 @@
 package commands.`fun`
 
-import com.github.vbauer.yta.model.Language
-import com.github.vbauer.yta.service.YTranslateApiImpl
 import com.mb3364.twitch.api.Twitch
 import com.mb3364.twitch.api.handlers.ChannelResponseHandler
 import com.mb3364.twitch.api.handlers.StreamResponseHandler
@@ -19,7 +17,7 @@ import java.security.SecureRandom
 
 class Roll : Command(Category.FUN, "roll", "use our customizable system to roll dice") {
     val random = SecureRandom()
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val help = """You can use this command with the following format: **sides**x**amount**, where `amount` represents the amount of times
 you want to roll the die, and `sides` represents the amount of sides that this die will have.
 
@@ -43,10 +41,13 @@ __Please Note__: You are limited to 999999x10, meaning that at maximum you can r
             } else event.channel.send("Invalid arguments. Please type {0}roll to see how to use this command".tr(event, event.guild.getPrefix()))
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class UrbanDictionary : Command(Category.FUN, "urban", "get search results for your favorite words from urban dictionary", "ud") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) event.channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "You gotta include a search term".tr(event))
         else {
             val term = arguments.concat()
@@ -68,37 +69,50 @@ class UrbanDictionary : Command(Category.FUN, "urban", "get search results for y
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class UnixFortune : Command(Category.FUN, "unixfortune", "in the mood for a unix fortune? us too", "fortune") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val doc = Jsoup.connect("http://motd.ambians.com/quotes" +
-                ".php/name/linux_fortunes_random/toc_id/1-1-1").userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
-                "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!
-        event.channel.send(doc.getElementsByTag("pre")[0].text())
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        event.channel.send(Jsoup.connect("http://motd.ambians.com/quotes.php/name/linux_fortunes_random/toc_id/1-1-1")
+                .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+                .get().getElementsByTag("pre")[0].text())
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class EightBall : Command(Category.FUN, "8ball", "ask the magical 8 ball your future... or something, idfk") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) event.channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "How dare you try to ask the 8-ball an empty question??!!".tr(event))
         else {
             try {
-                event.channel.send(getGson().fromJson(Jsoup.connect("https://8ball.delegator.com/magic/JSON/${URLEncoder.encode(arguments.concat())}")
-                        .ignoreContentType(true).userAgent("Mozilla/5.0 (Windows; U; WindowsNT " +
-                        "5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").get()!!.body().text(), EightBallResult::class.java).magic.answer)
+                event.channel.send(getGson().fromJson(Jsoup.connect("https://8ball.delegator.com/magic/JSON/${arguments.concat().encode()}")
+                        .ignoreContentType(true)
+                        .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+                        .get().body().text(), EightBallResult::class.java).magic.answer)
             } catch (e: Exception) {
                 event.channel.send("You need to ask the 8ball a question!".tr(event.guild))
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class FML : Command(Category.FUN, "fml", "someone's had a shitty day.") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val doc = Jsoup.connect("http://www.fmylife.com/random").userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; " +
-                "rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6").ignoreContentType(true).get()!!
-        event.channel.send(doc.getElementsByTag("p")[0].getElementsByTag("a")[0].allElements[0].text())
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        event.channel.send(Jsoup.connect("http://www.fmylife.com/random")
+                .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+                .ignoreContentType(true).get()
+                .getElementsByTag("p")[0].getElementsByTag("a")[0].allElements[0].text())
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
@@ -109,7 +123,7 @@ class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is
         twitch.clientId = config.getValue("twitch")
     }
 
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) event.channel.send("Please include the name of a channel - **Example**: `{0}streaming ardentdiscord`".tr(event, event.guild.getPrefix()))
         else {
             val ch = arguments.concat()
@@ -162,5 +176,8 @@ class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is
                 }
             })
         }
+    }
+
+    override fun registerSubcommands() {
     }
 }

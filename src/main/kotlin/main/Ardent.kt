@@ -32,7 +32,6 @@ import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.Game
 import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
 import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
@@ -45,7 +44,7 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-val test = false
+val test = true
 
 var hangout: Guild? = null
 
@@ -75,21 +74,23 @@ fun main(args: Array<String>) {
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
     Web()
     val shards = 2
-    (1..shards).forEach { sh ->
-        jdas.add(JDABuilder(AccountType.BOT)
-                .setCorePoolSize(10)
-                .setGame(Game.of("Try out /lang :)", "https://twitch.tv/ "))
-                .addEventListener(waiter)
-                .addEventListener(factory)
-                .addEventListener(JoinRemoveEvents())
-                .addEventListener(VoiceUtils())
-                .setEventManager(AnnotatedEventManager())
-                .useSharding(sh - 1, shards)
-                .setToken(config.getValue("token"))
-                .buildBlocking())
+    waiter.executor.execute {
+        (1..shards).forEach { sh ->
+            jdas.add(JDABuilder(AccountType.BOT)
+                    .setCorePoolSize(10)
+                    .setGame(Game.of("Try out /lang", "https://twitch.tv/ "))
+                    .addEventListener(waiter)
+                    .addEventListener(factory)
+                    .addEventListener(JoinRemoveEvents())
+                    .addEventListener(VoiceUtils())
+                    .setEventManager(AnnotatedEventManager())
+                    .useSharding(sh - 1, shards)
+                    .setToken(config.getValue("token"))
+                    .buildBlocking())
+        }
+        logChannel = "351368131639246848".toChannel()
+        hangout = getGuildById("351220166018727936")
     }
-    logChannel = "351368131639246848".toChannel()
-    hangout = getGuildById("351220166018727936")
 
     registerAudioSettings()
     addCommands()
@@ -116,10 +117,9 @@ fun main(args: Array<String>) {
  * Config class represents a text file with the following syntax on each line: KEY :: VALUE
  */
 data class Config(val url: String) {
-    private val keys: MutableMap<String, String>
+    private val keys: MutableMap<String, String> = hashMapOf()
 
     init {
-        keys = HashMap<String, String>()
         try {
             val keysTemp = IOUtils.readLines(FileReader(File(url)))
             keysTemp.forEach { pair ->
@@ -127,7 +127,7 @@ data class Config(val url: String) {
                 if (keyPair.size == 2) keys.put(keyPair[0], keyPair[1])
             }
         } catch (e: IOException) {
-            println("Unable to load Config....")
+            println("Unable to load Config, exiting now")
             e.printStackTrace()
             System.exit(1)
         }
@@ -144,7 +144,7 @@ fun addCommands() {
             Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
             JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
-            Mute(), Unmute(), Punishments(), Nono(), GiveAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
+            Mute(), Unmute(), Punishments(), Nono(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),

@@ -6,50 +6,64 @@ import main.factory
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
-import java.awt.Color
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
 
 val formatter = DecimalFormat("#,###")
 
 class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command was gonna do?") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val currentTime = System.currentTimeMillis()
         event.channel.sendMessage("I'll calculate my ping to Discord using this message".tr(event.guild)).queue({ m ->
             m.editMessage("**Socket Ping**: *{0} milliseconds*".tr(event).trReplace(event.guild, (System.currentTimeMillis() - currentTime).toString()))?.queue()
         })
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
-class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL", "ardent") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("My invite link is {0} - have fun using Ardent!".tr(event).trReplace(event, "<https://ardentbot.com/invite>"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and get special perks for it!") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Want to support our work and obtain some perks along the way? Head to {0} to see the different ways you could help us out!".tr(event).trReplace(event, "<https://ardentbot.com/patreon>"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 
 class WebPanel : Command(Category.ADMINISTRATE, "webpanel", "administrate the settings for your server", "panel") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Visit our new web panel for an easy way to manage your settings - {0}".tr(event).trReplace(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Visit our new web panel for an easy way to manage your settings - {0}".tr(event).trReplace(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val builder = event.member.embed("About the bot and its founders".tr(event))
         builder.appendDescription("Ardent was originally founded in November 2016 by Adam#9261. It reached over 4,000 servers " +
                 "by June, but Adam had to shut it down due to chronic stability issues with the bot and the fact that he was going on " +
@@ -57,10 +71,13 @@ class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
                 "new focus on modern design, utility, usability, and games. This is the continuation of the original Ardent bot. We hope you like it!")
         event.channel.send(builder)
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you wish to receive", "iamrole") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()
         if (arguments.size == 0) {
             val embed = event.member.embed("Iam List".tr(event))
@@ -104,12 +121,14 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
             }
         }
         if (!found) event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to get a full list".tr(event, event.guild.getPrefix()))
+    }
 
+    override fun registerSubcommands() {
     }
 }
 
 class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role from you that you've been given via /iam", "iamrole") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()
         if (arguments.size == 0) {
             event.channel.send("Please type **{0}iam** to get a full list of available autoroles".tr(event, data.prefix ?: "/"))
@@ -137,17 +156,48 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
                     } else event.channel.send("You can't remove a role you don't have!".tr(event))
                 }
                 found = true
-                return@forEach
+                return
             }
         }
         if (!found) event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to get a full list".tr(event, data.prefix ?: "/"))
+    }
 
+    override fun registerSubcommands() {
     }
 }
 
 class Help : Command(Category.BOT_INFO, "help", "can you figure out what this does? it's a grand mystery!", "h") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.selectFromList(event.member, "Ardent | Commands", Category.values().map { "${it.fancyName.tr(event)}: *${it.description.tr(event)}*" }.toMutableList(), { selected, selectionMessage ->
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size > 0) {
+            val name = arguments.concat()
+            factory.commands.forEach {
+                if (it.name.equals(name, true)) {
+                    val embed = event.member.embed("Ardent | {0} command".tr(event, it.name.tr(event)))
+                            .setThumbnail("https://previews.123rf.com/images/jianghaistudio/jianghaistudio1408/jianghaistudio140800205/30309384-Abstract-image-with-question-mark-made-of-gears-Stock-Vector.jpg")
+                            .appendDescription("**" + "Command Description:".tr(event) + "** *" + it.description.tr(event) + "*")
+                    embed.appendDescription("\n\n")
+                    if (it.subcommands.size == 0) embed.appendDescription("**" + "There are no subcommands registered for this command".tr(event) + "**")
+                    else {
+                        embed.appendDescription("**" + "Subcommands:".tr(event) + "**\n")
+                        it.subcommands.forEach { subcommand ->
+                            embed.appendDescription("${Emoji.SMALL_ORANGE_DIAMOND}  __${subcommand.syntax.tr(event)}__: ${(subcommand.description ?: "No description is available for this subcommand").tr(event)}\n")
+                        }
+                    }
+                    if (it.aliases.isNotEmpty()) embed.appendDescription("\n\n**" + "Aliases:" + "** ${it.aliases.toList().stringify()}")
+                    event.channel.send(embed)
+                    return
+                }
+            }
+        }
+        val embed = event.member.embed("Ardent | Command List")
+        Category.values().forEach { category ->
+            embed.appendDescription("**" + category.fancyName.tr(event) + "** :\n" +
+                    category.getCommands().map { "`" + it.name.tr(event) + "`" }.stream().collect(Collectors.joining("  ")) +
+                    "\n")
+        }
+        embed.appendDescription("\n" + "To see detailed information about a command, type {0}help *command name*".tr(event, event.guild.getPrefix()))
+        event.channel.send(embed)
+        /*event.channel.selectFromList(event.member, "Ardent | Commands", Category.values().map { "${it.fancyName.tr(event)}: *${it.description.tr(event)}*" }.toMutableList(), { selected, selectionMessage ->
             val category = Category.values()[selected]
             val embed = event.member.embed("{0} | Command List".tr(event).trReplace(event, category.fancyName.tr(event)), Color.DARK_GRAY)
             factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
@@ -161,12 +211,15 @@ class Help : Command(Category.BOT_INFO, "help", "can you figure out what this do
             selectionMessage.editMessage(embed.build()).queue()
         }, failure = {
             event.channel.send("You need to type the number or click the reaction that corresponded to the category you wanted to select!".tr(event))
-        })
+        })*/
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class ServerInfo : Command(Category.SERVER_INFO, "serverinfo", "view some basic information about this server", "guildinfo", "si", "gi") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val guild = event.guild
         val data = guild.getData()
         val embed = event.member.embed("Server Info for {0}".tr(event, guild.name))
@@ -183,10 +236,13 @@ class ServerInfo : Command(Category.SERVER_INFO, "serverinfo", "view some basic 
         embed.addField("Verification Level".tr(event), guild.verificationLevel.toString(), true)
         event.channel.send(embed)
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class UserInfo : Command(Category.SERVER_INFO, "userinfo", "view cool information about your friends", "whois", "userinfo", "ui") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) event.channel.send("You need to mention a member!".tr(event))
         else {
@@ -204,26 +260,35 @@ class UserInfo : Command(Category.SERVER_INFO, "userinfo", "view cool informatio
                     .addField("Account Creation Date".tr(event), mentioned.creationTime.toLocalDate().toString(), true))
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Support : Command(Category.BOT_INFO, "support", "need help? something not working?") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Need help? Something not working? Join our support server @ {0}".tr(event, "https://discord.gg/VebBB5z"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class GetId : Command(Category.SERVER_INFO, "getid", "get the id of people in your server by mentioning them") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) event.channel.send("You need to mention some people (or bots)!".tr(event))
         else {
             mentionedUsers.forEach { event.channel.send("**{0}**'s ID: {1}".tr(event, it.withDiscrim(), it.id)) }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful information about roles in this server", "ri") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val role = event.message.getFirstRole(arguments)
         if (role == null) event.channel.send("You need to either mention a role or type its full name!".tr(event))
         else {
@@ -236,16 +301,22 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
             )
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for Ardent's cool website") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Check out our site @ {0}".tr(event, "<https://ardentbot.com>"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class Status : Command(Category.BOT_INFO, "status", "check realtime statistics about the bot") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send(event.member.embed("Ardent Realtime Status")
                 .addField("Loaded Commands".tr(event), internals.commandCount.toString(), true)
                 .addField("Messages Received".tr(event), formatter.format(internals.messagesReceived), true)
@@ -259,5 +330,8 @@ class Status : Command(Category.BOT_INFO, "status", "check realtime statistics a
                 .addField("RAM Usage".tr(event), "${internals.ramUsage.first} / ${internals.ramUsage.second} mb", true)
                 .addField("Uptime".tr(event), internals.uptimeFancy, true)
                 .addField("Website".tr(event), "https://ardentbot.com", true))
+    }
+
+    override fun registerSubcommands() {
     }
 }

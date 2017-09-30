@@ -62,37 +62,6 @@
         {{/if}}
     </div>
     <div class="box">
-        <h3>Announce something</h3>
-        <form action="/api/internal/administrators/announcements/add">
-            <div class="row uniform 50%">
-                <div class="8u">
-                    <textarea name="content" id="content" rows="2" placeholder="Write here.."></textarea>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Add" class="alt"/>
-                </div>
-            </div>
-        </form>
-        <h3>Delete an existing announcement</h3>
-        <form action="/api/internal/administrators/announcements/remove">
-            <div class="row uniform 50%">
-                <div class="5u">
-                    <div class="select-wrapper">
-                        <select name="content" id="content">
-                            {{#each announcements}}
-                                <option value="{{dateLong}}">{{date}} ({{writer.name}})</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Remove" class="alt"/>
-                </div>
-            </div>
-        </form>
-
-    </div>
-    <div class="box">
         <h3>Manage Staff Members (wow u guys r cool now)</h3>
         <h5><b>Add a staff member by Discord ID</b><br/>
             Don't know how to get someone's Discord ID? Click <a href="/guides/identifier">here</a> for help</h5>

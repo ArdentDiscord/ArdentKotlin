@@ -3,14 +3,15 @@ package commands.administrate
 import events.Category
 import events.Command
 import javaUtils.Engine
-import main.*
+import main.config
+import main.conn
+import main.jdas
+import main.r
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
-import org.apache.commons.lang3.text.WordUtils
-import translation.ArdentPhraseTranslation
 import utils.*
 import java.awt.Color
 import java.util.*
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit
 
 
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()
 
         if (arguments.size != 2) {
@@ -32,10 +33,13 @@ class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your ser
             event.channel.send("The prefix has been updated to **{0}**".tr(event, data.prefix ?: "/"))
         } else event.channel.send("${Emoji.NO_ENTRY_SIGN} " + "Type **{0}prefix** to learn how to use this command".tr(event, data.prefix ?: "/"))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the channel you're sending the command in") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!event.member.hasOverride(event.textChannel)) return
         if (!event.guild.selfMember.hasPermission(event.textChannel, Permission.MESSAGE_MANAGE)) {
             event.channel.send("I need the `Message Manage` permission to be able to delete messages!".tr(event))
@@ -71,10 +75,13 @@ class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the cha
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someone", "tban") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0 || arguments.size < 2) {
             event.channel.send("You need to mention a member and the amount of hours to ban them! **Example**: `{0}tempban @User 4` - the 4 represents the amount of hours".tr(event, event.guild.getPrefix()))
@@ -101,12 +108,14 @@ class Tempban : Command(Category.ADMINISTRATE, "tempban", "temporarily ban someo
                 }
             } else event.channel.send("I don't have permission to ban this user!".tr(event))
         } else event.channel.send("You cannot ban this person!".tr(event))
+    }
 
+    override fun registerSubcommands() {
     }
 }
 
 class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of everyone in this server who currently has a punishment") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = event.member.embed("Punishments in {0}".tr(event, event.guild.name))
         val builder = StringBuilder()
         val punishments = event.guild.punishments()
@@ -118,16 +127,22 @@ class Punishments : Command(Category.ADMINISTRATE, "punishments", "see a list of
         }
         event.channel.send(embed.setColor(Color.RED).setDescription(builder.toString()))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
-class Automessages : Command(Category.ADMINISTRATE, "joinleavemessage", "set join or leave messages for new or leaving members") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+class Automessages : Command(Category.ADMINISTRATE, "joinmessage", "set join or leave messages for new or leaving members") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("You can manage settings for the **join** and **leave** messages on the web panel at {0}".tr(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class Mute : Command(Category.ADMINISTRATE, "mute", "temporarily mute members who abuse their ability to send messages") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0 || arguments.size != 2) event.channel.send("""**Muting**: The first parameter for this command must be a mention of the member you wish to mute (obviously)
 The second parameter is the amount of time to mute them for - this can be in minutes, hours, or days.
@@ -178,10 +193,13 @@ Type the number you wish (decimals are **not** allowed) and then suffix that wit
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are muted") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) event.channel.send("Please mention the member you want to unmute!".tr(event))
         else {
@@ -206,85 +224,44 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
             event.channel.send("This person isn't muted!".tr(event))
         }
     }
-}
 
-class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administrators only") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        staff.forEach {
-            if (event.author.id == "169904324980244480" || (event.author.id == it.id && it.role == Staff.StaffRole.ADMINISTRATOR)) {
-                if (arguments.size == 0) {
-                    withHelp("shutdown", "this is really fucking obvious", event)
-                            .withHelp("staff add|remove @User role_name", "^", event)
-                            .withHelp("whitelist", "whitelist your friends (let them have patreon permissions)", event)
-                            .displayHelp(event.textChannel, event.member)
-                    return
-                }
-                when (arguments[0]) {
-                    "eval" -> {
-                        println(arguments.without(arguments[0]))
-                        eval(arguments.without(arguments[0]), event)
-                    }
-                    "announce" -> {
-                        jdas.forEach {
-                            it.guilds.forEach { guild ->
-                                var default = guild.getTextChannelsByName("general", true)
-                                if (default.size == 0) default = guild.getTextChannelsByName("default", true)
-                                var sent = true
-                                if (default.size == 0) guild.textChannels.forEach {
-                                    if (it.canTalk() && sent) {
-                                        it.send(arguments.without(arguments[0]).concat())
-                                        sent = false
-                                    }
-                                }
-                                else default[0].send(arguments.without(arguments[0]).concat())
-                            }
-                        }
-                    }
-                    "addmoney" -> {
-                        val data = event.message.mentionedUsers[0].getData()
-                        data.gold += arguments[1].toInt()
-                        data.update()
-                    }
-                    "shutdown" -> {
-                        managers.forEach {
-                            val tracks = mutableListOf<String>()
-                            if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
-                            it.value.scheduler.manager.queue.forEach { song -> if (song != null) tracks.add(song.track.info.uri) }
-                            val guild = getGuildById(it.key.toString())
-                            if (guild != null && guild.audioManager.isConnected) {
-                                QueueModel(guild.id, guild.selfMember.voiceChannel()?.id ?: "", it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
-                                (it.value.scheduler.manager.getChannel() ?: it.value.scheduler.channel)
-                                        ?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(guild))
-                            }
-                        }
-                        event.channel.send("Shutting down now!")
-                        jdas.forEach { it.shutdown() }
-                        System.exit(0)
-                    }
-                    "ap" -> {
-                        if (arguments.size == 1) {
-                            event.channel.send("Syntax: /nono ap COMMAND_IDENTIFIER~ENGLISH_PHRASE_GOES_HERE")
-                            return
-                        }
-                        val split = arguments.without(arguments[0]).toList().concat().split("~")
-                        val phrase = split[1]
-                        if (phrase.isEmpty()) event.channel.send("Include an english phrase")
-                        else {
-                            ArdentPhraseTranslation(phrase, WordUtils.capitalize(split[0])).insert("phrases")
-                        }
-                    }
-                    else -> {
-                        event.channel.send("You're an idiot")
-                    }
-                }
-            }
-            return
-        }
+    override fun registerSubcommands() {
     }
 }
 
-class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who don't have any role, the role you specify", "giveall") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administrators only") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        showHelp(event)
+    }
+
+    override fun registerSubcommands() {
+        with("eval", null, "evaluate code", { arguments, event ->
+            if (event.isAdministrator(true)) eval(arguments, event)
+        })
+
+        with("shutdown", null, "shut down the bot and begin update process", { arguments, event ->
+            if (event.isAdministrator(true)) {
+                jdas.forEach {
+                    it.guilds.forEach { guild ->
+                        var default = guild.getTextChannelsByName("general", true)
+                        if (default.size == 0) default = guild.getTextChannelsByName("default", true)
+                        var sent = true
+                        if (default.size == 0) guild.textChannels.forEach {
+                            if (it.canTalk() && sent) {
+                                it.send(arguments.without(arguments[0]).concat())
+                                sent = false
+                            }
+                        }
+                        else default[0].send(arguments.without(arguments[0]).concat())
+                    }
+                }
+            }
+        })
+    }
+}
+
+class GiveRoleToAll : Command(Category.ADMINISTRATE, "giverole", "give all users who don't have any role, the role you specify", "giveall") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) {
             event.channel.send("You need to type the name of the role that you'd like to give to all members who currently have no roles in this server!".tr(event))
             return
@@ -295,20 +272,12 @@ class GiveAll : Command(Category.ADMINISTRATE, "giverole", "give all users who d
             if (results.size == 0) event.channel.send("No roles with that name were found".tr(event))
             else {
                 event.channel.send("Running... This could take a while".tr(event))
-                var addedTo = 0
-                val role = results[0]
-                event.guild.members.forEach { m ->
-                    if (m.roles.size < 2) {
-                        try {
-                            event.guild.controller.addRolesToMember(m, role).queue({
-                                addedTo++
-                            }, {})
-                        } catch (ignored: Exception) {
-                        }
-                    }
-                }
+                event.guild.members.forEach { m -> if (m.roles.size < 2) event.guild.controller.addRolesToMember(m, results[0]).queue() }
             }
         }
+    }
+
+    override fun registerSubcommands() {
     }
 }
 

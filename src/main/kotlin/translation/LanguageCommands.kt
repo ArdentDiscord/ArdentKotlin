@@ -9,7 +9,7 @@ import utils.*
 import java.awt.Color
 
 class LanguageCommand : Command(Category.LANGUAGE, "language", "view or change Ardent's language on this server!", "lang") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0 || !arguments[0].equals("set", true)) {
             event.channel.send(event.member.embed("Ardent | Server Language".tr(event), Color.BLUE)
                     .appendDescription("Your server language is **{0}** - You can change it by using {1}lang set **language** - Language list: {2}".tr(event).trReplace(event.guild, event.guild.getLanguage().readable, event.guild.getPrefix(),
@@ -30,11 +30,14 @@ class LanguageCommand : Command(Category.LANGUAGE, "language", "view or change A
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Translate : Command(Category.LANGUAGE, "translate", "translate text to the provided language", "tr") {
     val api = YTranslateApiImpl("trnsl.1.1.20170227T013942Z.6878bfdf518abdf6.a6574733436345112da24eb08e7ee1ef2a0d6a97")
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size < 2) {
             val prefix = event.guild.getPrefix()
             event.channel.send("""Using the translation command is simple. The format for requesting one is as follows:
@@ -53,5 +56,8 @@ As follows are the language codes of some languages, but if you don't see the co
                 event.channel.send("You need to include a valid language code! Please visit {0} for a guide".tr(event, "<https://ardentbot.com/translation/languages>"))
             }
         }
+    }
+
+    override fun registerSubcommands() {
     }
 }

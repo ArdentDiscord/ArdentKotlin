@@ -2,6 +2,7 @@ package utils
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.vdurmont.emoji.EmojiParser
+import commands.administrate.Staff
 import commands.administrate.staff
 import commands.games.*
 import commands.music.getGuildAudioPlayer
@@ -319,8 +320,7 @@ fun User.donationLevel(): DonationLevel {
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
     if (usageBonus() || guild.members.size > 300 || user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
-    if (!failQuietly) channel.requires(this, donationLevel)
-    return false
+     return if (!failQuietly) channel.requires(this, donationLevel) else true
 }
 
 fun Int.getTrivia(): List<TriviaQuestion> {
@@ -347,6 +347,16 @@ fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel): Boole
     return false
 }
 
+fun MessageReceivedEvent.isAdministrator(complain: Boolean): Boolean {
+    return author.isAdministrator(textChannel, complain)
+}
+
+fun User.isAdministrator(channel: TextChannel, complain: Boolean = false): Boolean {
+    staff.forEach { if (it.id == id && it.role == Staff.StaffRole.ADMINISTRATOR) return true }
+    if (complain) channel.send("You need to be an **Ardent Administrator** to use this command")
+    return false
+}
+
 fun getMutualGuildsWith(user: User): MutableList<Guild> {
     val servers = mutableListOf<Guild>()
     jdas.forEach { servers.addAll(it.getMutualGuilds(user)) }
@@ -370,6 +380,10 @@ fun String.translationDoesntExist(language: ArdentLanguage, vararg new: Any): St
 
 fun String.tr(messageReceivedEvent: MessageReceivedEvent, vararg new: Any): String {
     return tr(messageReceivedEvent.guild, *new)
+}
+
+fun String.tr(textChannel: TextChannel, vararg new: Any): String {
+    return tr(textChannel.guild.getLanguage(), new)
 }
 
 fun String.tr(guild: Guild, vararg new: Any): String {
