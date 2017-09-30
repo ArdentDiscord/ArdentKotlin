@@ -14,6 +14,7 @@ import org.json.simple.JSONObject
 import translation.ArdentLanguage
 import translation.Languages
 import java.lang.management.ManagementFactory
+import java.net.URLEncoder
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.Executors
@@ -70,6 +71,11 @@ fun List<String>.concat(): String {
     val builder = StringBuilder()
     forEach { builder.append("$it ") }
     return builder.removeSuffix(" ").toString()
+}
+
+
+fun String.encode(): String {
+    return URLEncoder.encode(this, "UTF-8")
 }
 
 fun <E> MutableList<E>.addIfNotExists(e: E) {

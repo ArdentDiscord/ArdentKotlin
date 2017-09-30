@@ -5,8 +5,6 @@ import main.r
 import main.test
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -98,9 +96,8 @@ class CommandFactory {
     }
 }
 
-abstract class Subcommand(val englishIdentifier: String, val syntax: String, val description: String? = null) {
-    abstract fun execute(arguments: MutableList<String>, event: MessageReceivedEvent)
-}
+data class Subcommand(val englishIdentifier: String, val syntax: String, val description: String? = null,
+                          val consumer: (MutableList<String>, MessageReceivedEvent) -> Unit)
 
 abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String) {
     val subcommands = mutableListOf<Subcommand>()
@@ -113,21 +110,21 @@ abstract class Command(val category: Category, val name: String, val description
             subcommands.forEach {
                 val identifier = it.englishIdentifier.tr(event.guild)
                 if (args.concat().startsWith(identifier)) {
-                    it.execute(args.concat().removePrefix(identifier).split(" ").toMutableList(), event)
+                    it.consumer.invoke(args.concat().removePrefix(identifier).split(" ").toMutableList(), event)
                     return
                 }
             }
-            executeNoArgs(args, event)
+            executeBase(args, event)
         }
     }
 
-    fun withSubcommand(subcommand: Subcommand): Command {
-        subcommands.add(subcommand)
+    fun with(englishIdentifier: String, syntax: String?, description: String? = null, consumer: (MutableList<String>, MessageReceivedEvent) -> Unit): Command {
+        subcommands.add(Subcommand(englishIdentifier, syntax ?: englishIdentifier, description, consumer))
         return this
     }
 
     abstract fun registerSubcommands()
-    abstract fun executeNoArgs(arguments: MutableList<String>, event: MessageReceivedEvent)
+    abstract fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent)
 
     fun showHelp(event: MessageReceivedEvent) {
         val member = event.member

@@ -2,6 +2,7 @@ package utils
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.vdurmont.emoji.EmojiParser
+import commands.administrate.Staff
 import commands.administrate.staff
 import commands.games.*
 import commands.music.getGuildAudioPlayer
@@ -343,6 +344,16 @@ fun usageBonus(): Boolean {
 fun MessageChannel.requires(member: Member, requiredLevel: DonationLevel): Boolean {
     if (usageBonus() || member.isPatron() || member.isStaff() || member.isWhitelisted() || member.guild.isPatronGuild()) return true
     else send("${Emoji.CROSS_MARK} " + "This command requires that you or this server have a donation level of **{0}** to be able to use it".tr(member.guild, requiredLevel.readable.tr(member.guild)))
+    return false
+}
+
+fun MessageReceivedEvent.isAdministrator(complain: Boolean): Boolean {
+    return author.isAdministrator(textChannel, complain)
+}
+
+fun User.isAdministrator(channel: TextChannel, complain: Boolean = false): Boolean {
+    staff.forEach { if (it.id == id && it.role == Staff.StaffRole.ADMINISTRATOR) return true }
+    if (complain) channel.send("You need to be an **Ardent Administrator** to use this command")
     return false
 }
 
