@@ -374,14 +374,6 @@ class Web {
             map.put("title", "No Permission")
             ModelAndView(map, "fail.hbs")
         }, handlebars)
-        get("/announcements", { request, _ ->
-            val map = hashMapOf<String, Any>()
-            handle(request, map)
-            map.put("showSnackbar", false)
-            map.put("title", "Announcements")
-            map.put("announcements", getAnnouncements())
-            ModelAndView(map, "announcements.hbs")
-        }, handlebars)
         get("/games/*/*", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)

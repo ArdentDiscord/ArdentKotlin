@@ -68,7 +68,7 @@ data class ArdentPhraseTranslation(var english: String, val command: String, var
 
 data class ArdentLanguage(val code: String, val readable: String, val maturity: LanguageMaturity = LanguageMaturity.INFANCY) {
     fun translate(english: String?): String? {
-        translationData.phrases.forEach { if (it.key.equals(english, true) || it.value.english == english) return it.value.translate(this)}
+        translationData.phrases.forEach { if (it.key == english || it.value.english == english) return it.value.translate(this)}
         return null
     }
 

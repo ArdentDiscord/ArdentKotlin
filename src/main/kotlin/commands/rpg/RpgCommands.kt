@@ -1,6 +1,5 @@
 package commands.rpg
 
-import commands.games.BlackjackGame
 import events.Category
 import events.Command
 import main.conn
@@ -12,23 +11,29 @@ import java.awt.Color
 import java.util.*
 
 class Balance : Command(Category.RPG, "bal", "see someone's balance (or yours)", "balance", "money", "gold") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val actionUser = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         val prefix = event.guild.getPrefix()
         event.channel.send("**{0}**'s balance is *{1}* gold\nYou can use `{2}topserver` or `{2}top` to compare your balance to others in your server or globally".tr(event, actionUser.withDiscrim(), actionUser.getData().gold.toString(), prefix))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Daily : Command(Category.RPG, "daily", "get a daily stipend of gold") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.author.getData()
         if (data.canCollect()) event.channel.send("You got **{0}** gold today!".tr(event, data.collect()))
         else event.channel.send("You already got your daily today!".tr(event))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class TriviaStats : Command(Category.RPG, "triviastats", "see your or others' trivia stats") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val user = if (event.message.mentionedUsers.size > 0) event.message.mentionedUsers[0] else event.author
         val triviaData = user.getData().triviaData()
         event.channel.send(event.member.embed("${user.name}'s Trivia Stats", Color.CYAN)
@@ -38,10 +43,12 @@ class TriviaStats : Command(Category.RPG, "triviastats", "see your or others' tr
                         "**Percentage Won by Category**: \n${triviaData.percentagesFancy()}"))
     }
 
+    override fun registerSubcommands() {
+    }
 }
 
 class ProfileCommand : Command(Category.RPG, "profile", "see your or others' profile") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val profiled = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         val data = profiled.getData()
         val blackjackData = data.blackjackData()
@@ -64,10 +71,13 @@ class ProfileCommand : Command(Category.RPG, "profile", "see your or others' pro
                 .addField("Married To", spouse?.withDiscrim() ?: "Forever a bachelor :)", true)
         event.channel.send(embed)
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class MarryCommand : Command(Category.RPG, "marry", "really fond of someone? make a discord marriage!") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val spouse = event.author.getMarriage()
         if (arguments.size == 0 || event.message.mentionedUsers.size == 0) {
             event.channel.send(if (spouse != null) "You're married to **{0}** ♥".tr(event, spouse.asMention) else "You're lonely :( Marry someone by typing **{0}marry @User**!".tr(event, event.guild.getPrefix()))
@@ -97,11 +107,14 @@ class MarryCommand : Command(Category.RPG, "marry", "really fond of someone? mak
             }
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working out? get a divorce!") {
     private val random = Random()
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val marriage = event.author.getMarriageModeled()
         if (marriage != null) {
             event.channel.send("Are you sure you want to go through divorce? Half of your gold could go to your ex-spouse as part of your agreement.\n\nType `yes` if you understand and want to go through with the divorce, or `no` to cancel".tr(event))
@@ -122,10 +135,13 @@ class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working ou
             }, { event.channel.send("Cancelled divorce, but I'd recommend some couple's therapy".tr(event)) })
         } else event.channel.send("You're not married!".tr(event))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class TopMoney : Command(Category.RPG, "top", "see who has the most money in the Ardent database", "topmoney") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         var page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
         if (page <= 0) page = 1
         val embed = event.member.embed("Global Money Leaderboards | Page {0}".tr(event, page))
@@ -140,17 +156,20 @@ class TopMoney : Command(Category.RPG, "top", "see who has the most money in the
         builder.append("\n").append("*You can see different pages by typing {0}top __page_number__*".tr(event, event.guild.getPrefix()))
         event.channel.send(embed.setDescription(builder.toString()))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class TopMoneyServer : Command(Category.RPG, "topserver", "see who has the most money in your server", "topmoneyserver") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
         val embed = event.member.embed("{0}'s Money Leaderboards | Page {1}".tr(event, event.guild.name, page))
                 .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
         val builder = StringBuilder()
         val members = hashMapOf<String, Double>()
         event.guild.playerDatas().forEach { members.put(it.id, it.gold) }
-        val top = members.sort().toList() as List<Pair<String, Double>>
+        val top = members.sort().toList()
         try {
             for (includedMember in ((page - 1) * 10)..(((page - 1) * 10) + 10)) {
                 val user = top[includedMember].first.toUser()
@@ -163,5 +182,8 @@ class TopMoneyServer : Command(Category.RPG, "topserver", "see who has the most 
         }
         builder.append("\n").append("*You can see different pages by typing {0}topserver __page_number__*".tr(event, event.guild.getPrefix()))
         event.channel.send(embed.setDescription(builder.toString()))
+    }
+
+    override fun registerSubcommands() {
     }
 }

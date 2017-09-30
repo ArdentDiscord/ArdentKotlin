@@ -1,6 +1,7 @@
 package events
 
 import main.conn
+import main.factory
 import main.r
 import main.test
 import net.dv8tion.jda.core.entities.ChannelType
@@ -28,7 +29,7 @@ class CommandFactory {
     }
 
     fun addCommands(vararg inputCommands: Command): CommandFactory {
-        inputCommands.forEach { commands.add(it) }
+        inputCommands.forEach { commands.add(it); it.registerSubcommands() }
         return this
     }
 
@@ -43,61 +44,61 @@ class CommandFactory {
                     return
                 }
             }
-            messagesReceived.getAndIncrement()
-            var args = event.message.rawContent.split(" ").toMutableList()
-            val prefix = event.guild.getPrefix()
-            when {
-                args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
-                args[0].startsWith("/") && !test -> args[0] = args[0].replace("/", "")
-                args[0] == "ardent" && !test -> args.removeAt(0)
-                args[0] == "test" && test -> args.removeAt(0)
-                args[0] == "<@339101087569281045>" || args[0] == "<@!339101087569281045>" -> args.removeAt(0)
-                else -> return
-            }
-            commands.forEach { cmd ->
-                val arg = args.concat()
-                if (cmd.containsAlias(arg, event.guild)) {
-                    when {
-                        arg.startsWith(cmd.name) -> args = arg.removePrefix(cmd.name).split(" ").toMutableList()
-                        arg.startsWith(cmd.name.tr(event.guild)) -> args = arg.removePrefix(cmd.name.tr(event.guild)).split(" ").toMutableList()
-                        else -> {
-                            cmd.aliases.forEach { a ->
-                                if (arg.startsWith(a)) args = arg.removePrefix(a).split(" ").toMutableList()
-                            }
+        }
+        messagesReceived.getAndIncrement()
+        var args = event.message.rawContent.split(" ").toMutableList()
+        val prefix = event.guild.getPrefix()
+        when {
+            args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
+            args[0].startsWith("/") && !test -> args[0] = args[0].replace("/", "")
+            args[0] == "ardent" && !test -> args.removeAt(0)
+            args[0] == "test" && test -> args.removeAt(0)
+            args[0] == "<@339101087569281045>" || args[0] == "<@!339101087569281045>" -> args.removeAt(0)
+            else -> return
+        }
+        val arg = args.concat()
+        commands.forEach { cmd ->
+            if (cmd.containsAlias(arg, event.guild)) {
+                when {
+                    arg.startsWith(cmd.name) -> args = arg.removePrefix(cmd.name).split(" ").toMutableList()
+                    arg.startsWith(cmd.name.tr(event.guild)) -> args = arg.removePrefix(cmd.name.tr(event.guild)).split(" ").toMutableList()
+                    else -> {
+                        cmd.aliases.forEach { a ->
+                            if (arg.startsWith(a)) args = arg.removePrefix(a).split(" ").toMutableList()
                         }
                     }
-                    (0..(args.size - 1))
-                            .filter { args[it].isEmpty() }
-                            .forEach { args.removeAt(it) }
-                    commandsById.incrementValue(cmd.name)
-                    val name = event.author.name
-                    if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
-                        event.channel.send("Here at Ardent, we hate derogatory and discriminatory statements. Thus, {0}, you need to change your username to be able to use any command".tr(event.guild, event.author.asMention))
-                    } else {
-                        executor.execute {
-                            try {
-                                val data = event.member.data()
-                                data.gold += 2
-                                data.update()
-                                cmd.executeInternal(args, event)
-                                r.table("commands").insert(r.json(getGson().toJson(
-                                        LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))
-                                ).runNoReply(conn)
-                            } catch (e: Throwable) {
-                                e.log()
-                                event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support>") + "\n${ExceptionUtils.getStackTrace(e)}")
-                            }
-                        }
-                    }
-                    return
                 }
+                (0..(args.size - 1))
+                        .filter { args[it].isEmpty() }
+                        .forEach { args.removeAt(it) }
+                commandsById.incrementValue(cmd.name)
+                val name = event.author.name
+                if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
+                    event.channel.send("Here at Ardent, we hate derogatory and discriminatory statements. Thus, {0}, you need to change your username to be able to use any command".tr(event.guild, event.author.asMention))
+                } else {
+                    executor.execute {
+                        try {
+                            val data = event.member.data()
+                            data.gold += 2
+                            data.update()
+                            cmd.executeInternal(args, event)
+                            r.table("commands").insert(r.json(getGson().toJson(
+                                    LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))
+                            ).runNoReply(conn)
+                        } catch (e: Throwable) {
+                            e.log()
+                            event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support>") + "\n${ExceptionUtils.getStackTrace(e)}")
+                        }
+                    }
+                }
+                return
             }
         }
     }
 }
 
 data class Subcommand(val englishIdentifier: String, val syntax: String, val description: String? = null,
-                          val consumer: (MutableList<String>, MessageReceivedEvent) -> Unit)
+                      val consumer: (MutableList<String>, MessageReceivedEvent) -> Unit)
 
 abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String) {
     val subcommands = mutableListOf<Subcommand>()
@@ -136,7 +137,7 @@ abstract class Command(val category: Category, val name: String, val description
                 .appendDescription("*${description.tr(channel.guild)}*\n")
         subcommands.forEach {
             embed.appendDescription("\n" + Emoji.SMALL_BLUE_DIAMOND + "**" + it.syntax.tr(channel) + "**: "
-                    + (it.description?.tr(channel) ?: "No description is available for this command".tr(channel)))
+                    + (it.description?.tr(channel) ?: "No description is available for this subcommand".tr(channel)))
         }
         if (subcommands.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild).trReplace(channel.guild, "$prefix$name ${subcommands[0].syntax.tr(channel)}"))
         embed.appendDescription("\n\nType {0}help to view a full list of commands".tr(channel.guild).trReplace(channel.guild, member.guild.getPrefix()))
@@ -184,5 +185,9 @@ enum class Category(val fancyName: String, val description: String) {
 
     override fun toString(): String {
         return fancyName
+    }
+
+    fun getCommands(): List<Command> {
+        return factory.commands.filter { it.category == this }
     }
 }

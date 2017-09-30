@@ -29,22 +29,22 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     init {
         gameId = type.findNextId()
         players.add(creator)
-        channel.send("You've successfully created a game of **{0}**!".tr(channel.guild, type.readable))
         this.announceCreation()
         creation = System.currentTimeMillis()
         if (isPublic) {
             displayLobby()
             scheduledExecutor.scheduleAtFixedRate({
-                if (((System.currentTimeMillis() - creation) / 1000) > 300 /* Lobby cancels at 5 minutes */) {
-                    cancel(creator.toUser()!!)
-                } else displayLobby()
+                if (((System.currentTimeMillis() - creation) / 1000) > 300 /* Lobby cancels at 5 minutes */) cancel(creator.toUser()!!)
+                else displayLobby()
             }, 60, 47, TimeUnit.SECONDS)
         } else if (type != GameType.BLACKJACK && type != GameType.BETTING && playerCount > 1) {
-            channel.send("{0}, use **/gameinvite @User** to invite someone to your game".tr(channel.guild, creator.toUser()?.asMention ?: "unable to determine creator"))
+            channel.send("{0}, use **/gameinvite @User** to invite someone to your game"
+                    .tr(channel.guild, creator.toUser()?.asMention ?: "unable to determine creator"))
         }
         scheduledExecutor.scheduleWithFixedDelay({
             if (playerCount == players.size) {
-                channel.sendMessage("Starting a game of type **{0}** with **{1}** players ({2})".tr(channel.guild, type.readable, players.size, players.toUsers()))
+                channel.sendMessage("Starting a game of type **{0}** with **{1}** players ({2})"
+                        .tr(channel.guild, type.readable, players.size, players.toUsers()))
                         .queueAfter(2, TimeUnit.SECONDS, { _ -> startEvent() })
                 scheduledExecutor.shutdown()
             }

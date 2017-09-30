@@ -13,7 +13,7 @@ import utils.*
 import java.awt.Color
 
 class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many servers we're currently serving with music", "minfo") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = event.member.embed("Ardent | Music Status".tr(event), Color.MAGENTA)
                 .setThumbnail("https://yt3.ggpht.com/-zK8v1xKkZtY/AAAAAAAAAAI/AAAAAAAAAAA/SmyGR2XCwXw/s900-c-k-no-mo-rj-c0xffffff/photo.jpg")
         var total = 0
@@ -43,10 +43,13 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
         embed.appendDescription("\n" + "**Total Tracks Played**: {0}".tr(event, internals.tracksPlayed.format()))
         event.channel.send(embed)
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", "see how many Ardent servers are using which bot locale", "glangs", "slangs") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         var langs = hashMapOf<ArdentLanguage, Int /* Usages */>()
         val guilds = r.table("guilds").run<Any>(conn).queryAsArrayList(GuildData::class.java)
         guilds.forEach { data ->
@@ -67,10 +70,13 @@ class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", 
         }
         event.channel.send(embed)
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class CommandDistribution : Command(Category.STATISTICS, "distribution", "see how commands have been distributed on Ardent", "commanddistribution", "cdist") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.sendMessage("Generating a command distribution overview could take up to **2** minutes... I'll delete this message once it's done".tr(event)).queue {
             val isOverall = !arguments.isEmpty()
             val data =
@@ -103,5 +109,8 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
             }
             it.delete().queue()
         }
+    }
+
+    override fun registerSubcommands() {
     }
 }

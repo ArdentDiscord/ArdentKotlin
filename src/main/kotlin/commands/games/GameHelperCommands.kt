@@ -5,12 +5,10 @@ import events.Command
 import main.waiter
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running game") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id) {
                 event.channel.send("${Emoji.HEAVY_EXCLAMATION_MARK_SYMBOL}" +
@@ -26,26 +24,30 @@ class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running gam
         }
         event.channel.send("You're not the creator of a game in lobby!".tr(event) + " ${Emoji.NO_ENTRY_SIGN}")
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Forcestart : Command(Category.GAMES, "start", "manually start a game", "forcestart") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id && game.channel.guild == event.guild) {
                 if (game.players.size == 1 && game.type != GameType.TRIVIA) event.channel.send("You can't force start a game with only **1** person!".tr(event))
-                else {
-                    game.startEvent()
-                }
+                else game.startEvent()
                 return
             }
         }
         event.channel.send("You're not the creator of a game in lobby!".tr(event) + " ${Emoji.NO_ENTRY_SIGN}")
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 
 class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation to a game") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (event.member.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first".tr(event))
         else {
             gamesInLobby.forEach { game ->
@@ -54,10 +56,13 @@ class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation
             event.channel.send("You must be invited by the creator of a game to join!".tr(event))
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 1) {
             val id = arguments[0].replace("#", "").toIntOrNull()
             if (id == null) {
@@ -80,10 +85,13 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
             event.channel.send("There's not a game in lobby with the ID of **#{0}**".tr(event, id))
         } else event.channel.send("You need to include a Game ID! Example: **{0}join #123456**".tr(event, event.guild.getPrefix()))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class LeaveGame : Command(Category.GAMES, "leavegame", "leave a game you're currently queued for", "lg") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id && game.channel.guild == event.guild) {
                 event.channel.send("You can't leave the game that you've started! If you want to cancel the game, type **{0}cancel**".tr(event, event.guild.getPrefix()))
@@ -96,10 +104,13 @@ class LeaveGame : Command(Category.GAMES, "leavegame", "leave a game you're curr
         }
         event.channel.send("You're not in a game lobby!".tr(event))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Gamelist : Command(Category.GAMES, "gamelist", "show a list of all currently running games") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = event.member.embed("Games in Lobby")
         val builder = StringBuilder()
                 .append("**" + "Red means that the game is in lobby, Green that it's currently ingame".tr(event) + "**")
@@ -113,25 +124,30 @@ class Gamelist : Command(Category.GAMES, "gamelist", "show a list of all current
                 builder.append("\n\n ${Emoji.LARGE_GREEN_CIRCLE}")
                         .append("  **${it.type.readable}** [**${it.players.size}** / **${it.playerCount}**] " + "created by".tr(event) + " __${it.creator.toUser()?.withDiscrim()}__ | ${it.players.toUsers()}")
             }
-                builder.append("\n\n" + "__Take Note__: You can run only one game of each type at a time in this server unless you become an Ardent patron".tr(event))
+            builder.append("\n\n" + "__Take Note__: You can run only one game of each type at a time in this server unless you become an Ardent patron".tr(event))
             event.channel.send(embed.setDescription(builder.toString()))
         }
+    }
+
+    override fun registerSubcommands() {
     }
 }
 
 class Decline : Command(Category.GAMES, "decline", "decline a pending game invite") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (invites.containsKey(event.author.id)) {
             val game = invites[event.author.id]!!
             event.channel.send("{0} declined an invite to **{1}**'s game of **{2}**".tr(event, event.author.asMention, game.creator.toUser()?.withDiscrim() ?: "unknown", game.type.readable))
             invites.remove(event.author.id)
         } else event.channel.send("You don't have a pending invite to decline!".tr(event))
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to your game!", "ginvite", "gi") {
-    private val inviteManager: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id && game.channel.guild == event.guild) {
                 if (game.isPublic) {
@@ -149,7 +165,7 @@ class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to you
                                 invites.put(toInvite.id, game)
                                 event.channel.send("{0}, you're being invited by {1} to join a game of **{2}**! Type *{3}accept* to accept this invite and join the game or decline by typing *{3}decline*".tr(event, toInvite.asMention, event.member.asMention, game.type.readable, event.guild.getPrefix()))
                                 val delay = 45
-                                inviteManager.schedule({
+                                waiter.executor.schedule({
                                     if (invites.containsKey(toInvite.id)) {
                                         event.channel.send("{0}, your invite to **{1}**'s game has expired after {2} seconds.".tr(event, toInvite.asMention, game.creator.toUser()?.withDiscrim() ?: "unknown", delay))
                                         invites.remove(toInvite.id)
@@ -163,6 +179,9 @@ class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to you
             }
         }
         event.channel.send("You're not the creator of a game in lobby!".tr(event) + " ${Emoji.NO_ENTRY_SIGN}")
+    }
+
+    override fun registerSubcommands() {
     }
 }
 

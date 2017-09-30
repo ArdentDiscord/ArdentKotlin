@@ -940,40 +940,52 @@ class GuessTheNumberGame(channel: TextChannel, creator: String, val gameType: Ty
 }
 
 class BetCommand : Command(Category.GAMES, "bet", "bet some money - will you be lucky?") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val member = event.member
         if (member.isInGameOrLobby()) event.channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
         else BetGame(event.textChannel, member.id()).startEvent()
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val channel = event.textChannel
-        val member = event.member
-        if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
-        else if (event.guild.hasGameType(GameType.TRIVIA) && !member.hasDonationLevel(channel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
-            channel.send("There can only be one *{0}* game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at {1} to start more than one game per type at a time**".tr(event, "Trivia", "<https://ardentbot.com/patreon>"))
-        } else {
-            channel.selectFromList(member, "Would you like this game to be open to everyone to join?", mutableListOf("Yes".tr(event), "No".tr(event)), { public, _ ->
-                val isPublic = public == 0
-                channel.send("How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)".tr(event))
-                waiter.waitForMessage(Settings(member.user.id, channel.id, event.guild.id), { playerCount ->
-                    val count = playerCount.content.toIntOrNull() ?: 999
-                    if (count == 0) channel.send("Invalid number provided, cancelling setup".tr(event))
-                    else {
-                        val game = TriviaGame(channel, member.id(), count, isPublic)
-                        gamesInLobby.add(game)
-                    }
-                })
-            })
-        }
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        showHelp(event)
     }
 
+    override fun registerSubcommands() {
+        with("comp", null, "start a multiplayer trivia game", { _, event ->
+            if (event.member.isInGameOrLobby()) event.channel.send("{0}, You're already in game! You can't create another game!".tr(event, event.member.asMention))
+            else if (event.guild.hasGameType(GameType.TRIVIA) && !event.member.hasDonationLevel(event.textChannel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+                event.channel.send("There can only be one *{0}* game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at {1} to start more than one game per type at a time**".tr(event, "Trivia", "<https://ardentbot.com/patreon>"))
+            } else {
+                event.channel.selectFromList(event.member, "Would you like this game to be open to everyone to join?", mutableListOf("Yes".tr(event), "No".tr(event)), { public, _ ->
+                    val isPublic = public == 0
+                    event.channel.send("How many players would you like in this game? Type `none` to set the limit as 999 (effectively no limit)".tr(event))
+                    waiter.waitForMessage(Settings(event.member.id(), event.channel.id, event.guild.id), { playerCount ->
+                        val count = playerCount.content.toIntOrNull() ?: 999
+                        if (count == 0) event.channel.send("Invalid number provided, cancelling setup".tr(event))
+                        else {
+                            val game = TriviaGame(event.textChannel, event.member.id(), count, isPublic)
+                            gamesInLobby.add(game)
+                        }
+                    })
+                })
+            }
+        })
+        with("solo", null, "start a solo trivia game", { _, event ->
+            if (event.member.isInGameOrLobby()) event.channel.send("{0}, You're already in game! You can't create another game!".tr(event, event.member.asMention))
+            else if (event.guild.hasGameType(GameType.TRIVIA) && !event.member.hasDonationLevel(event.textChannel, DonationLevel.INTERMEDIATE, failQuietly = true)) {
+                event.channel.send("There can only be one *{0}* game active at a time in a server!. **Pledge $5 a month or buy the Intermediate rank at {1} to start more than one game per type at a time**".tr(event, "Trivia", "<https://ardentbot.com/patreon>"))
+            } else TriviaGame(event.textChannel, event.member.id(), 1, false).startEvent()
+        })
+    }
 }
 
 class GuessTheNumberCommand : Command(Category.GAMES, "guessthenumber", "start a Guess The Number game", "gtn") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val channel = event.textChannel
         val member = event.member
         if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
@@ -1007,11 +1019,13 @@ class GuessTheNumberCommand : Command(Category.GAMES, "guessthenumber", "start a
         }
     }
 
+    override fun registerSubcommands() {
+    }
 }
 
 
 class SlotsCommand : Command(Category.GAMES, "slots", "start slots games") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val member = event.member
         val channel = event.textChannel
         if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
@@ -1021,10 +1035,13 @@ class SlotsCommand : Command(Category.GAMES, "slots", "start slots games") {
             SlotsGame(channel, member.id(), 1, false).startEvent()
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of blackjack") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val member = event.member
         val channel = event.textChannel
         if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
@@ -1034,10 +1051,13 @@ class BlackjackCommand : Command(Category.GAMES, "blackjack", "start games of bl
             BlackjackGame(channel, member.id(), 1, false).startEvent()
         }
     }
+
+    override fun registerSubcommands() {
+    }
 }
 
 class Connect4Command : Command(Category.GAMES, "connect4", "start connect 4 games - inside Discord!") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val member = event.member
         val channel = event.textChannel
         if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
@@ -1047,12 +1067,14 @@ class Connect4Command : Command(Category.GAMES, "connect4", "start connect 4 gam
             val game = Connect4Game(channel, member.id())
             gamesInLobby.add(game)
         }
+    }
 
+    override fun registerSubcommands() {
     }
 }
 
 class TicTacToeCommand : Command(Category.GAMES, "tictactoe", "start tic tac toe games - inside Discord!") {
-    override fun execute(arguments: MutableList<String>, event: MessageReceivedEvent) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val member = event.member
         val channel = event.textChannel
         if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
@@ -1062,6 +1084,8 @@ class TicTacToeCommand : Command(Category.GAMES, "tictactoe", "start tic tac toe
             val game = TicTacToeGame(channel, member.id())
             gamesInLobby.add(game)
         }
+    }
 
+    override fun registerSubcommands() {
     }
 }
