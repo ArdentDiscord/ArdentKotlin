@@ -297,17 +297,10 @@ fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
     val timeout = 10
     val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.concat())
     val builder = MessageBuilder()
-    if (result.first is RestAction<*>)
-        (result.first as RestAction<*>).queue()
-    else if (result.first != null && (result.first as String).isNotEmpty())
-        builder.appendCodeBlock(result.first.toString(), "")
-    if (!result.second.isEmpty() && result.first != null)
-        builder.append("\n").appendCodeBlock(result.first as String, "")
-    if (!result.third.isEmpty())
-        builder.append("\n").appendCodeBlock(result.third, "")
-    if (builder.isEmpty)
-        event.message.addReaction("✅").queue()
-    else
-        for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
-            event.channel.sendMessage(m).queue()
+    if (result.first is RestAction<*>) (result.first as RestAction<*>).queue()
+    else if (result.first != null && (result.first as String).isNotEmpty()) builder.appendCodeBlock(result.first.toString(), "")
+    if (!result.second.isEmpty() && result.first != null) builder.append("\n").appendCodeBlock(result.first as String, "")
+    if (!result.third.isEmpty()) builder.append("\n").appendCodeBlock(result.third, "")
+    if (builder.isEmpty) event.message.addReaction("✅").queue()
+    else for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE)) event.channel.send(m.rawContent)
 }

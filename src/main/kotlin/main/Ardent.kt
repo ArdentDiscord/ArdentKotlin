@@ -19,10 +19,10 @@ import commands.games.*
 import commands.info.*
 import commands.info.Settings
 import commands.music.*
-import commands.music.Queue
 import commands.rpg.*
 import commands.statistics.CommandDistribution
 import commands.statistics.MusicInfo
+import commands.statistics.MutualGuilds
 import commands.statistics.ServerLanguagesDistribution
 import events.CommandFactory
 import events.JoinRemoveEvents
@@ -41,7 +41,6 @@ import web.Web
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 val test = true
@@ -145,7 +144,7 @@ fun addCommands() {
             JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
             Mute(), Unmute(), Punishments(), Nono(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
-            IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
+            IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), MutualGuilds(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
             Rewind())

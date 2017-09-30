@@ -19,7 +19,7 @@ val activeGames = ConcurrentLinkedQueue<Game>()
  * @param isPublic Should this game be treated as public? (will prompt lobby setup)
  */
 abstract class Game(val type: GameType, val channel: TextChannel, val creator: String, val playerCount: Int, var isPublic: Boolean) {
-    val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()!!
+    private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()!!
     var gameId: Long = 0
     val players = mutableListOf<String>()
     private val creation: Long
@@ -33,10 +33,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         creation = System.currentTimeMillis()
         if (isPublic) {
             displayLobby()
-            scheduledExecutor.scheduleAtFixedRate({
-                if (((System.currentTimeMillis() - creation) / 1000) > 300 /* Lobby cancels at 5 minutes */) cancel(creator.toUser()!!)
-                else displayLobby()
-            }, 60, 47, TimeUnit.SECONDS)
+            scheduledExecutor.scheduleAtFixedRate({ displayLobby() }, 60, 47, TimeUnit.SECONDS)
         } else if (type != GameType.BLACKJACK && type != GameType.BETTING && playerCount > 1) {
             channel.send("{0}, use **/gameinvite @User** to invite someone to your game"
                     .tr(channel.guild, creator.toUser()?.asMention ?: "unable to determine creator"))
@@ -49,6 +46,12 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
                 scheduledExecutor.shutdown()
             }
         }, 1, 1, TimeUnit.SECONDS)
+        scheduledExecutor.schedule({
+            if (gamesInLobby.contains(this)) {
+                channel.send("**10** minutes have passed in lobby, so I cancelled the game setup.".tr(channel))
+                cancel(creator.toUser()!!, false)
+            }
+        }, 10, TimeUnit.MINUTES)
     }
 
     /**
@@ -99,11 +102,11 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     /**
      * Cancel a game (either ending it or during lobby). This should be called in [Game] logic.
      */
-    fun cancel(user: User) {
-        if (activeGames.contains(this)) {
+    fun cancel(user: User, complain: Boolean = true) {
+        if (gamesInLobby.contains(this) || activeGames.contains(this)) {
             gamesInLobby.remove(this)
             activeGames.remove(this)
-            channel.send("**{0}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(".tr(channel.guild, user.withDiscrim()))
+            if (complain) channel.send("**{0}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(".tr(channel.guild, user.withDiscrim()))
             scheduledExecutor.shutdownNow()
         }
     }

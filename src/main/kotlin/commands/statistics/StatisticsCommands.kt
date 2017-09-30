@@ -114,3 +114,18 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
     override fun registerSubcommands() {
     }
 }
+
+class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "get a list of servers I'm in with a specified user", "mutualservers") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val user = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
+        val embed = event.member.embed("Ardent | Mutual Servers with ${user.name}")
+        getMutualGuildsWith(user).forEachIndexed { index, guild ->
+            embed.appendDescription("${(if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol} " +
+                    "**${guild.name}** - *${guild.members.size}* members, *${guild.members.filter { it.user.isBot }.count() * 100 / guild.members.size}*% bots\n")
+        }
+        event.channel.send(embed)
+    }
+
+    override fun registerSubcommands() {
+    }
+}

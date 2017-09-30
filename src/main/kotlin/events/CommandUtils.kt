@@ -82,9 +82,8 @@ class CommandFactory {
                             data.gold += 2
                             data.update()
                             cmd.executeInternal(args, event)
-                            r.table("commands").insert(r.json(getGson().toJson(
-                                    LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))
-                            ).runNoReply(conn)
+                            r.table("commands").insert(r.json(getGson().toJson(LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
+
                         } catch (e: Throwable) {
                             e.log()
                             event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support>") + "\n${ExceptionUtils.getStackTrace(e)}")

@@ -14,7 +14,6 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.*
 import java.awt.Color
 import java.lang.management.ManagementFactory
-import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -179,13 +178,15 @@ fun List<String>.toUsers(): String {
 }
 
 fun Guild.getData(): GuildData {
-    val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
-    return if (guildData != null) guildData
-    else {
-        val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>(), language = "en".toLanguage()!!)
-        data.insert("guilds")
-        data
+    try {
+        val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
+        if (guildData != null) return guildData
+    } catch (e: Exception) {
+        e.log()
     }
+    val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>(), language = "en".toLanguage()!!)
+    data.insert("guilds")
+    return data
 }
 
 fun Message.getFirstRole(arguments: List<String>): Role? {
@@ -324,7 +325,7 @@ fun User.donationLevel(): DonationLevel {
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
     if (usageBonus() || guild.members.size > 300 || user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
-     return if (!failQuietly) channel.requires(this, donationLevel) else true
+    return if (!failQuietly) channel.requires(this, donationLevel) else true
 }
 
 fun Int.getTrivia(): List<TriviaQuestion> {
@@ -372,12 +373,14 @@ fun String.tr(language: ArdentLanguage, vararg new: Any): String {
 }
 
 fun String.translationDoesntExist(language: ArdentLanguage, vararg new: Any): String {
-    val phrase = ArdentPhraseTranslation(this, "Unknown").instantiate(this)
-    translationData.phrases.put(this, phrase)
-    if (r.table("phrases").filter(r.hashMap("english", this)).count().run<Long>(conn) == 0.toLong()) {
-        phrase.insert("phrases")
-        logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
-        "355817985052508160".toChannel()?.send("A new phrase was automatically detected and added at <https://ardentbot.com/translation/>")
+    if (!test) {
+        val phrase = ArdentPhraseTranslation(this, "Unknown").instantiate(this)
+        translationData.phrases.put(this, phrase)
+        if (r.table("phrases").filter(r.hashMap("english", this)).count().run<Long>(conn) == 0.toLong()) {
+            phrase.insert("phrases")
+            logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
+            "355817985052508160".toChannel()?.send("A new phrase was automatically detected and added at <https://ardentbot.com/translation/>")
+        }
     }
     return this.trReplace(language, *new)
 }
