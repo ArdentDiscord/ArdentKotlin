@@ -46,7 +46,7 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
     }
 
     fun get(english: String, command: String): ArdentPhraseTranslation? {
-        phrases.forEach { if (it.value.english == english && command == it.value.command) return it.value }
+        phrases.forEach { if (it.value.english == english) return it.value }
         return null
     }
 }

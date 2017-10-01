@@ -169,8 +169,9 @@ class AudioAnalysisCommand : Command(Category.STATISTICS, "trackanalysis", "see 
                     .addField("Loudness", features.loudness.times(100).format() + "%", true)
                     .addField("Speechiness", features.speechiness.times(100).format() + "%", true)
                     .addField("Valence", features.valence.times(100).format() + "%", true)
-                    .addField("Tempo", features.tempo.format(), true)
+                    .addField("Tempo", features.tempo.format() + " bpm", true)
                     .addField("Duration", features.duration_ms.toLong().formatMinSec(), true)
+                    .addField("Track Link", "https://open.spotify.com/track/${features.id}", true)
                     .addField("Analysis URL", features.analysis_url, true)
 
         } catch (e: Exception) {

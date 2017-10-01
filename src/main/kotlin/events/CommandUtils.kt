@@ -49,7 +49,7 @@ class CommandFactory {
         var args = event.message.rawContent.split(" ").toMutableList()
         val prefix = event.guild.getPrefix()
         when {
-            args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
+            args[0].startsWith(prefix) && !test -> args[0] = args[0].replace(prefix, "")
             args[0].startsWith("/") && !test -> args[0] = args[0].replace("/", "")
             args[0] == "ardent" && !test -> args.removeAt(0)
             args[0] == "test" && test -> args.removeAt(0)

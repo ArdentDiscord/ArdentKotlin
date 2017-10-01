@@ -287,10 +287,8 @@ class Web {
                                                     phrase.translations.putIfAbsent(language.code, new)
                                                     if (language == Languages.ENGLISH.language) {
                                                         phrase.translations.replace("en", new)
-                                                        val temp = phrase.english
-                                                        phrase.english = new
-                                                        r.table("phrases").filter(r.hashMap("english", temp)).update(r.json(phrase.toJson())).runNoReply(conn)
-                                                        phrase.encoded = URLEncoder.encode(new)
+                                                        r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
+                                                        phrase.encoded = URLEncoder.encode(new, "UTF-8")
                                                     } else {
                                                         phrase.translations.replace(language.code, new)
                                                         r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
@@ -1115,12 +1113,12 @@ class Web {
                                         if (role != null) session.attribute("role", role)
                                         session.attribute("user", getUserById(identification.id))
                                     }
-                                    response.redirect("/welcome")
+                                    response.redirect("/getting-started")
                                     null
                                 }
                             }
                         }, handlebars)
-                        post("/login", { _, response -> response.redirect("/welcome") })
+                        post("/login", { _, response -> response.redirect("/getting-started") })
                     })
                     path("/public", {
                         get("/status", { _, _ -> internals.toJson() })
