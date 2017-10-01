@@ -201,11 +201,7 @@ class BettingPlayerData(wins: Int = 0, losses: Int = 0, var netWinnings: Double 
 
 class TicTacToePlayerData(wins: Int = 0, ties: Int = 0, losses: Int = 0) : PlayerGameData(wins, losses, ties)
 
-abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: Int = 0) {
-    fun gamesPlayed(): Int {
-        return wins + losses
-    }
-}
+abstract class PlayerGameData(var wins: Int = 0, var losses: Int = 0, var ties: Int = 0)
 
 class GameDataSlots(gameId: Long, creator: String, startTime: Long, val rounds: List<SlotsGame.Round>) : GameData(gameId, creator, startTime)
 
