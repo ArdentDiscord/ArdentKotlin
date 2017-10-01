@@ -188,30 +188,17 @@ class Help : Command(Category.BOT_INFO, "help", "can you figure out what this do
                     return
                 }
             }
+            event.channel.send("No command was found with name **{0}** - showing default help menu instead".tr(event, name) + " " + Emoji.HEAVY_MULTIPLICATION_X.symbol)
+            Thread.sleep(1500)
         }
         val embed = event.member.embed("Ardent | Command List")
         Category.values().forEach { category ->
-            embed.appendDescription("**" + category.fancyName.tr(event) + "** :\n" +
-                    category.getCommands().map { "`" + it.name.tr(event) + "`" }.stream().collect(Collectors.joining("  ")) +
-                    "\n")
+            embed.appendDescription("**" + category.fancyName.tr(event) + "** :  " +
+                    category.getCommands().map { "`" + it.name.tr(event) + "`" }.stream().collect(Collectors.joining("    ")) +
+                    "\n\n")
         }
-        embed.appendDescription("\n" + "To see detailed information about a command, type {0}help *command name*".tr(event, event.guild.getPrefix()))
+        embed.appendDescription("__" + "To see detailed information about a command, type {0}help *command name*".tr(event, event.guild.getPrefix()) + "__")
         event.channel.send(embed)
-        /*event.channel.selectFromList(event.member, "Ardent | Commands", Category.values().map { "${it.fancyName.tr(event)}: *${it.description.tr(event)}*" }.toMutableList(), { selected, selectionMessage ->
-            val category = Category.values()[selected]
-            val embed = event.member.embed("{0} | Command List".tr(event).trReplace(event, category.fancyName.tr(event)), Color.DARK_GRAY)
-            factory.commands.filter { it.category == category }.toMutableList().shuffle().forEachIndexed { index, command ->
-                embed.appendDescription("\n${if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND} **${command.name.tr(event)}**: ${command.description.tr(event)}")
-                if (command.aliases.isNotEmpty()) {
-                    if (command.aliases.size > 1) embed.appendDescription("         ").appendDescription("__aliases: [{0}]__".tr(event).trReplace(event, command.aliases.toList().stringify()))
-                    else embed.appendDescription("   ").appendDescription("(__alias: {0}__)".tr(event).trReplace(event, command.aliases.toList().stringify()))
-                }
-            }
-            embed.appendDescription("\n\n").appendDescription("*Did you know you can also type _ardent help_ instead of _/help_? You can also change the set prefix for your server!*".tr(event))
-            selectionMessage.editMessage(embed.build()).queue()
-        }, failure = {
-            event.channel.send("You need to type the number or click the reaction that corresponded to the category you wanted to select!".tr(event))
-        })*/
     }
 
     override fun registerSubcommands() {

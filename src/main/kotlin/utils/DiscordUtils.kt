@@ -262,6 +262,11 @@ fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: Strin
     return null
 }
 
+fun Guild.getDefaultWritingChannel(): TextChannel? {
+    textChannels.forEach { if (it.canTalk()) return it }
+    return null
+}
+
 fun Guild.getPrefix(): String {
     return getData().prefix ?: "/"
 }

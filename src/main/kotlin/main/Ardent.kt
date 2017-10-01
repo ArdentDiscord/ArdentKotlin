@@ -43,7 +43,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-val test = false
+val test = true
 
 var hangout: Guild? = null
 

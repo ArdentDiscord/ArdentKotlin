@@ -117,6 +117,14 @@ class Web {
             map.put("patrons", r.table("patrons").run<Any>(conn).queryAsArrayList(Patron::class.java).filter { it != null }.map { it!!.id.toUser() })
             ModelAndView(map, "patrons.hbs")
         }, handlebars)
+        get("/getting-started", { request, _ ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("showSnackbar", false)
+            map.put("title", "Getting Started")
+            map.put("internals", internals)
+            ModelAndView(map, "getting_started.hbs")
+        }, handlebars)
         get("/commands", { request, _ ->
             val map = hashMapOf<String, Any>()
             handle(request, map)

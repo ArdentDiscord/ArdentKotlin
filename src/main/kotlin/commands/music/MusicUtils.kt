@@ -41,6 +41,7 @@ data class ArdentTrack(val author: String, val channel: String?, var track: Audi
     private val votedToSkip = ArrayList<String>()
 
     fun addSkipVote(user: User): Boolean {
+        TODO()
         if (votedToSkip.contains(user.id)) return false
         votedToSkip.add(user.id)
         return true
@@ -72,8 +73,6 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
     fun setChannel(channel: TextChannel?) {
         textChannel = channel?.id
     }
-
-    val isTrackCurrentlyPlaying: Boolean get() = current != null
 
     fun queue(track: ArdentTrack) {
         if (!player.startTrack(track.track, true)) queue.offer(track)
@@ -225,14 +224,6 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
 
 fun AudioTrack.getDurationFancy(): String {
     val length = info.length
-    val seconds = (length / 1000).toInt()
-    val minutes = seconds / 60
-    val hours = minutes / 60
-    return "[${String.format("%02d", hours % 60)}:${String.format("%02d", minutes % 60)}:${String.format("%02d", seconds % 60)}]"
-}
-
-fun ArrayList<ArdentTrack>.getDuration(): String {
-    val length: Long = this.map { it.track.duration }.sum()
     val seconds = (length / 1000).toInt()
     val minutes = seconds / 60
     val hours = minutes / 60
