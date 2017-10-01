@@ -120,7 +120,10 @@ fun User.withDiscrim(): String {
 
 fun Member.embed(title: String, color: Color = Color.DARK_GRAY): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
-            .setColor(color)
+            .setColor(if (color != Color.DARK_GRAY) color else
+                when (random.nextBoolean()) {
+                    true -> Color.BLUE; else -> Color.LIGHT_GRAY
+                })
             .setFooter("Served by Ardent {0} | By {1} and {2}".tr(guild, Emoji.COPYRIGHT_SIGN.symbol, getUserById("169904324980244480")?.withDiscrim() ?: "Unknown", getUserById("188505107057475585")!!.withDiscrim()), user.avatarUrl)
 }
 
@@ -179,10 +182,9 @@ fun List<String>.toUsers(): String {
 
 fun Guild.getData(): GuildData {
     try {
-        val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
+        val guildData = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
         if (guildData != null) return guildData
     } catch (e: Exception) {
-        e.log()
     }
     val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>(), language = "en".toLanguage()!!)
     data.insert("guilds")
@@ -190,6 +192,7 @@ fun Guild.getData(): GuildData {
 }
 
 fun Message.getFirstRole(arguments: List<String>): Role? {
+    if (arguments.isEmpty()) return null
     if (mentionedRoles.size > 0) return mentionedRoles[0]
     if (guild != null) {
         val search = guild.getRolesByName(arguments.concat(), true)

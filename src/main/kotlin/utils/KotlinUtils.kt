@@ -43,6 +43,10 @@ fun Throwable.log() {
     logChannel!!.sendMessage("```${ExceptionUtils.getStackTrace(this)}```").queue()
 }
 
+fun Float.format(): String {
+    return "%.2f".format(this)
+}
+
 fun <E> MutableList<E>.shuffle(): MutableList<E> {
     Collections.shuffle(this)
     return this

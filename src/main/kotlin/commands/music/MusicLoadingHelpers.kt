@@ -66,7 +66,10 @@ fun String.getSingleTrack(guild: Guild, foundConsumer: (AudioTrack) -> (Unit), s
             foundConsumer.invoke(track)
         }
 
-        override fun noMatches() {}
+        override fun noMatches() {
+            if (!search) { this@getSingleTrack.getSingleTrack(guild, foundConsumer, true, false) }
+            else this@getSingleTrack.getSingleTrack(guild, foundConsumer, true, true)
+        }
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
             if (playlist.isSearchResult && playlist.tracks.size > 0) foundConsumer.invoke(playlist.tracks[0])
@@ -102,7 +105,7 @@ fun String.load(member: Member, channel: TextChannel?, search: Boolean = false, 
             }
             channel?.send("We couldn't find the item you were looking for. Please recheck the link you're providing".tr(member.guild))
         } else {
-            playerManager.loadItemOrdered(member.guild.getGuildAudioPlayer(channel), if (search && this@load.startsWith("ytsearch:")) "ytsearch:${this@load}" else this@load, object : AudioLoadResultHandler {
+            playerManager.loadItemOrdered(member.guild.getGuildAudioPlayer(channel), this@load, object : AudioLoadResultHandler {
                 override fun playlistLoaded(playlist: AudioPlaylist) {
                     when (playlist.isSearchResult) {
                         false -> {

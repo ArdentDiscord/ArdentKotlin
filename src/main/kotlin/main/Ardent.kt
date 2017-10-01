@@ -20,10 +20,7 @@ import commands.info.*
 import commands.info.Settings
 import commands.music.*
 import commands.rpg.*
-import commands.statistics.CommandDistribution
-import commands.statistics.MusicInfo
-import commands.statistics.MutualGuilds
-import commands.statistics.ServerLanguagesDistribution
+import commands.statistics.*
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
@@ -148,7 +145,7 @@ fun addCommands() {
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), MutualGuilds(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
-            Rewind())
+            Rewind(), AudioAnalysisCommand())
 }
 
 /**

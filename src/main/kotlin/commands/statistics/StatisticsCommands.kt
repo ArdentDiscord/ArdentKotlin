@@ -1,11 +1,10 @@
 package commands.statistics
 
+import commands.music.getGuildAudioPlayer
 import events.Category
 import events.Command
-import main.conn
-import main.factory
-import main.managers
-import main.r
+import main.*
+import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.ArdentLanguage
 import translation.Languages
@@ -120,12 +119,63 @@ class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "get a list of
         val user = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         val embed = event.member.embed("Ardent | Mutual Servers with ${user.name}")
         getMutualGuildsWith(user).forEachIndexed { index, guild ->
-            embed.appendDescription("${(if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol} " +
+            if (embed.descriptionBuilder.length < 1900) embed.appendDescription("${(if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol} " +
                     "**${guild.name}** - *${guild.members.size}* members, *${guild.members.filter { it.user.isBot }.count() * 100 / guild.members.size}*% bots\n")
+            else {
+                embed.appendDescription("...")
+                return@forEachIndexed
+            }
         }
         event.channel.send(embed)
     }
 
     override fun registerSubcommands() {
+    }
+}
+
+class AudioAnalysisCommand : Command(Category.STATISTICS, "trackanalysis", "see an audio feature analysis for tracks", "audioanalysis") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        showHelp(event)
+    }
+
+    override fun registerSubcommands() {
+        with("current", null, "see an analysis for the currently playing track", { arguments, event ->
+            val playing = event.guild.getGuildAudioPlayer(event.textChannel).player.playingTrack
+            if (playing == null) event.channel.send("There isn't a currently playing track..".tr(event))
+            else {
+                val embed = getAnalysis(playing.info.title, event)
+                if (embed != null) event.channel.send(embed)
+            }
+        })
+        with("search", null, "see an analysis for the specified search term", { arguments, event ->
+            if (arguments.size == 0) event.channel.send("You need a search term!".tr(event))
+            else {
+                val embed = getAnalysis(arguments.concat(), event)
+                if (embed != null) event.channel.send(embed)
+            }
+        })
+    }
+
+    private fun getAnalysis(trackName: String, event: MessageReceivedEvent): EmbedBuilder? {
+        try {
+            val track = spotifyApi.search.searchTrack(trackName, 1).items[0]
+            val features = spotifyApi.tracks.getAudioFeatures(track.id)
+            return event.member.embed("Audio Analysis | {0}".tr(event, track.name))
+                    .addField("Acousticness", features.acousticness.times(100).format() + "%", true)
+                    .addField("Energy", features.energy.times(100).format() + "%", true)
+                    .addField("Liveness", features.liveness.times(100).format() + "%", true)
+                    .addField("Danceability", features.danceability.times(100).format() + "%", true)
+                    .addField("Instrumentalness", features.instrumentalness.times(100).format() + "%", true)
+                    .addField("Loudness", features.loudness.times(100).format() + "%", true)
+                    .addField("Speechiness", features.speechiness.times(100).format() + "%", true)
+                    .addField("Valence", features.valence.times(100).format() + "%", true)
+                    .addField("Tempo", features.tempo.format(), true)
+                    .addField("Duration", features.duration_ms.toLong().formatMinSec(), true)
+                    .addField("Analysis URL", features.analysis_url, true)
+
+        } catch (e: Exception) {
+            event.channel.send("A track wasn't found by the name of **{0}**!".tr(event, trackName))
+        }
+        return null
     }
 }

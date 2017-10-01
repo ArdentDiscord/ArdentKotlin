@@ -254,7 +254,9 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
                         }
                         else default[0].send(arguments.without(arguments[0]).concat())
                     }
+                    it.shutdownNow()
                 }
+                System.exit(0)
             }
         })
     }
