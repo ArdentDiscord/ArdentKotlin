@@ -101,7 +101,6 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                 playerData.gold -= bet
                 playerData.update()
                 "**Sorry, you lost {0} gold!**".tr(channel.guild, bet)
-
             }
             Result.WON -> {
                 playerData.gold += bet

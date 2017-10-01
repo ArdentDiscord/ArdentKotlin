@@ -166,7 +166,7 @@ fun checkQueueBackups() {
                     voiceChannel.connect(channel)
                     Thread.sleep(1250)
                     channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at {0} - we'd really appreciate it".tr(guild, "<https://patreon.com/ardent>"))
-                    it.music.forEach { trackUri -> trackUri.load(guild.selfMember, null, null, guild = guild) }
+                    it.music.forEach { trackUri -> trackUri.load(guild.selfMember, null) }
                     println("Successfully resumed playback for ${guild.name}")
                 }
             }

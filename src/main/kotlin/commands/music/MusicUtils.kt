@@ -7,14 +7,13 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
-import main.*
+import main.managers
+import main.playerManager
+import main.spotifyApi
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
-import obj.Album
-import obj.Playlist
 import utils.*
 import java.time.Instant
 import java.util.*
@@ -186,8 +185,7 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                             (channel ?: manager.getChannel())?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(channel!!.guild))
                             return
                         }
-                        spotifyApi.browse.getRecommendations(seedTracks = listOf(get.items[0].id), limit = 1).tracks[0].name
-                                .load(guild.selfMember, channel ?: guild.defaultChannel, null, false, autoplay = true, guild = guild)
+                        spotifyApi.browse.getRecommendations(seedTracks = listOf(get.items[0].id), limit = 1).tracks[0].name.load(guild.selfMember, channel ?: guild.defaultChannel, true)
                     } catch (ignored: Exception) {
                     }
                 } else manager.nextTrack()
@@ -272,124 +270,4 @@ fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
         }
     }
     return musicManager
-}
-
-val teenParty = mutableListOf<AudioTrack>()
-val todaysTopHits = mutableListOf<AudioTrack>()
-val rapCaviar = mutableListOf<AudioTrack>()
-val powerGaming = mutableListOf<AudioTrack>()
-val usTop50 = mutableListOf<AudioTrack>()
-val vivaLatino = mutableListOf<AudioTrack>()
-val hotCountry = mutableListOf<AudioTrack>()
-
-fun String.getSpotifyPlaylist(channel: TextChannel, member: Member) {
-    when (this) {
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M" -> {
-            if (todaysTopHits.size > 0) todaysTopHits.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd" -> {
-            if (rapCaviar.size > 0) rapCaviar.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj" -> {
-            if (powerGaming.size > 0) powerGaming.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p" -> {
-            if (teenParty.size > 0) teenParty.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotifycharts/playlist/37i9dQZEVXbLRQDuF5jeBp" -> {
-            if (usTop50.size > 0) usTop50.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva" -> {
-            if (vivaLatino.size > 0) vivaLatino.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda" -> {
-            if (hotCountry.size > 0) hotCountry.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        else -> searchAndLoadPlaylists(channel, member)
-    }
-}
-
-/**
- * @return [Pair] with first as the title, and second as the video id
- */
-fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
-    return try {
-        val search = youtube.search().list("id,snippet")
-        search.q = this
-        search.key = config.getValue("google")
-        search.fields = "items(id/videoId,snippet/title)"
-        search.maxResults = 7
-        val response = search.execute()
-        val items = response.items ?: return null
-        items.filter { it != null }.map { Pair(it?.snippet?.title ?: "unavailable", it?.id?.videoId ?: "none") }
-    } catch (e: Exception) {
-        e.log()
-        null
-    }
-}
-
-fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
-    try {
-        val info = this.removePrefix("https://open.spotify.com/user/").split("/playlist/")
-        val playlist = (if (info.size > 1) spotifyApi.playlists.getPlaylist(info[0], info[1]) as Any? else spotifyApi.albums.getAlbum(this.removePrefix("https://open.spotify.com/album/")) as Any?)
-        if (playlist == null || (playlist is Playlist && playlist.tracks.items.isEmpty()) || (playlist is Album && playlist.tracks.items.isEmpty())) channel.send("No playlist with tracks was found with this search query".tr(channel.guild))
-        else {
-            channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes. I'll add progress bars as the playlist is processed".tr(channel.guild, ((playlist as? Playlist)?.name) ?: (playlist as Album).name))
-                    .queue { message ->
-                        var percentage = 0.0
-                        var current = 0
-                        val items = hashMapOf<String, String>()
-                        if (playlist is Playlist) {
-                            playlist.tracks.items.forEach { items.put(it.track.name, it.track.artists[0].name) }
-                        } else if (playlist is Album) {
-                            playlist.tracks.items.forEach { items.put(it.name, it.artists[0].name) }
-                        }
-                        items.forEach { playlistTrack ->
-                            "${playlistTrack.key} ${playlistTrack.value}".getSingleTrack(member.guild, { foundTrack ->
-                                current++
-                                val ardentTrack = ArdentTrack(member.id(), channel.id, foundTrack)
-                                play(channel, member, ardentTrack)
-                                when (this) {
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M" -> todaysTopHits.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd" -> rapCaviar.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj" -> powerGaming.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p" -> teenParty.add(foundTrack)
-                                    "https://open.spotify.com/user/spotifycharts/playlist/37i9dQZEVXbLRQDuF5jeBp" -> usTop50.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva" -> vivaLatino.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda" -> hotCountry.add(foundTrack)
-                                }
-                                if (current / items.size.toDouble() >= percentage && percentage <= 1) {
-                                    percentage += 0.1
-                                    when (percentage) {
-                                        0.1 -> message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
-                                        0.2 -> message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
-                                        0.3 -> message.addReaction(Emoji.KEYCAP_DIGIT_THREE.symbol).queue()
-                                        0.4 -> message.addReaction(Emoji.KEYCAP_DIGIT_FOUR.symbol).queue()
-                                        0.5 -> message.addReaction(Emoji.KEYCAP_DIGIT_FIVE.symbol).queue()
-                                        0.6 -> message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
-                                        0.7 -> message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
-                                        0.8 -> message.addReaction(Emoji.KEYCAP_DIGIT_EIGHT.symbol).queue()
-                                        0.9 -> message.addReaction(Emoji.KEYCAP_DIGIT_NINE.symbol).queue()
-                                        1.0 -> message.addReaction(Emoji.KEYCAP_TEN.symbol).queue()
-                                    }
-                                }
-                                if (current / items.size.toDouble() == 1.0) {
-                                    message.addReaction(Emoji.HEAVY_CHECK_MARK.symbol).queue()
-                                }
-                                Thread.sleep(750)
-                            })
-                        }
-                    }
-        }
-    } catch (e: Exception) {
-        e.log()
-        channel.send(("You specified an invalid url.. Please try again after checking the link").tr(channel.guild))
-    }
 }

@@ -227,7 +227,7 @@ class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner:
             roundsTemp.add(SanitizedTriviaRound(winners.isNotEmpty(),
                     winners.getOrNull(0)?.toUser(), losers1.map { it.toUser() }, question))
         }
-        return SanitizedTrivia(creator.toUser()!!, id, winner.toUser()!!, losers.map { it.toUser()!! }, scoresTemp.sort(true).toList() as List<Pair<String, Int>>, roundsTemp)
+        return SanitizedTrivia(creator.toUser()!!, id, winner.toUser()!!, losers.map { it.toUser()!! }, scoresTemp.sort(true).toList(), roundsTemp)
     }
 }
 

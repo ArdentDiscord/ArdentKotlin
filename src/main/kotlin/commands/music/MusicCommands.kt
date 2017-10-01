@@ -1,15 +1,9 @@
 package commands.music
 
-import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
-import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
-import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import events.Category
 import events.Command
-import main.playerManager
 import main.spotifyApi
 import main.waiter
-import net.dv8tion.jda.core.entities.*
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import obj.Market
 import utils.*
@@ -147,7 +141,7 @@ class RemoveAt : Command(Category.MUSIC, "removeat", "remove a song from the que
 class Play : Command(Category.MUSIC, "play", "play a song by its url or search a song to look it up on youtube", "p") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) event.channel.send("You need to specify a URL or search query!".tr(event))
-        else arguments.concat().load(event.member, event.textChannel, event.message)
+        else arguments.concat().load(event.member, event.textChannel)
     }
 
     override fun registerSubcommands() {
@@ -382,6 +376,7 @@ class ClearQueue : Command(Category.MUSIC, "clearqueue", "clear the queue", "cq"
             event.channel.send("Cleared the queue".tr(event) + " ${Emoji.BALLOT_BOX_WITH_CHECK}")
         }
     }
+
     override fun registerSubcommands() {
     }
 }
@@ -397,171 +392,7 @@ class RemoveFrom : Command(Category.MUSIC, "removefrom", "remove all the tracks 
             event.channel.send("Successfully removed any queued tracks from **{0}**".tr(event, mentioned.map { it.withDiscrim() }.toList().stringify()) + " ${Emoji.WHITE_HEAVY_CHECKMARK}")
         }
     }
+
     override fun registerSubcommands() {
-    }
-}
-
-fun VoiceChannel.connect(textChannel: TextChannel?) {
-    val audioManager = guild.audioManager
-    try {
-        audioManager.openAudioConnection(this)
-    } catch (e: Throwable) {
-        textChannel?.send("${Emoji.CROSS_MARK} " + "I cannot join that voice channel ({0})! Reason: *{1}*".tr(textChannel.guild, name, e.localizedMessage))
-    }
-}
-
-fun play(channel: TextChannel, member: Member, track: ArdentTrack) {
-    if (!member.guild.audioManager.isConnected) {
-        if (member.voiceState.channel != null) member.guild.audioManager.openAudioConnection(member.voiceChannel())
-        else return
-    }
-    member.guild.getGuildAudioPlayer(channel).scheduler.manager.addToQueue(track)
-}
-
-fun play(member: Member, guild: Guild, channel: VoiceChannel, musicManager: GuildMusicManager, track: AudioTrack, textChannel: TextChannel?) {
-    if (!guild.audioManager.isConnected) {
-        guild.audioManager.openAudioConnection(channel)
-    }
-    musicManager.scheduler.manager.addToQueue(ArdentTrack(member.user.id, textChannel?.id, track))
-}
-
-fun Member.checkSameChannel(textChannel: TextChannel): Boolean {
-    if (voiceState.channel == null) {
-        textChannel.send("${Emoji.CROSS_MARK} " + "You need to be connected to a voice channel".tr(textChannel.guild))
-        return false
-    }
-    if (guild.selfMember.voiceState.channel != voiceState.channel) {
-        textChannel.send("${Emoji.CROSS_MARK} " + "We need to be connected to the **same** voice channel".tr(textChannel.guild))
-        return false
-    }
-    return true
-}
-
-fun String.getSingleTrack(guild: Guild, foundConsumer: (AudioTrack) -> (Unit), soundcloud: Boolean = false) {
-    val string = this
-    playerManager.loadItemOrdered(guild.getGuildAudioPlayer(null), "${if (soundcloud) "scsearch" else "ytsearch"}:$this", object : AudioLoadResultHandler {
-        override fun loadFailed(exception: FriendlyException) {
-            string.getSingleTrack(guild, foundConsumer, true)
-        }
-
-        override fun trackLoaded(track: AudioTrack) {
-            foundConsumer.invoke(track)
-        }
-
-        override fun noMatches() {}
-        override fun playlistLoaded(playlist: AudioPlaylist) {
-            if (playlist.isSearchResult) {
-                if (playlist.tracks.size > 0) {
-                    foundConsumer.invoke(playlist.tracks[0])
-                }
-            }
-        }
-    })
-}
-
-fun String.load(member: Member, textChannel: TextChannel?, message: Message?, search: Boolean = false, radioName: String? = null, autoplay: Boolean = false, guild: Guild? = null) {
-    if (this.startsWith(" ")) {
-        this.removePrefix(" ").load(member, textChannel, message, search, radioName, autoplay, guild)
-        return
-    }
-    if (member.voiceState.channel == null) {
-        textChannel?.send("${Emoji.CROSS_MARK} " + "You need to be connected to a voice channel".tr(member.guild))
-        return
-    }
-    if (guild != null && !guild.selfMember.voiceState.inVoiceChannel()) {
-        member.voiceState.channel.connect(textChannel)
-    }
-    val musicManager = member.guild.getGuildAudioPlayer(textChannel)
-    if (this.contains("spotify")) {
-        try {
-            val tr = spotifyApi.tracks.getTrack(this.removePrefix("https://open.spotify.com/track/"))
-            tr.name.load(member, textChannel, message, search, radioName, autoplay, guild)
-        } catch (e: Exception) {
-            if (textChannel != null) {
-                if (member.hasDonationLevel(textChannel, DonationLevel.INTERMEDIATE, false)) {
-                    this.getSpotifyPlaylist(textChannel, member)
-                }
-                return
-            }
-        }
-    }
-    try {
-        playerManager.loadItemOrdered(musicManager, this, object : AudioLoadResultHandler {
-            override fun loadFailed(exception: FriendlyException) {
-                if (exception.message?.contains("Something went wrong when looking up the track") == true) {
-                    val results = this@load.removePrefix("ytsearch: ").searchYoutubeOfficial()
-                    if (results == null || results.isEmpty()) textChannel?.send("This track wasn't found on YouTube!".tr(member.guild))
-                    else {
-                        if (!autoplay) {
-                            textChannel?.selectFromList(member, "Select Song", results.map { it.first }.toMutableList(), { response, _ ->
-                                "https://www.youtube.com/watch?v=${results[response].second}".load(member, textChannel, message, false, guild = guild)
-                            })
-                        } else "https://www.youtube.com/watch?v=${results[0].second}".load(member, textChannel, message, false, autoplay = true, guild = guild)
-                    }
-                } else if (!this@load.contains("spotify")) {
-                    textChannel?.send("Something went wrong :/ **Exception**: {0}".tr(member.guild, exception.localizedMessage))
-                }
-            }
-
-            override fun trackLoaded(track: AudioTrack) {
-                if (textChannel != null && track.info.length > (15 * 60 * 1000) && !member.hasDonationLevel(textChannel, DonationLevel.BASIC)) {
-                    textChannel.send("${Emoji.NO_ENTRY_SIGN} " + "Sorry, but only servers or members with the **Basic** donation level can play songs longer than 15 minutes".tr(member.guild))
-                    return
-                }
-                if (radioName == null) textChannel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "Adding **{0} by {1}** to the queue...".tr(member.guild, track.info.title, track.info.author))
-                else textChannel?.send("${Emoji.MULTIPLE_MUSICAL_NOTES} " + "Starting to play the radio station **{0}**...".tr(member.guild, radioName))
-                play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
-            }
-
-            override fun noMatches() {
-                if (search) {
-                    if (autoplay) {
-                        textChannel?.send("I was unable to find a related song...")
-                    } else textChannel?.send("I was unable to find a track with that name. Please try again with a different query")
-                } else ("ytsearch: ${this@load}").load(member, textChannel, message, true, autoplay = autoplay)
-            }
-
-            override fun playlistLoaded(playlist: AudioPlaylist) {
-                if (!playlist.isSearchResult) {
-                    textChannel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding ${playlist.tracks.size} tracks to the queue...")
-                    try {
-                        playlist.tracks.forEach { play(member, member.guild, member.voiceChannel()!!, musicManager, it, textChannel) }
-                    } catch (e: Exception) {
-                        textChannel?.send("Failed to play tracks: **Error:** ${e.localizedMessage}")
-                    }
-                    return
-                }
-                if (autoplay || member.id() == member.guild.selfMember.id()) {
-                    if (playlist.tracks.size > 0) {
-                        var cont = true
-                        var current = 0
-                        while (cont) {
-                            val track = playlist.tracks[current]
-                            if (track.duration < 20 * 1000 * 60) {
-                                cont = false
-                                play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
-                                textChannel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue... **[Ardent Autoplay]**")
-                            }
-                            current++
-                        }
-                    }
-                } else {
-                    val selectFrom = mutableListOf<String>()
-                    val num: Int = if (playlist.tracks.size >= 7) 7
-                    else playlist.tracks.size
-                    (1..num)
-                            .map { playlist.tracks[it - 1] }
-                            .map { it.info }
-                            .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
-                    textChannel?.selectFromList(member, "Select Song", selectFrom, { response, selectionMessage ->
-                        selectionMessage.delete().queue()
-                        val track = playlist.tracks[response]
-                        play(member, member.guild, member.voiceChannel()!!, musicManager, track, textChannel)
-                        textChannel.send("${Emoji.BALLOT_BOX_WITH_CHECK} Adding **${track.info.title} by ${track.info.author}** to the queue...")
-                    })
-                }
-            }
-        })
-    } catch (ignored: Exception) {
     }
 }
