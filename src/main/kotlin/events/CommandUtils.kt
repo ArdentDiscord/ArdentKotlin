@@ -83,7 +83,7 @@ class CommandFactory {
                             data.update()
                             cmd.executeInternal(args, event)
                             r.table("commands").insert(r.json(getGson().toJson(LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
-                            "363785648911679488".toChannel()!!.send("${cmd.name} command received in **${event.guild.name}** - ${event.guild.members.size} members (${event.guild.members.filter { it.user.isBot }.count()} bots)| ${System.currentTimeMillis().readableDate()}")
+                            "363785648911679488".toChannel()!!.send("${cmd.name} command received in **${event.guild.name}** - ${event.guild.members.size} members (${event.guild.members.filter { it.user.isBot }.count()} bots) | ${System.currentTimeMillis().readableDate()}")
                         } catch (e: Throwable) {
                             e.log()
                             logChannel!!.send("^ Exception thrown in **${event.guild.name}** with command ${cmd.name}")

@@ -304,11 +304,13 @@ class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for A
 
 class Status : Command(Category.BOT_INFO, "status", "check realtime statistics about the bot") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val onlyBot = guilds().filter { it.botSize() == 0}.count()
         event.channel.send(event.member.embed("Ardent Realtime Status")
                 .addField("Loaded Commands".tr(event), internals.commandCount.toString(), true)
                 .addField("Messages Received".tr(event), formatter.format(internals.messagesReceived), true)
                 .addField("Commands Received".tr(event), formatter.format(internals.commandsReceived), true)
                 .addField("Servers".tr(event), formatter.format(internals.guilds), true)
+                .addField("Servers w/Ardent as only bot".tr(event), formatter.format(onlyBot) + " (${(onlyBot / guilds().size.toFloat()).format()}%)", true)
                 .addField("Users".tr(event), formatter.format(internals.users), true)
                 .addField("Loaded Music Players".tr(event), formatter.format(internals.loadedMusicPlayers), true)
                 .addField("Queue Length".tr(event), "{0} tracks".tr(event, formatter.format(internals.queueLength)), true)

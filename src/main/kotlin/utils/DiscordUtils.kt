@@ -292,6 +292,12 @@ enum class DonationLevel(val readable: String, val level: Int) {
     }
 }
 
+fun Guild.botSize(): Int {
+    var counter = 0
+    members.forEach { if (it.user.isBot) counter++ }
+    return counter
+}
+
 fun Guild.isPatronGuild(): Boolean {
     return members.size > 300 || donationLevel() != DonationLevel.NONE
 }
@@ -611,11 +617,11 @@ class Internals {
 
             tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble()) }
 
-            musicPlayed = 0.0
-            tracksPlayed = 0
             val query = r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java)
             tracksPlayed = query.size.toLong()
+            val tempMusicPlayed = 0.0
             query.forEach { if (it != null) musicPlayed += it.position }
+            if (tempMusicPlayed != musicPlayed) musicPlayed = tempMusicPlayed
         }, 0, 10, TimeUnit.SECONDS)
     }
 }

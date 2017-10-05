@@ -3,9 +3,11 @@ package utils
 import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.User
+import obj.SpotifyPublicUser
 import org.apache.commons.lang3.text.WordUtils
 import translation.ArdentLanguage
 import translation.ArdentPhraseTranslation
+import translation.Languages
 
 data class TriviaCategory(val title: String, val created_at: String, val updated_at: String, val clues_count: Int) {
     fun getCategoryName(): String {
@@ -51,10 +53,25 @@ data class Magic /* The name was not my choice...... */(val question: String, va
 class Punishment(val userId: String, val punisherId: String, val guildId: String, val type: Type, val expiration: Long, val start: Long = System.currentTimeMillis(), val id: String = r.uuid().run(conn)) {
     enum class Type {
         TEMPBAN, MUTE;
-
         override fun toString(): String {
-            return if (this == TEMPBAN) "temp-banned"
-            else "muted"
+            return if (this == TEMPBAN) "temp-banned" else "muted"
         }
     }
 }
+
+data class UserProfile(val id: String, val points: Int = 0, val likes: UserLikes, val gender: Int = 0, val accounts: ConnectedAccounts, val userPlaylists: List<UserPlaylist>) {
+    fun getLevel(): Int {
+        var level = 1
+        var tempPoints = points
+        while (tempPoints > 0) {
+            if (tempPoints - (level * 1000) >= 0) {
+                level++
+                tempPoints -= level * 1000
+            }
+        }
+        return level
+    }
+}
+data class UserLikes(val food: Emoji? = null, val sport: Emoji? = null, val language: ArdentLanguage = Languages.ENGLISH.language)
+data class ConnectedAccounts(val spotify: SpotifyPublicUser? = null)
+data class UserPlaylist(val tracks: List<String /* URL */>)

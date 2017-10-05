@@ -104,9 +104,9 @@ class Web {
             handle(request, map)
             map.put("showSnackbar", false)
             map.put("title", "Staff")
-            map.put("administrators", staff.filterByRole(Staff.StaffRole.ADMINISTRATOR).map { it.id.toUser() })
-            map.put("moderators", staff.filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
-            map.put("helpers", staff.filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
+            map.put("administrators", filterByRole(Staff.StaffRole.ADMINISTRATOR).map { it.id.toUser() })
+            map.put("moderators", filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
+            map.put("helpers", filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
             ModelAndView(map, "staff.hbs")
         }, handlebars)
         get("/patrons", { request, _ ->
@@ -204,7 +204,7 @@ class Web {
             map.put("openTickets", openTickets)
             map.put("commands", factory.commands.sortedBy { it.name })
             map.put("phrases", translationData.phrases.map { it.value })
-            map.put("staffMembers", staff.filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
+            map.put("staffMembers", filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
             if (isAdministrator(request, response)) {
                 map.put("showSnackbar", false)
                 ModelAndView(map, "administrators.hbs")

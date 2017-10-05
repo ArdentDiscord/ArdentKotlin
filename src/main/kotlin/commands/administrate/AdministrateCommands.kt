@@ -3,10 +3,7 @@ package commands.administrate
 import events.Category
 import events.Command
 import javaUtils.Engine
-import main.config
-import main.conn
-import main.jdas
-import main.r
+import main.*
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
@@ -209,15 +206,8 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
             punishments.forEach { punishment ->
                 if (punishment != null) {
                     if (punishment.type == Punishment.Type.MUTE) {
-                        event.guild.controller.removeRolesFromMember(unmuteMember, event.guild.getRolesByName("muted", true))
-                                .reason("Unmuted by ${event.author.withDiscrim()}")
-                                .queue({
-                                    r.table("punishments").get(punishment.id).delete().runNoReply(conn)
-                                    event.channel.send("Successfully unmuted **{0}**".tr(event, unmuteMember.withDiscrim()))
-                                }, {
-                                    event.channel.send("Failed to unmute **{0}** - Please give me proper permissions to remove roles".tr(event, unmuteMember.withDiscrim()))
-                                })
-                        return
+                        r.table("punishments").get(punishment.id).delete().runNoReply(conn)
+                        event.channel.send("Successfully unmuted **{0}**".tr(event, unmuteMember.withDiscrim()))
                     }
                 }
             }
@@ -241,21 +231,18 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
 
         with("shutdown", null, "shut down the bot and begin update process", { arguments, event ->
             if (event.isAdministrator(true)) {
-                jdas.forEach {
-                    it.guilds.forEach { guild ->
-                        var default = guild.getTextChannelsByName("general", true)
-                        if (default.size == 0) default = guild.getTextChannelsByName("default", true)
-                        var sent = true
-                        if (default.size == 0) guild.textChannels.forEach {
-                            if (it.canTalk() && sent) {
-                                it.send(arguments.without(arguments[0]).concat())
-                                sent = false
-                            }
-                        }
-                        else default[0].send(arguments.without(arguments[0]).concat())
+                managers.forEach {
+                    val tracks = mutableListOf<String>()
+                    if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
+                    it.value.scheduler.manager.queue.forEach { song -> if (song != null) tracks.add(song.track.info.uri) }
+                    val guild = getGuildById(it.key.toString())
+                    if (guild != null) {
+                        QueueModel(guild.id, guild.selfMember.voiceChannel()?.id ?: "", it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
+                        (it.value.scheduler.manager.getChannel() ?: it.value.scheduler.channel)?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(guild))
                     }
-                    it.shutdownNow()
                 }
+                event.channel.send("Shutting down now!")
+                jdas.forEach { it.shutdown() }
                 System.exit(0)
             }
         })

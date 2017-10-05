@@ -25,7 +25,7 @@ class Daily : Command(Category.RPG, "daily", "get a daily stipend of gold") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.author.getData()
         if (data.canCollect()) event.channel.send("You got **{0}** gold today!".tr(event, data.collect()))
-        else event.channel.send("You already got your daily today!".tr(event))
+        else event.channel.send("You already got your daily today!".tr(event) + " " + "You'll next be able to redeem it at **{0}**".tr(event, data.collectionTime()))
     }
 
     override fun registerSubcommands() {
