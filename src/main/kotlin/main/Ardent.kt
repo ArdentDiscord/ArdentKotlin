@@ -30,6 +30,7 @@ import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.Game
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
+import okhttp3.OkHttpClient
 import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
 import translation.Translate
@@ -66,6 +67,8 @@ val youtube: YouTube = setupYoutube()
 
 val shards = 2
 
+val httpClient = OkHttpClient()
+
 fun main(args: Array<String>) {
     val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
             .execute()
@@ -75,7 +78,7 @@ fun main(args: Array<String>) {
         (1..shards).forEach { sh ->
             jdas.add(JDABuilder(AccountType.BOT)
                     .setCorePoolSize(10)
-                    .setGame(Game.of("Try out /lang", "https://twitch.tv/ "))
+                    .setGame(Game.of("Starting my engine..."))
                     .addEventListener(waiter)
                     .addEventListener(factory)
                     .addEventListener(JoinRemoveEvents())
@@ -141,11 +144,11 @@ fun addCommands() {
             Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
             JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
-            Mute(), Unmute(), Punishments(), Nono(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
+            Mute(), Unmute(), Punishments(), Nono(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), IamCommand(),
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), MutualGuilds(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
-            Rewind(), AudioAnalysisCommand())
+            Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo())
 }
 
 /**

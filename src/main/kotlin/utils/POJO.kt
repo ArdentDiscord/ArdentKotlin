@@ -37,10 +37,13 @@ data class AnnouncementModel(var date: Long, var writer: String, var content: St
 
 data class QueueModel(val guildId: String, val voiceId: String, val channelId: String?, val music: MutableList<String /* URI */>)
 data class ProofreadPhrase(val original: ArdentPhraseTranslation, val phrase: String, val hasChecker: Boolean, val suggestions: MutableList<String> = mutableListOf(), var suggestionString: String = "", var hasSuggestions: Boolean = true)
-data class GuildData(val id: String, var prefix: String?, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var iamList: MutableList<Iam> = mutableListOf(), var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null, var defaultRole: String? = null, var allowGlobalOverride: Boolean = false, var language: ArdentLanguage?)
+data class GuildData(val id: String, var prefix: String?, var musicSettings: MusicSettings, var advancedPermissions: MutableList<String>, var iamList: MutableList<Iam> = mutableListOf(),
+                     var joinMessage: Pair<String?, String? /* Message then Channel ID */>? = null, var leaveMessage: Pair<String?, String?>? = null,
+                     var defaultRole: String? = null, var allowGlobalOverride: Boolean = false, var language: ArdentLanguage?, var blacklistedUsers: MutableList<String>?,
+                     var blacklistedRoles: MutableList<String>?, var blacklistedChannels: MutableList<String>?)
 data class Iam(var name: String, var roleId: String)
 data class MusicSettings(var announceNewMusic: Boolean = false, var singleSongInQueueForMembers: Boolean = false, var membersCanMoveBot: Boolean = true,
-                         var membersCanSkipSongs: Boolean = false, var autoQueueSongs: Boolean = false)
+                         var membersCanSkipSongs: Boolean = false, var autoQueueSongs: Boolean = false, var stayInChannel: Boolean? = false)
 
 data class UDSearch(val tags: List<String>, val result_type: String, val list: List<UDResult>, val sounds: List<String>)
 

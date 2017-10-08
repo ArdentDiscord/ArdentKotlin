@@ -57,6 +57,11 @@ fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
 }
 
+fun Member.hasRole(vararg searchRoles: String): Boolean {
+    roles.forEach { memberRole -> if (searchRoles.contains(memberRole.id)) return true }
+    return false
+}
+
 fun String.toRole(guild: Guild): Role? {
     return try {
         guild.getRoleById(this)
@@ -122,7 +127,7 @@ fun Member.embed(title: String, color: Color = Color.DARK_GRAY): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
             .setColor(if (color != Color.DARK_GRAY) color else
                 when (random.nextBoolean()) {
-                    true -> Color.BLUE; else -> Color.LIGHT_GRAY
+                    true -> Color.BLUE; else -> Color.DARK_GRAY;
                 })
             .setFooter("Served by Ardent {0} | By {1} and {2}".tr(guild, Emoji.COPYRIGHT_SIGN.symbol, getUserById("169904324980244480")?.withDiscrim() ?: "Unknown", getUserById("188505107057475585")!!.withDiscrim()), user.avatarUrl)
 }
@@ -164,6 +169,12 @@ fun getUserById(id: String?): User? {
     return id?.toUser()
 }
 
+fun getGuildsByName(name: String, ignoreCase: Boolean = true): MutableList<Guild> {
+    val guilds = mutableListOf<Guild>()
+    jdas.forEach { guilds.addAll(it.getGuildsByName(name, ignoreCase)) }
+    return guilds
+}
+
 fun guilds(): ArrayList<Guild> {
     val guilds = arrayListOf<Guild>()
     jdas.forEach { guilds.addAll(it.guilds) }
@@ -180,13 +191,31 @@ fun List<String>.toUsers(): String {
     return map { it.toUser()?.withDiscrim() ?: "Unknown" }.stringify()
 }
 
+fun Guild.getShard(): Int {
+    return ((id.toLong() shr 22) % shards).toInt()
+}
+
 fun Guild.getData(): GuildData {
     try {
         val guildData = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
-        if (guildData != null) return guildData
+        if (guildData != null) {
+            if (guildData.blacklistedUsers == null || guildData.blacklistedRoles == null || guildData.blacklistedChannels == null) {
+                guildData.blacklistedUsers = if (guildData.blacklistedUsers == null) mutableListOf() else guildData.blacklistedUsers
+                guildData.blacklistedRoles = if (guildData.blacklistedRoles == null) mutableListOf() else guildData.blacklistedRoles
+                guildData.blacklistedChannels = if (guildData.blacklistedChannels == null) mutableListOf() else guildData.blacklistedChannels
+                guildData.update()
+            }
+            if (guildData.musicSettings.stayInChannel == null) {
+                guildData.musicSettings.stayInChannel = false
+                guildData.update()
+            }
+            return guildData
+        }
     } catch (e: Exception) {
+        e.printStackTrace()
     }
-    val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>(), language = "en".toLanguage()!!)
+    val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf(), language = "en".toLanguage()!!,
+            blacklistedUsers = mutableListOf(), blacklistedRoles = mutableListOf(), blacklistedChannels = mutableListOf())
     data.insert("guilds")
     return data
 }
@@ -415,7 +444,7 @@ data class LoggedCommand(val commandId: String, val userId: String, val executio
 
 class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0, val reminders: MutableList<Reminder> = mutableListOf()) {
     fun canCollect(): Boolean {
-        return ((System.currentTimeMillis() - collected) / 1000) > 86399;
+        return ((System.currentTimeMillis() - collected) / 1000) > 86399
     }
 
     fun collectionTime(): String {
@@ -619,8 +648,8 @@ class Internals {
 
             val query = r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java)
             tracksPlayed = query.size.toLong()
-            val tempMusicPlayed = 0.0
-            query.forEach { if (it != null) musicPlayed += it.position }
+            var tempMusicPlayed = 0.0
+            query.forEach { if (it != null) tempMusicPlayed += it.position }
             if (tempMusicPlayed != musicPlayed) musicPlayed = tempMusicPlayed
         }, 0, 10, TimeUnit.SECONDS)
     }

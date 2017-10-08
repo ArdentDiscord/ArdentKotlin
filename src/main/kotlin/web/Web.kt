@@ -983,6 +983,15 @@ class Web {
                                             map.replace("showSnackbar", true)
                                             map.put("snackbarMessage", "Successfully updated the Announce Music setting")
                                         }
+                                        "stayinvc" -> {
+                                            val state: String? = request.queryParams("state")
+                                            when (state) {
+                                                "on" -> data.musicSettings.stayInChannel = true
+                                                else -> data.musicSettings.stayInChannel = false
+                                            }
+                                            map.replace("showSnackbar", true)
+                                            map.put("snackbarMessage", "Successfully updated the voice channel option")
+                                        }
                                         "trusteveryone" -> {
                                             val state: String? = request.queryParams("state")
                                             when (state) {
@@ -1083,7 +1092,7 @@ class Web {
                                             }
                                         }
                                     }
-                                    data.update()
+                                    data.update(true)
                                     manage(map, guild)
                                     ModelAndView(map, "manageGuild.hbs")
                                 } else {
@@ -1238,6 +1247,7 @@ fun manage(map: HashMap<String, Any>, guild: Guild) {
     else map.put("leaveMessage", data.leaveMessage!!.first!!)
     map.put("channels", channels)
     map.put("autoplayMusic", data.musicSettings.autoQueueSongs)
+    map.put("stayInVc", data.musicSettings.stayInChannel == true)
     map.put("data", data)
 }
 

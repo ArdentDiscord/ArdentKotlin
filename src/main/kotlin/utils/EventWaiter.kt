@@ -15,10 +15,10 @@ import java.util.concurrent.TimeUnit
 
 class EventWaiter : EventListener {
     val executor = Executors.newScheduledThreadPool(35)
-    val gameEvents = CopyOnWriteArrayList<Triple<String, Long, Pair<((Message) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
-    val reactionEvents = CopyOnWriteArrayList<Quadruple<String, String, /* Message ID */ Long, Pair<((User, MessageReaction) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
-    val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
-    val reactionAddEvents = CopyOnWriteArrayList<Pair<Settings, (MessageReaction) -> Unit>>()
+    private val gameEvents = CopyOnWriteArrayList<Triple<String, Long, Pair<((Message) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
+    private val reactionEvents = CopyOnWriteArrayList<Quadruple<String, String, /* Message ID */ Long, Pair<((User, MessageReaction) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
+    private val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
+    private val reactionAddEvents = CopyOnWriteArrayList<Pair<Settings, (MessageReaction) -> Unit>>()
 
     @SubscribeEvent
     fun onEvent(e: Event) {

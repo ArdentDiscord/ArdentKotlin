@@ -892,7 +892,6 @@ class GuessTheNumberGame(channel: TextChannel, creator: String, val gameType: Ty
                         userData.gold += bonus
                         userData.update()
                     }
-                    game.data!!.game = null
                     cleanup(game.data!!)
                 }
             }

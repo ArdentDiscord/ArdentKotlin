@@ -179,13 +179,16 @@ class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: 
                     try {
                         val get = spotifyApi.search.searchTrack(track.info.title.rmCharacters("()").rmCharacters("[]")
                                 .replace("ft.", "").replace("feat", "")
-                                .replace("feat.", ""), 1)
+                                .replace("feat.", ""))
                         if (get.items.isEmpty()) {
                             (channel ?: manager.getChannel())?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(channel!!.guild))
                             return
                         }
-                        spotifyApi.browse.getRecommendations(seedTracks = listOf(get.items[0].id), limit = 1).tracks[0].name.load(guild.selfMember, channel ?: guild.defaultChannel, true)
+                        val recommendation = spotifyApi.browse.getRecommendations(seedTracks = listOf(get.items[0].id), limit = 1).tracks[0]
+                        println("${recommendation.name} by ${recommendation.artists[0].name}")
+                        "${recommendation.name} by ${recommendation.artists[0].name}".load(guild.selfMember, channel ?: guild.defaultChannel)
                     } catch (ignored: Exception) {
+                        ignored.printStackTrace()
                     }
                 } else manager.nextTrack()
             }

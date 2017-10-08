@@ -58,7 +58,7 @@ class ProfileCommand : Command(Category.RPG, "profile", "see your or others' pro
         val ticTacToeData = data.ticTacToeData()
         val spouse = profiled.getMarriage()
         val embed = event.member.embed("${profiled.withDiscrim()}'s Profile")
-                .setThumbnail(profiled.effectiveAvatarUrl)
+                .setThumbnail("https://robohash.org/${profiled.id}")
         if (profiled.isStaff()) embed.addField("Ardent Status", "Staff Member", true)
         else embed.addField("Patron Level", data.donationLevel.readable, true)
         embed.addField("Money", "**${data.gold}** gold", true)

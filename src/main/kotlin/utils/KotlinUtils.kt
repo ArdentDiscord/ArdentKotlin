@@ -139,8 +139,9 @@ fun PlayerData.update() {
     r.table("playerData").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
 }
 
-fun GuildData.update() {
-    r.table("guilds").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
+fun GuildData.update(blocking: Boolean = false) {
+    if (!blocking) r.table("guilds").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
+    else r.table("guilds").get(id).update(r.json(getGson().toJson(this))).run<Any>(conn)
 }
 
 fun Long.formatMinSec(): String {

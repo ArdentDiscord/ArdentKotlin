@@ -3,9 +3,11 @@ package commands.info
 import events.Category
 import events.Command
 import main.factory
+import main.waiter
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import utils.Settings
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
@@ -43,17 +45,7 @@ class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent
     }
 }
 
-
-class WebPanel : Command(Category.ADMINISTRATE, "webpanel", "administrate the settings for your server", "panel") {
-    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Visit our new web panel for an easy way to manage your settings - {0}".tr(event).trReplace(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
-    }
-
-    override fun registerSubcommands() {
-    }
-}
-
-class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server") {
+class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server", "manage", "webpanel") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Visit our new web panel for an easy way to manage your settings - {0}".tr(event).trReplace(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
     }
@@ -93,14 +85,51 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                 }
                 data.update()
                 builder.append("\n").append("**Give yourself one of these roles by typing _/iam NAME_**".tr(event))
+                builder.append("\n\n").append("**TIP**: You can create autoroles using */settings* or */iam create*".tr(event))
             }
-            event.channel.send(embed.setDescription(builder.toString()))
+            var curr = 0
+            while (curr < builder.length) {
+                event.channel.send(embed.setDescription(builder.substring(curr, if ((curr + 2048) <= builder.length) curr + 2048 else builder.length)))
+                curr += 2048
+            }
             return
         }
         val name = arguments.concat()
+        if (name.equals("create", true)) {
+            if (event.member.hasOverride(event.textChannel)) {
+                event.channel.send("What do you want the name of this autorole to be? Type it below")
+                waiter.waitForMessage(Settings(event.author.id, event.textChannel.id, event.guild.id), { nameMessage ->
+                    val autoroleName = nameMessage.rawContent
+                    event.channel.send("What role do you want **$autoroleName** to give? Type its name below, or type `cancel` to cancel setup")
+                    waiter.waitForMessage(Settings(event.author.id, event.textChannel.id, event.guild.id), { roleMessage ->
+                        if (roleMessage.rawContent.equals("cancel", true)) {
+                            event.channel.send("${Emoji.WHITE_HEAVY_CHECKMARK} Cancelled autorole setup")
+                        } else {
+                            val role = event.message.mentionedRoles.getOrNull(0) ?: event.guild.getRolesByName(roleMessage.rawContent, true).getOrNull(0)
+                            if (role == null) event.channel.send("You specified an invalid role... Cancelling")
+                            else {
+                                var cont = true
+                                data.iamList.forEach {
+                                    if (it.name == autoroleName) {
+                                        event.channel.send("You can't have two autoroles with the same name!")
+                                        cont = false
+                                    }
+                                }
+                                if (cont) {
+                                    data.iamList.add(Iam(autoroleName, role.id))
+                                    data.update()
+                                    event.channel.send("${Emoji.WHITE_HEAVY_CHECKMARK} Successfully created autorole **$autoroleName**")
+                                }
+                            }
+                        }
+                    })
+                })
+            }
+            return
+        }
         var found = false
         data.iamList.forEach { iterator, current ->
-            if (current.name.equals(name, true)) {
+            if (current.name.replace(" ", "").equals(name.replace(" ", ""), true)) {
                 val role = current.roleId.toRole(event.guild)
                 if (role == null) {
                     iterator.remove()
@@ -194,7 +223,7 @@ class Help : Command(Category.BOT_INFO, "help", "can you figure out what this do
         val embed = event.member.embed("Ardent | Command List")
         Category.values().forEach { category ->
             embed.appendDescription("**" + category.fancyName.tr(event) + "** :  " +
-                    category.getCommands().map { "`" + it.name.tr(event) + "`" }.stream().collect(Collectors.joining("    ")) +
+                    category.getCommands().toMutableList().shuffle().map { "`" + it.name.tr(event) + "`" }.stream().collect(Collectors.joining("    ")) +
                     "\n\n")
         }
         embed.appendDescription("__" + "To see detailed information about a command, type {0}help *command name*".tr(event, event.guild.getPrefix()) + "__")
@@ -304,20 +333,20 @@ class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for A
 
 class Status : Command(Category.BOT_INFO, "status", "check realtime statistics about the bot") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val onlyBot = guilds().filter { it.botSize() == 0}.count()
+        val onlyBot = guilds().filter { it.botSize() == 1 }.count()
         event.channel.send(event.member.embed("Ardent Realtime Status")
                 .addField("Loaded Commands".tr(event), internals.commandCount.toString(), true)
                 .addField("Messages Received".tr(event), formatter.format(internals.messagesReceived), true)
                 .addField("Commands Received".tr(event), formatter.format(internals.commandsReceived), true)
                 .addField("Servers".tr(event), formatter.format(internals.guilds), true)
-                .addField("Servers w/Ardent as only bot".tr(event), formatter.format(onlyBot) + " (${(onlyBot / guilds().size.toFloat()).format()}%)", true)
                 .addField("Users".tr(event), formatter.format(internals.users), true)
                 .addField("Loaded Music Players".tr(event), formatter.format(internals.loadedMusicPlayers), true)
                 .addField("Queue Length".tr(event), "{0} tracks".tr(event, formatter.format(internals.queueLength)), true)
-                .addField("Total Music Played".tr(event), "{0} hours, {1} minutes".tr(event, internals.musicPlayed.toInt().format(), internals.musicPlayed.toMinutes()), true)
+                .addField("Total Music Played".tr(event), "{0} days".tr(event, (internals.musicPlayed.toFloat() / 24).format()), true)
                 .addField("CPU Usage".tr(event), "${internals.cpuUsage}%", true)
                 .addField("RAM Usage".tr(event), "${internals.ramUsage.first} / ${internals.ramUsage.second} mb", true)
                 .addField("Uptime".tr(event), internals.uptimeFancy, true)
+                .addField("Servers w/Ardent as only bot".tr(event), formatter.format(onlyBot) + " (${(onlyBot * 100 / guilds().size.toFloat()).format()}%)", true)
                 .addField("Website".tr(event), "https://ardentbot.com", true))
     }
 
