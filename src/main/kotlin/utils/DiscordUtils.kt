@@ -336,15 +336,17 @@ fun Guild.donationLevel(): DonationLevel {
 }
 
 fun User.getData(): PlayerData {
-    var data: Any? = r.table("playerData").get(id).run(conn)
+    val data = r.table("playerData").get(id).run<HashMap<*, *>>(conn)
     if (data != null) {
-        val pd = asPojo(data as HashMap<*, *>?, PlayerData::class.java)!!
-        if (isStaff()) pd.donationLevel = DonationLevel.EXTREME
-        return pd
+        val pd = asPojo(data, PlayerData::class.java)
+        if (pd != null) {
+            if (isStaff()) pd.donationLevel = DonationLevel.EXTREME
+            return pd
+        }
     }
-    data = PlayerData(id, DonationLevel.NONE)
-    data.insert("playerData")
-    return data
+    val player = PlayerData(id, DonationLevel.NONE)
+    player.insert("playerData")
+    return player
 }
 
 fun Member.id(): String {

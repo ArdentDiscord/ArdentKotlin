@@ -232,24 +232,26 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
             if (event.isAdministrator(true)) eval(arguments, event)
         })
         with("inv", "inv server-name", "generate a temporary invite to investigate bot abuses", { arguments, event ->
-            val guilds = getGuildsByName(arguments.concat(), true)
-            guilds.forEach { guild ->
-                try {
-                    guild.invites.queue { invites ->
-                        if (invites.size > 0) event.channel.send("Found invite https://discord.gg/${invites[0].code} for guild with id **${guild.id}**")
-                        else "hi dad".toInt()
-                    }
-                } catch (e: Exception) {
+            if (event.isAdministrator(true)) {
+                val guilds = getGuildsByName(arguments.concat(), true)
+                guilds.forEach { guild ->
                     try {
-                        (guild.defaultChannel ?: guild.textChannels[0]).createInvite().setMaxUses(1).setTemporary(true).setMaxAge(5L, TimeUnit.MINUTES)
-                                .reason("Temporary Invite - Testing").queue { invite -> event.channel.send("Generated invite https://discord.gg/${invite.code} for id **${guild.id}**") }
-
+                        guild.invites.queue { invites ->
+                            if (invites.size > 0) event.channel.send("Found invite https://discord.gg/${invites[0].code} for guild with id **${guild.id}**")
+                            else "hi dad".toInt()
+                        }
                     } catch (e: Exception) {
-                        event.channel.send("Cannot retrieve invite for guild with ID **${guild.id}** - owner is ${guild.owner.asMention}")
+                        try {
+                            (guild.defaultChannel ?: guild.textChannels[0]).createInvite().setMaxUses(1).setTemporary(true).setMaxAge(5L, TimeUnit.MINUTES)
+                                    .reason("Temporary Invite - Testing").queue { invite -> event.channel.send("Generated invite https://discord.gg/${invite.code} for id **${guild.id}**") }
+
+                        } catch (e: Exception) {
+                            event.channel.send("Cannot retrieve invite for guild with ID **${guild.id}** - owner is ${guild.owner.asMention}")
+                        }
                     }
                 }
+                if (guilds.size == 0) event.channel.send("No guild found with that name")
             }
-            if (guilds.size == 0) event.channel.send("No guild found with that name")
         })
 
         with("shutdown", null, "shut down the bot and begin update process", { arguments, event ->

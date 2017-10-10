@@ -135,8 +135,9 @@ fun <K> MutableMap<K, Int>.incrementValue(key: K): Int {
     return value
 }
 
-fun PlayerData.update() {
-    r.table("playerData").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
+fun PlayerData.update(blocking: Boolean = false) {
+    if (!blocking) r.table("playerData").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
+    else r.table("playerData").get(id).update(r.json(getGson().toJson(this))).run<Any>(conn)
 }
 
 fun GuildData.update(blocking: Boolean = false) {

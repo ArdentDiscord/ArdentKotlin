@@ -329,6 +329,7 @@ class Volume : Command(Category.MUSIC, "volume", "see and change the volume of t
         } else {
             if (!event.member.hasDonationLevel(event.textChannel, DonationLevel.BASIC)) return
             if (!event.member.checkSameChannel(event.textChannel)) return
+            if (!event.member.hasOverride(event.textChannel, true, djCommand = true)) return
             val setTo: Int? = arguments[0].replace("%", "").toIntOrNull()
             if (setTo == null || setTo < 0 || setTo > 100) event.channel.send("You need to specify a valid percentage. Example: *{0}volume 99%".tr(event, event.guild.getPrefix()))
             else {

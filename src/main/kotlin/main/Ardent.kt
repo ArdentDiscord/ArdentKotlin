@@ -103,14 +103,14 @@ fun main(args: Array<String>) {
                         0 -> "Serving ${internals.guilds.format()} guilds"
                         1 -> "Serving ${internals.users.format()} users"
                         2 -> "${internals.loadedMusicPlayers} servers playing music"
-                        3 -> "Fluent in 3 languages"
+                        3 -> "In 3 languages"
                         4 -> "Try out /lang"
                         5 -> "${internals.commandCount} available commands"
                         else -> "Adam Approved ${Emoji.COPYRIGHT_SIGN}"
                     }, "https://twitch.tv/ ")
         }
     }, 20, 25, TimeUnit.SECONDS)
-    waiter.executor.schedule({ checkQueueBackups() }, 60, TimeUnit.SECONDS)
+    waiter.executor.schedule({ checkQueueBackups() }, 45, TimeUnit.SECONDS)
 }
 
 /**
@@ -148,7 +148,7 @@ fun addCommands() {
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), MutualGuilds(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
-            Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo())
+            Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand())
 }
 
 /**

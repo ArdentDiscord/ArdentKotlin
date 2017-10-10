@@ -788,15 +788,13 @@ class SlotsGame(channel: TextChannel, creator: String, playerCount: Int, isPubli
                 channel.send("You specified an invalid bet, please retry...".tr(channel.guild))
                 doRound(member)
             } else {
-                Thread.sleep(500)
                 var slots = SlotsGame()
                 if (!slots.won()) slots = SlotsGame()
                 channel.send(member.embed("Slots Results".tr(channel.guild)).setDescription("${if (slots.won()) "Congrats, you won **{0}** gold".tr(channel.guild, bet) else "Darn, you lost **{0}** gold :(".tr(channel.guild, bet)}\n$slots)"))
                 if (slots.won()) data.gold += bet
                 else data.gold -= bet
-                data.update()
+                data.update(true)
                 rounds.add(Round(bet, slots.won(), slots.toString().replace("\n", "<br />")))
-                Thread.sleep(1500)
                 channel.selectFromList(member, "Do you want to go again?", mutableListOf("Yes".tr(channel.guild), "No".tr(channel.guild)), { goAgainMessage, selectionMessage ->
                     if (goAgainMessage == 0) doRound(member)
                     else finish(member)
@@ -904,7 +902,7 @@ class GuessTheNumberGame(channel: TextChannel, creator: String, val gameType: Ty
     }
 
     private fun Member.guess(guess: Int, gameData: GameDataGuessTheNumber): Boolean {
-        gameData.rounds.add(Round(guess, ((guess - gameData.number) / gameData.number.toDouble() * 100).toInt()))
+        gameData.rounds.add(Round(guess, ((guess - gameData.number) * 100 / gameData.number.toFloat())))
         return if (guess == gameData.number) true
         else {
             channel.sendMessage((if (guess > gameData.number) "Your guess was too **high**!" else "Your guess was too **low**!").tr(channel.guild)).queue { m ->
@@ -917,7 +915,7 @@ class GuessTheNumberGame(channel: TextChannel, creator: String, val gameType: Ty
     data class Game(val type: Type, val difficulty: Difficulty, var data: GameDataGuessTheNumber? = null)
     abstract class GameDataGuessTheNumber(gameId: Long, creator: String, startTime: Long, var game: Game?, val number: Int = Random().nextInt(game!!.difficulty.toValue()) + 1, val rounds: MutableList<Round> = mutableListOf()) : GameData(gameId, creator, startTime)
 
-    data class Round(val guess: Int, val errorPercentage: Int)
+    data class Round(val guess: Int, val errorPercentage: Float)
 
     class GameDataGuessThatNumberSolo(gameId: Long, creator: String, startTime: Long, game: Game) : GameDataGuessTheNumber(gameId, creator, startTime, game)
     class GameDataGuessThatNumberCoOp(gameId: Long, creator: String, startTime: Long, game: Game, val players: MutableList<String>) : GameDataGuessTheNumber(gameId, creator, startTime, game)

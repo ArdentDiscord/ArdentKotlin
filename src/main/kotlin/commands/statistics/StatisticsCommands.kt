@@ -1,5 +1,6 @@
 package commands.statistics
 
+import com.udojava.evalex.Expression
 import commands.music.getCurrentTime
 import commands.music.getGuildAudioPlayer
 import events.Category
@@ -70,6 +71,24 @@ class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", 
                     " **${l.readable}**: *$usages servers* (${"%.2f".format(usages * 100 / guilds.size.toFloat())}%)\n")
         }
         event.channel.send(embed)
+    }
+
+    override fun registerSubcommands() {
+    }
+}
+
+class CalculateCommand : Command(Category.STATISTICS, "calculate", "evaluate a mathematical expression", "calculate", "calc") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size == 0) event.channel.send("Please type an expression to evaluate. You can also use functions like **SQRT(NUMBER)** as defined at {0}"
+                .tr(event, "<https://github.com/uklimaschewski/EvalEx#supported-functions>"))
+        else {
+            try {
+                event.channel.send(Expression(arguments.concat()).eval().toPlainString())
+            }
+            catch(e: Exception) {
+                event.channel.send("The expression you entered is invalid!".tr(event))
+            }
+        }
     }
 
     override fun registerSubcommands() {
