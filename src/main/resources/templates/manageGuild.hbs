@@ -50,6 +50,24 @@
             </div>
         </form>
         <br/>
+        <h5>Should I stay in a voice channel even when everyone else leaves?</h5>
+        <form action="/api/internal/data/{{guild.id}}/stayinvc">
+            <div class="row uniform 50%">
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="stayInVcOff" name="state" value="off"
+                           {{#unless stayInVc}}checked{{/unless}}>
+                    <label for="stayInVcOff">Disabled</label>
+                </div>
+                <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                    <input type="radio" id="stayInVcOn" name="state" value="on" {{#if stayInVc}}checked{{/if}}>
+                    <label for="stayInVcOn">Enabled</label>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Update" class="alt"/>
+                </div>
+            </div>
+        </form>
+        <br/>
         <h5>Do you want to allow everyone in your server to use music commands such as /stop and /skip? </h5>
         <form action="/api/internal/data/{{guild.id}}/trusteveryone">
             <div class="row uniform 50%">

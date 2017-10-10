@@ -16,12 +16,12 @@ class JoinRemoveEvents {
         logChannel?.send("\uD83D\uDC4D Joined guild ${guild.name} - ${guild.members.size} members and ${guild.members.filter { it.user.isBot }.size} bots")
         SimpleLoggedEvent(guild.id, EventType.JOINED_GUILD).insert("events")
         try {
-            guild.defaultChannel?.sendMessage("Thanks for adding Ardent! To open an interactive list where you can see our list of commands, please " +
-                    "type `/help` or `ardent help`. You can change the default prefix, which is a forward slash, by typing `/prefix set prefix_here`, " +
-                    "but if you forget what you set it as, remember that `ardent help` will always work.\n" +
-                    "Happy Discording and best wishes from the development team!")?.queue()
-        } catch (e: Exception) {
-            return
+            Thread.sleep(5000)
+            (guild.getTextChannelById(guild.id) ?: guild.getDefaultWritingChannel())?.send(
+                    guild.owner.embed("Thanks for adding Ardent!")
+                            .appendDescription("If you're new to Ardent, you can read our *Getting Started* page by clicking [here](https://ardentbot.com/getting-started) or see a list of " +
+                                    "available commands by typing **/help**"))
+        } catch (ignored: Exception) {
         }
     }
 
@@ -52,6 +52,7 @@ class JoinRemoveEvents {
                                 })
                             })
                 } catch (e: Exception) {
+                    e.log()
                 }
             }
         }
@@ -80,6 +81,9 @@ class JoinRemoveEvents {
     fun onGuildLeave(e: GuildLeaveEvent) {
         SimpleLoggedEvent(e.guild.id, EventType.LEFT_GUILD).insert("events")
         val guild = e.guild
+        guild.owner.user.openPrivateChannel().queue {
+            it.send("We're sorry to see you leave. If you had any issues that caused you to remove Ardent, you can join https://discord.gg/sVkfYbX and tell us.")
+        }
         logChannel?.send("\uD83D\uDC4E Left guild ${guild.name} - ${guild.members.size} members and ${guild.members.filter { it.user.isBot }.size} bots")
     }
 }

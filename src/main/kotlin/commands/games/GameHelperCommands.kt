@@ -9,20 +9,23 @@ import java.util.concurrent.TimeUnit
 
 class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running game") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        var found = false
         gamesInLobby.forEach { game ->
             if (game.creator == event.author.id) {
+                found = true
                 event.channel.send("${Emoji.HEAVY_EXCLAMATION_MARK_SYMBOL}" +
                         "Are you sure you want to cancel your __{0}__ game? Type **".tr(event, game.type.readable) + "yes".tr(event) + "** if so or **" + "no".tr(event) + "** if you're not sure.".tr(event, game.type.readable) + "\n" +
                         "Current players in lobby: *{0}*".tr(event, game.players.toUsers()))
                 waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { message ->
-                    if (message.content.equals("yes".tr(event), true)) {
+                    if (message.rawContent.startsWith("ye") || message.rawContent.startsWith("yes".tr(event))) {
                         game.cancel(event.member)
                     } else event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "I'll keep the game in lobby".tr(event))
+                }, {
+                    event.channel.send("You're not the creator of a game in lobby!".tr(event) + " ${Emoji.NO_ENTRY_SIGN}")
                 })
-                return
             }
         }
-        event.channel.send("You're not the creator of a game in lobby!".tr(event) + " ${Emoji.NO_ENTRY_SIGN}")
+        if (!found) event.channel.send("You're not the creator of a game in lobby!".tr(event) + " ${Emoji.NO_ENTRY_SIGN}")
     }
 
     override fun registerSubcommands() {

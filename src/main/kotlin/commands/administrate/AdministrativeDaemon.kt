@@ -49,19 +49,19 @@ class AdministrativeDaemon : Runnable {
         if (!test) {
             val stats = internals
             try {
-                println(Jsoup.connect("https://discordbots.org/api/bots/339101087569281045/stats")
+                Jsoup.connect("https://discordbots.org/api/bots/339101087569281045/stats")
                         .header("Authorization", config.getValue("discordbotsorg"))
                         .data("server_count", stats.guilds.toString())
                         .ignoreHttpErrors(true)
                         .ignoreContentType(true)
-                        .post().body().text())
-                println(Jsoup.connect("https://bots.discord.pw/api/bots/339101087569281045/stats")
+                        .post().body().text()
+                Jsoup.connect("https://bots.discord.pw/api/bots/339101087569281045/stats")
                         .header("Authorization", config.getValue("botsdiscordpw"))
                         .header("Content-Type", "application/json")
                         .requestBody("{\"server_count\": ${stats.guilds}}")
                         .ignoreHttpErrors(true)
                         .ignoreContentType(true)
-                        .post().body().text())
+                        .post().body().text()
             } catch (e: Exception) {
                 e.log()
             }

@@ -1,18 +1,17 @@
 package commands.administrate
 
-import com.patreon.API
+import com.patreon.PatreonAPI
 import main.config
 import main.conn
 import main.hangout
 import main.r
-import org.json.JSONObject
 import utils.*
 import java.util.concurrent.CopyOnWriteArrayList
 
 val staff = CopyOnWriteArrayList<Staff>()
 
 class RanksDaemon : Runnable {
-    val api = API(config.getValue("patreon"))
+    val api = PatreonAPI(config.getValue("patreon"))
     override fun run() {
         try {
             val staffMembers = r.table("staff").run<Any>(conn).queryAsArrayList(Staff::class.java)
@@ -22,61 +21,47 @@ class RanksDaemon : Runnable {
                     staff.add(member)
                 }
             }
-            val arrayedCampaignData = api.fetchCampaignAndPatrons().getJSONArray("included")
-            val mappedPatreonDiscordIds = hashMapOf<String, String>()
-            val successfulSearches = mutableListOf<String>()
-            arrayedCampaignData.forEach {
-                val current = it as JSONObject
-                val patreonId = current.getString("id")
-                if (current.getString("type") == "user" && patreonId != "5140688") {
-                    try {
-                        val discordId = current.getJSONObject("attributes").getJSONObject("social_connections").toString().split("{\"user_id\":\"")[1].removeSuffix("\"},\"twitch\":null,\"facebook\":null,\"spotify\":null}")
-                        mappedPatreonDiscordIds.put(patreonId, discordId)
-                        if (hangout != null) {
-                            val patronRole = hangout!!.getRolesByName("Patron", true)[0]
-                            hangout!!.members.forEach {
-                                if (it.id() == discordId) {
-                                    hangout!!.controller.addRolesToMember(hangout!!.getMemberById(it.id()), patronRole).queue()
-                                }
-                            }
+            val patrons = hashMapOf<String, DonationLevel>()
+            val pledgeResponse = api.getPledges("758508", 20, null)
+            pledgeResponse.pledges.forEach { pledge ->
+                pledgeResponse.patrons.forEach { patron ->
+                    val discordId = patron.attributes.discordId ?: patron.attributes.socialConnections.discord.userId
+                    if (discordId != null && patron.id == pledge.simplePatron.data.id) {
+                        if (pledge.attributes.declinedSince == null) {
+                            patrons.put(discordId, when (pledge.attributes.amountCents) {
+                                in 100..299 -> DonationLevel.SUPPORTER
+                                in 300..499 -> DonationLevel.BASIC
+                                in 500..999 -> DonationLevel.INTERMEDIATE
+                                else -> DonationLevel.EXTREME
+                            })
+                        } else {
+                            val user = getUserById(discordId)
+                            if (user != null) "365385845798207490".toChannel()!!.send("${user.asMention} **has declined payment** - go ask them and tell them they will lose their permissions")
                         }
-                    } catch(ignored: Throwable) {
+                    }
+
+                }
+            }
+            r.table("patrons").delete().runNoReply(conn)
+            val patronRole = hangout!!.getRolesByName("Patron", true)[0]
+            patrons.forEach { id, level ->
+                Patron(id, level).insert("patrons")
+                val member = hangout!!.getMemberById(id)
+                if (member != null && !member.roles.contains(patronRole)) {
+                    hangout!!.controller.addRolesToMember(member, patronRole).reason("Automated Patron Check").queue {
+                        member.user.openPrivateChannel().queue { it.send("Gave you the Patron role in **Ardent Hangout**. Thanks for supporting us!") }
+                        logChannel!!.send("Added Patron role to ${member.asMention}")
                     }
                 }
             }
-            arrayedCampaignData.forEach {
-                val current = it as JSONObject
-                if (current.getString("type") == "pledge") {
-                    val patreonId = current.getJSONObject("relationships").getJSONObject("patron")
-                            .getJSONObject("data").getString("id")
-                    val amount = current.getJSONObject("attributes").getInt("amount_cents")
-                    val level = when (amount) {
-                        in 100..299 -> DonationLevel.SUPPORTER
-                        in 300..499 -> DonationLevel.BASIC
-                        in 500..999 -> DonationLevel.INTERMEDIATE
-                        else -> DonationLevel.EXTREME
-                    }
-                    val discordId = mappedPatreonDiscordIds[patreonId]
-                    if (discordId != null) {
-                        successfulSearches.add(discordId)
-                        val info = asPojo(r.table("patrons").get(discordId).run(conn), Patron::class.java)
-                        if (info == null) Patron(discordId, level).insert("patrons")
-                        else if (info.donationLevel != level) r.table("patrons").get(discordId).update(r.hashMap("donationLevel", level.name)).runNoReply(conn)
-                    }
-                }
-            }
-            r.table("patrons").run<Any>(conn).queryAsArrayList(Patron::class.java).forEach { patron ->
-                if (patron != null) {
-                    if (!successfulSearches.contains(patron.id)) r.table("patrons").get(patron.id).delete().runNoReply(conn)
-                }
-            }
+            System.out.println("Updated ${patrons.size} patron records")
             r.table("playerData").run<Any>(conn).queryAsArrayList(PlayerData::class.java).forEach {
                 if (it != null) {
                     if (it.id.toUser() == null) r.table("playerData").get(it.id).delete().runNoReply(conn)
                 }
             }
-        } catch (e: Exception) {
-            e.log()
+        } catch (ignored: Exception) {
+            ignored.printStackTrace()
         }
     }
 }
@@ -87,6 +72,6 @@ data class Staff(val id: String, val role: StaffRole) {
     }
 }
 
-fun List<Staff>.filterByRole(role: Staff.StaffRole): MutableList<Staff> {
+fun filterByRole(role: Staff.StaffRole): MutableList<Staff> {
     return staff.filter { it.role == role }.toMutableList()
 }

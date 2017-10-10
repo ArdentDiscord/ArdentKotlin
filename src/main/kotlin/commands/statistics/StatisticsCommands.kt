@@ -1,11 +1,12 @@
 package commands.statistics
 
+import com.udojava.evalex.Expression
+import commands.music.getCurrentTime
+import commands.music.getGuildAudioPlayer
 import events.Category
 import events.Command
-import main.conn
-import main.factory
-import main.managers
-import main.r
+import main.*
+import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.ArdentLanguage
 import translation.Languages
@@ -26,14 +27,15 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
                 }
                 embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol + " " +
                         ("**{0}**:\n" +
-                                "           Now Playing: *{1}*\n" +
-                                "           Queue Length: *{2}*\n" +
-                                "           Total playback: *{3} hours, {4} minutes*")
+                                "           Now Playing: *{1}* {2}\n" +
+                                "           Queue Length: *{3}*\n" +
+                                "           Total playback: *{4} hours, {5} minutes*")
                                 .replace("{0}", guild.name)
                                 .replace("{1}", manager.player.playingTrack.info.title)
-                                .replace("{2}", manager.scheduler.manager.queue.size.toString())
-                                .replace("{3}", lengthHours.toInt().format())
-                                .replace("{4}", lengthHours.toMinutes().format())
+                                .replace("{2}", manager.player.playingTrack.getCurrentTime())
+                                .replace("{3}", manager.scheduler.manager.queue.size.toString())
+                                .replace("{4}", lengthHours.toInt().format())
+                                .replace("{5}", lengthHours.toMinutes().format())
                         + "\n")
                 total++
             }
@@ -67,6 +69,41 @@ class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", 
         langs.forEachIndexed { index, l, usages ->
             embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND).symbol +
                     " **${l.readable}**: *$usages servers* (${"%.2f".format(usages * 100 / guilds.size.toFloat())}%)\n")
+        }
+        event.channel.send(embed)
+    }
+
+    override fun registerSubcommands() {
+    }
+}
+
+class CalculateCommand : Command(Category.STATISTICS, "calculate", "evaluate a mathematical expression", "calculate", "calc") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (arguments.size == 0) event.channel.send("Please type an expression to evaluate. You can also use functions like **SQRT(NUMBER)** as defined at {0}"
+                .tr(event, "<https://github.com/uklimaschewski/EvalEx#supported-functions>"))
+        else {
+            try {
+                event.channel.send(Expression(arguments.concat()).eval().toPlainString())
+            }
+            catch(e: Exception) {
+                event.channel.send("The expression you entered is invalid!".tr(event))
+            }
+        }
+    }
+
+    override fun registerSubcommands() {
+    }
+}
+
+class ShardInfo : Command(Category.STATISTICS, "shards", "see specific detail about each Ardent shard", "shar", "shard") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val embed = event.member.embed("Ardent | Shard Information")
+        jdas.forEach { jda ->
+            embed.appendDescription("${Emoji.SMALL_BLUE_DIAMOND} __Shard **${jda.shardInfo.shardId}**__\n" +
+                    "       Guilds: *${jda.guilds.size}*\n" +
+                    "       Users: *${jda.users.size}*\n" +
+                    "       Commands Received: *${factory.commandsByShard[jda.shardInfo.shardId] ?: "None"}*\n" +
+                    "       Ping: *${jda.ping}* ms\n\n")
         }
         event.channel.send(embed)
     }
@@ -112,5 +149,83 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
     }
 
     override fun registerSubcommands() {
+    }
+}
+
+class GetGuilds : Command(Category.STATISTICS, "guilds", "get a hastebin paste of servers", "servers") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val builder = StringBuilder().append("Ardent Server Data, collected at ${System.currentTimeMillis().readableDate()}\n\n")
+        guilds().sortedByDescending { it.members.size }.forEach { guild -> builder.append("${guild.name} - ${guild.members.size} members & ${guild.botSize()} bots\n") }
+        event.channel.send("Click the following link to see server data:".tr(event) + " ${paste(builder.toString().removeSuffix("\n"))}")
+    }
+
+    override fun registerSubcommands() {
+    }
+}
+
+class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "get a list of servers I'm in with a specified user", "mutualservers") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val user = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
+        if (user.id == "339101087569281045") event.channel.send("Nice try :-)".tr(event))
+        val embed = event.member.embed("Ardent | Mutual Servers with ${user.name}")
+        getMutualGuildsWith(user).forEachIndexed { index, guild ->
+            if (embed.descriptionBuilder.length < 1900) embed.appendDescription("${(if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol} " +
+                    "**${guild.name}** - *${guild.members.size}* members, *${guild.members.filter { it.user.isBot }.count() * 100 / guild.members.size}*% bots\n")
+            else {
+                if (!embed.descriptionBuilder.endsWith("...")) embed.appendDescription("...")
+            }
+        }
+        event.channel.send(embed)
+    }
+
+    override fun registerSubcommands() {
+    }
+}
+
+class AudioAnalysisCommand : Command(Category.STATISTICS, "trackanalysis", "see an audio feature analysis for tracks", "audioanalysis") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        showHelp(event)
+    }
+
+    override fun registerSubcommands() {
+        with("current", null, "see an analysis for the currently playing track", { arguments, event ->
+            val playing = event.guild.getGuildAudioPlayer(event.textChannel).player.playingTrack
+            if (playing == null) event.channel.send("There isn't a currently playing track..".tr(event))
+            else {
+                val embed = getAnalysis(playing.info.title, event)
+                if (embed != null) event.channel.send(embed)
+            }
+        })
+        with("search", null, "see an analysis for the specified search term", { arguments, event ->
+            if (arguments.size == 0) event.channel.send("You need a search term!".tr(event))
+            else {
+                val embed = getAnalysis(arguments.concat(), event)
+                if (embed != null) event.channel.send(embed)
+            }
+        })
+    }
+
+    private fun getAnalysis(trackName: String, event: MessageReceivedEvent): EmbedBuilder? {
+        try {
+            val track = spotifyApi.search.searchTrack(trackName, 1).items[0]
+            val features = spotifyApi.tracks.getAudioFeatures(track.id)
+            return event.member.embed("Audio Analysis | {0}".tr(event, track.name))
+                    .addField("Acousticness", features.acousticness.times(100).format() + "%", true)
+                    .addField("Energy", features.energy.times(100).format() + "%", true)
+                    .addField("Liveness", features.liveness.times(100).format() + "%", true)
+                    .addField("Danceability", features.danceability.times(100).format() + "%", true)
+                    .addField("Instrumentalness", features.instrumentalness.times(100).format() + "%", true)
+                    .addField("Loudness", features.loudness.times(100).format() + "%", true)
+                    .addField("Speechiness", features.speechiness.times(100).format() + "%", true)
+                    .addField("Valence", features.valence.times(100).format() + "%", true)
+                    .addField("Tempo", features.tempo.format() + " bpm", true)
+                    .addField("Duration", features.duration_ms.toLong().formatMinSec(), true)
+                    .addField("Track Link", "https://open.spotify.com/track/${features.id}", true)
+                    .addField("Analysis URL", features.analysis_url, true)
+
+        } catch (e: Exception) {
+            event.channel.send("A track wasn't found by the name of **{0}**!".tr(event, trackName))
+        }
+        return null
     }
 }

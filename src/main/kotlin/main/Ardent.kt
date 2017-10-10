@@ -19,11 +19,8 @@ import commands.games.*
 import commands.info.*
 import commands.info.Settings
 import commands.music.*
-import commands.music.Queue
 import commands.rpg.*
-import commands.statistics.CommandDistribution
-import commands.statistics.MusicInfo
-import commands.statistics.ServerLanguagesDistribution
+import commands.statistics.*
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
@@ -33,6 +30,7 @@ import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.Game
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.hooks.AnnotatedEventManager
+import okhttp3.OkHttpClient
 import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
 import translation.Translate
@@ -41,10 +39,9 @@ import web.Web
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
-import java.util.*
 import java.util.concurrent.TimeUnit
 
-val test = true
+val test = false
 
 var hangout: Guild? = null
 
@@ -68,17 +65,20 @@ var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
 val sheets: Sheets = setupDrive()
 val youtube: YouTube = setupYoutube()
 
+val shards = 2
+
+val httpClient = OkHttpClient()
+
 fun main(args: Array<String>) {
     val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
             .execute()
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
     Web()
-    val shards = 2
     waiter.executor.execute {
         (1..shards).forEach { sh ->
             jdas.add(JDABuilder(AccountType.BOT)
                     .setCorePoolSize(10)
-                    .setGame(Game.of("Try out /lang", "https://twitch.tv/ "))
+                    .setGame(Game.of("Starting my engine..."))
                     .addEventListener(waiter)
                     .addEventListener(factory)
                     .addEventListener(JoinRemoveEvents())
@@ -103,14 +103,14 @@ fun main(args: Array<String>) {
                         0 -> "Serving ${internals.guilds.format()} guilds"
                         1 -> "Serving ${internals.users.format()} users"
                         2 -> "${internals.loadedMusicPlayers} servers playing music"
-                        3 -> "Fluent in 3 languages"
+                        3 -> "In 3 languages"
                         4 -> "Try out /lang"
                         5 -> "${internals.commandCount} available commands"
                         else -> "Adam Approved ${Emoji.COPYRIGHT_SIGN}"
                     }, "https://twitch.tv/ ")
         }
     }, 20, 25, TimeUnit.SECONDS)
-    waiter.executor.schedule({ checkQueueBackups() }, 60, TimeUnit.SECONDS)
+    waiter.executor.schedule({ checkQueueBackups() }, 45, TimeUnit.SECONDS)
 }
 
 /**
@@ -144,11 +144,11 @@ fun addCommands() {
             Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
             JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
-            Mute(), Unmute(), Punishments(), Nono(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), WebPanel(), IamCommand(),
-            IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), TopMoneyServer(), ProfileCommand(),
+            Mute(), Unmute(), Punishments(), Nono(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), IamCommand(),
+            IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), MutualGuilds(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
-            Rewind())
+            Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand())
 }
 
 /**
@@ -167,7 +167,7 @@ fun checkQueueBackups() {
                     voiceChannel.connect(channel)
                     Thread.sleep(1250)
                     channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at {0} - we'd really appreciate it".tr(guild, "<https://patreon.com/ardent>"))
-                    it.music.forEach { trackUri -> trackUri.load(guild.selfMember, null, null, guild = guild) }
+                    it.music.forEach { trackUri -> trackUri.load(guild.selfMember, null) }
                     println("Successfully resumed playback for ${guild.name}")
                 }
             }

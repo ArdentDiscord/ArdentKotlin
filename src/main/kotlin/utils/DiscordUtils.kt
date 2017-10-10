@@ -14,7 +14,6 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.*
 import java.awt.Color
 import java.lang.management.ManagementFactory
-import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -56,6 +55,11 @@ fun Guild.playerDatas(): MutableList<PlayerData> {
 
 fun Member.voiceChannel(): VoiceChannel? {
     return voiceState.channel
+}
+
+fun Member.hasRole(vararg searchRoles: String): Boolean {
+    roles.forEach { memberRole -> if (searchRoles.contains(memberRole.id)) return true }
+    return false
 }
 
 fun String.toRole(guild: Guild): Role? {
@@ -121,7 +125,10 @@ fun User.withDiscrim(): String {
 
 fun Member.embed(title: String, color: Color = Color.DARK_GRAY): EmbedBuilder {
     return EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
-            .setColor(color)
+            .setColor(if (color != Color.DARK_GRAY) color else
+                when (random.nextBoolean()) {
+                    true -> Color.BLUE; else -> Color.DARK_GRAY;
+                })
             .setFooter("Served by Ardent {0} | By {1} and {2}".tr(guild, Emoji.COPYRIGHT_SIGN.symbol, getUserById("169904324980244480")?.withDiscrim() ?: "Unknown", getUserById("188505107057475585")!!.withDiscrim()), user.avatarUrl)
 }
 
@@ -162,6 +169,12 @@ fun getUserById(id: String?): User? {
     return id?.toUser()
 }
 
+fun getGuildsByName(name: String, ignoreCase: Boolean = true): MutableList<Guild> {
+    val guilds = mutableListOf<Guild>()
+    jdas.forEach { guilds.addAll(it.getGuildsByName(name, ignoreCase)) }
+    return guilds
+}
+
 fun guilds(): ArrayList<Guild> {
     val guilds = arrayListOf<Guild>()
     jdas.forEach { guilds.addAll(it.guilds) }
@@ -178,17 +191,37 @@ fun List<String>.toUsers(): String {
     return map { it.toUser()?.withDiscrim() ?: "Unknown" }.stringify()
 }
 
+fun Guild.getShard(): Int {
+    return ((id.toLong() shr 22) % shards).toInt()
+}
+
 fun Guild.getData(): GuildData {
-    val guildData: GuildData? = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
-    return if (guildData != null) guildData
-    else {
-        val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf<String>(), language = "en".toLanguage()!!)
-        data.insert("guilds")
-        data
+    try {
+        val guildData = asPojo(r.table("guilds").get(this.id).run(conn), GuildData::class.java)
+        if (guildData != null) {
+            if (guildData.blacklistedUsers == null || guildData.blacklistedRoles == null || guildData.blacklistedChannels == null) {
+                guildData.blacklistedUsers = if (guildData.blacklistedUsers == null) mutableListOf() else guildData.blacklistedUsers
+                guildData.blacklistedRoles = if (guildData.blacklistedRoles == null) mutableListOf() else guildData.blacklistedRoles
+                guildData.blacklistedChannels = if (guildData.blacklistedChannels == null) mutableListOf() else guildData.blacklistedChannels
+                guildData.update()
+            }
+            if (guildData.musicSettings.stayInChannel == null) {
+                guildData.musicSettings.stayInChannel = false
+                guildData.update()
+            }
+            return guildData
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
+    val data = GuildData(id, "/", MusicSettings(false, false), mutableListOf(), language = "en".toLanguage()!!,
+            blacklistedUsers = mutableListOf(), blacklistedRoles = mutableListOf(), blacklistedChannels = mutableListOf())
+    data.insert("guilds")
+    return data
 }
 
 fun Message.getFirstRole(arguments: List<String>): Role? {
+    if (arguments.isEmpty()) return null
     if (mentionedRoles.size > 0) return mentionedRoles[0]
     if (guild != null) {
         val search = guild.getRolesByName(arguments.concat(), true)
@@ -261,6 +294,11 @@ fun MessageChannel.sendEmbed(embedBuilder: EmbedBuilder, vararg reactions: Strin
     return null
 }
 
+fun Guild.getDefaultWritingChannel(): TextChannel? {
+    textChannels.forEach { if (it.canTalk()) return it }
+    return null
+}
+
 fun Guild.getPrefix(): String {
     return getData().prefix ?: "/"
 }
@@ -283,6 +321,12 @@ enum class DonationLevel(val readable: String, val level: Int) {
     }
 }
 
+fun Guild.botSize(): Int {
+    var counter = 0
+    members.forEach { if (it.user.isBot) counter++ }
+    return counter
+}
+
 fun Guild.isPatronGuild(): Boolean {
     return members.size > 300 || donationLevel() != DonationLevel.NONE
 }
@@ -292,23 +336,29 @@ fun Guild.donationLevel(): DonationLevel {
 }
 
 fun User.getData(): PlayerData {
-    var data: Any? = r.table("playerData").get(id).run(conn)
+    val data = r.table("playerData").get(id).run<HashMap<*, *>>(conn)
     if (data != null) {
-        val pd = asPojo(data as HashMap<*, *>?, PlayerData::class.java)!!
-        if (isStaff()) pd.donationLevel = DonationLevel.EXTREME
-        return pd
+        val pd = asPojo(data, PlayerData::class.java)
+        if (pd != null) {
+            if (isStaff()) pd.donationLevel = DonationLevel.EXTREME
+            return pd
+        }
     }
-    data = PlayerData(id, DonationLevel.NONE)
-    data.insert("playerData")
-    return data
+    val player = PlayerData(id, DonationLevel.NONE)
+    player.insert("playerData")
+    return player
 }
 
 fun Member.id(): String {
     return user.id
 }
 
+fun User.isPatron(): Boolean {
+    return donationLevel() != DonationLevel.NONE
+}
+
 fun Member.isPatron(): Boolean {
-    return user.donationLevel() != DonationLevel.NONE
+    return user.isPatron()
 }
 
 fun User.donationLevel(): DonationLevel {
@@ -320,7 +370,7 @@ fun User.donationLevel(): DonationLevel {
 
 fun Member.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
     if (usageBonus() || guild.members.size > 300 || user.donationLevel().level >= donationLevel.level || (guild.donationLevel().level >= donationLevel.level && hasOverride(channel, true, true, false))) return true
-     return if (!failQuietly) channel.requires(this, donationLevel) else true
+    return if (!failQuietly) channel.requires(this, donationLevel) else true
 }
 
 fun Int.getTrivia(): List<TriviaQuestion> {
@@ -368,12 +418,14 @@ fun String.tr(language: ArdentLanguage, vararg new: Any): String {
 }
 
 fun String.translationDoesntExist(language: ArdentLanguage, vararg new: Any): String {
-    val phrase = ArdentPhraseTranslation(this, "Unknown").instantiate(this)
-    translationData.phrases.put(this, phrase)
-    if (r.table("phrases").filter(r.hashMap("english", this)).count().run<Long>(conn) == 0.toLong()) {
-        phrase.insert("phrases")
-        logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
-        "355817985052508160".toChannel()?.send("A new phrase was automatically detected and added at <https://ardentbot.com/translation/>")
+    if (!test) {
+        val phrase = ArdentPhraseTranslation(this, "Unknown").instantiate(this)
+        translationData.phrases.put(this, phrase)
+        if (r.table("phrases").filter(r.hashMap("english", this)).count().run<Long>(conn) == 0.toLong()) {
+            phrase.insert("phrases")
+            logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
+            "355817985052508160".toChannel()?.send("A new phrase was automatically detected and added at <https://ardentbot.com/translation/>")
+        }
     }
     return this.trReplace(language, *new)
 }
@@ -394,7 +446,7 @@ data class LoggedCommand(val commandId: String, val userId: String, val executio
 
 class PlayerData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0, val reminders: MutableList<Reminder> = mutableListOf()) {
     fun canCollect(): Boolean {
-        return ((System.currentTimeMillis() - collected) / 1000) > 86399;
+        return ((System.currentTimeMillis() - collected) / 1000) > 86399
     }
 
     fun collectionTime(): String {
@@ -596,11 +648,11 @@ class Internals {
 
             tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble()) }
 
-            musicPlayed = 0.0
-            tracksPlayed = 0
             val query = r.table("musicPlayed").run<Any>(conn).queryAsArrayList(PlayedMusic::class.java)
             tracksPlayed = query.size.toLong()
-            query.forEach { if (it != null) musicPlayed += it.position }
+            var tempMusicPlayed = 0.0
+            query.forEach { if (it != null) tempMusicPlayed += it.position }
+            if (tempMusicPlayed != musicPlayed) musicPlayed = tempMusicPlayed
         }, 0, 10, TimeUnit.SECONDS)
     }
 }

@@ -1,15 +1,15 @@
 package commands.administrate
 
+import commands.games.activeGames
+import commands.games.gamesInLobby
 import events.Category
 import events.Command
 import javaUtils.Engine
-import main.config
-import main.conn
-import main.jdas
-import main.r
+import main.*
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
+import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import utils.*
@@ -209,15 +209,8 @@ class Unmute : Command(Category.ADMINISTRATE, "unmute", "unmute members who are 
             punishments.forEach { punishment ->
                 if (punishment != null) {
                     if (punishment.type == Punishment.Type.MUTE) {
-                        event.guild.controller.removeRolesFromMember(unmuteMember, event.guild.getRolesByName("muted", true))
-                                .reason("Unmuted by ${event.author.withDiscrim()}")
-                                .queue({
-                                    r.table("punishments").get(punishment.id).delete().runNoReply(conn)
-                                    event.channel.send("Successfully unmuted **{0}**".tr(event, unmuteMember.withDiscrim()))
-                                }, {
-                                    event.channel.send("Failed to unmute **{0}** - Please give me proper permissions to remove roles".tr(event, unmuteMember.withDiscrim()))
-                                })
-                        return
+                        r.table("punishments").get(punishment.id).delete().runNoReply(conn)
+                        event.channel.send("Successfully unmuted **{0}**".tr(event, unmuteMember.withDiscrim()))
                     }
                 }
             }
@@ -238,22 +231,49 @@ class Nono : Command(Category.ADMINISTRATE, "nono", "commands for bot administra
         with("eval", null, "evaluate code", { arguments, event ->
             if (event.isAdministrator(true)) eval(arguments, event)
         })
+        with("inv", "inv server-name", "generate a temporary invite to investigate bot abuses", { arguments, event ->
+            if (event.isAdministrator(true)) {
+                val guilds = getGuildsByName(arguments.concat(), true)
+                guilds.forEach { guild ->
+                    try {
+                        guild.invites.queue { invites ->
+                            if (invites.size > 0) event.channel.send("Found invite https://discord.gg/${invites[0].code} for guild with id **${guild.id}**")
+                            else "hi dad".toInt()
+                        }
+                    } catch (e: Exception) {
+                        try {
+                            (guild.defaultChannel ?: guild.textChannels[0]).createInvite().setMaxUses(1).setTemporary(true).setMaxAge(5L, TimeUnit.MINUTES)
+                                    .reason("Temporary Invite - Testing").queue { invite -> event.channel.send("Generated invite https://discord.gg/${invite.code} for id **${guild.id}**") }
+
+                        } catch (e: Exception) {
+                            event.channel.send("Cannot retrieve invite for guild with ID **${guild.id}** - owner is ${guild.owner.asMention}")
+                        }
+                    }
+                }
+                if (guilds.size == 0) event.channel.send("No guild found with that name")
+            }
+        })
 
         with("shutdown", null, "shut down the bot and begin update process", { arguments, event ->
             if (event.isAdministrator(true)) {
-                jdas.forEach {
-                    it.guilds.forEach { guild ->
-                        var default = guild.getTextChannelsByName("general", true)
-                        if (default.size == 0) default = guild.getTextChannelsByName("default", true)
-                        var sent = true
-                        if (default.size == 0) guild.textChannels.forEach {
-                            if (it.canTalk() && sent) {
-                                it.send(arguments.without(arguments[0]).concat())
-                                sent = false
-                            }
+                managers.forEach {
+                    try {
+                        val guild = getGuildById(it.key.toString())
+                        if (guild != null && guild.selfMember.voiceChannel() != null) {
+                            val tracks = mutableListOf<String>()
+                            if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
+                            it.value.scheduler.manager.queue.forEach { song -> if (song != null) tracks.add(song.track.info.uri) }
+                            QueueModel(guild.id, guild.selfMember.voiceChannel()?.id ?: "", it.value.scheduler.manager.getChannel()?.id, tracks).insert("queues")
+                            (it.value.scheduler.manager.getChannel() ?: it.value.scheduler.channel)?.send("I'm restarting for updates. Your music and queue **will** be preserved when I come back online!".tr(guild))
                         }
-                        else default[0].send(arguments.without(arguments[0]).concat())
+                    } catch (ignored: Exception) {
                     }
+                }
+                gamesInLobby.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
+                activeGames.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
+                event.channel.sendMessage("Shutting down").queue {
+                    jdas.forEach { it.shutdown() }
+                    System.exit(0)
                 }
             }
         })
@@ -281,6 +301,146 @@ class GiveRoleToAll : Command(Category.ADMINISTRATE, "giverole", "give all users
     }
 }
 
+class Blacklist : Command(Category.ADMINISTRATE, "blacklist", "blacklist roles or members from using Ardent, or disallow commands in certain channels") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        showHelp(event)
+    }
+
+    override fun registerSubcommands() {
+        with("add", "add [user mention, channel mention or name, or role mention or name]", "add the specified user, channel, or role to the blacklist", { arguments, event ->
+            if (arguments.size == 0) event.channel.send("You can mention a user to blacklist them. You can also mention **or** type the name of a role or channel to add it to the blacklist.".tr(event))
+            else {
+                if (event.member.hasOverride(event.textChannel, failQuietly = false)) {
+                    val data = event.guild.getData()
+                    if (event.message.mentionedUsers.size > 0) {
+                        val blacklistUser = event.message.mentionedUsers[0]
+                        when {
+                            blacklistUser.isBot -> event.channel.send("You can't blacklist a bot!".tr(event))
+                            blacklistUser.id == event.author.id -> event.channel.send("You can't blacklist yourself, silly!".tr(event))
+                            blacklistUser.isStaff() || event.guild.getMember(blacklistUser).hasOverride(event.textChannel, failQuietly = true) -> {
+                                event.channel.send("This permission either has `Manage Server` or is an Ardent staff member, so you can't mute them!")
+                            }
+                            data.blacklistedUsers?.contains(blacklistUser.id) == true -> event.channel.send("This user is already blacklisted!".tr(event))
+                            else -> {
+                                data.blacklistedUsers!!.add(blacklistUser.id)
+                                data.update()
+                                event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK.symbol} " + "Successfully blacklisted {0} from using Ardent".tr(event, blacklistUser.asMention))
+                            }
+                        }
+                    } else {
+                        val blacklistRole: Role? = event.message.mentionedRoles.getOrNull(0) ?: event.guild.getRolesByName(arguments.concat(), true).getOrNull(0)
+                        if (blacklistRole == null) {
+                            val channel = event.message.mentionedChannels.getOrNull(0) ?: event.guild.getTextChannelsByName(arguments.concat(), true).getOrNull(0)
+                            if (channel != null) {
+                                if (data.blacklistedChannels?.contains(channel.id) == true) event.channel.send("This channel is already blacklisted!".tr(event))
+                                else {
+                                    data.blacklistedChannels!!.add(channel.id)
+                                    data.update()
+                                    event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK.symbol} " + "Members can no longer use Ardent commands in **{0}**".tr(event, channel.name))
+                                }
+                            } else event.channel.send("You need to specify a valid user, channel, or role to blacklist!".tr(event))
+                        } else if (blacklistRole.hasPermission(Permission.MANAGE_SERVER) || blacklistRole.hasPermission(Permission.ADMINISTRATOR)) event.channel.send("You can't blacklist a role that has the `Manage Server` permission!".tr(event))
+                        else if (data.blacklistedRoles?.contains(blacklistRole.id) == true) event.channel.send("This role is already blacklisted!".tr(event))
+                        else {
+                            data.blacklistedRoles!!.add(blacklistRole.id)
+                            data.update()
+                            event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK.symbol} " + "Successfully blacklisted members with the **{0}** role from using Ardent".tr(event, blacklistRole.name))
+                        }
+                    }
+                }
+            }
+        })
+
+        with("remove", "remove [user mention, channel mention or name, or role mention or name]", "removes the specified user, channel, or role from the blacklist", { arguments, event ->
+            if (arguments.size == 0) event.channel.send("You can mention a user to unblacklist them. You can also mention **or** type the name of a role to remove it from the blacklist".tr(event))
+            else {
+                if (event.member.hasOverride(event.textChannel, failQuietly = false)) {
+                    val data = event.guild.getData()
+                    val unblacklistUser = event.message.mentionedUsers.getOrNull(0)
+                    if (unblacklistUser != null) {
+                        if (data.blacklistedUsers?.contains(unblacklistUser.id) == false) event.channel.send("{0} isn't blacklisted!".tr(event, unblacklistUser.asMention))
+                        else {
+                            data.blacklistedUsers?.remove(unblacklistUser.id)
+                            data.update()
+                            event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK.symbol} " + "Unblacklisted {0}".tr(event, unblacklistUser.asMention))
+                        }
+                    } else {
+                        val role = event.message.mentionedRoles.getOrNull(0) ?: event.guild.getRolesByName(arguments.concat(), true).getOrNull(0)
+                        if (role != null) {
+                            if (data.blacklistedRoles?.contains(role.id) == false) event.channel.send("The **{0}** role isn't blacklisted!".tr(event, role.name) + " ${Emoji.THINKING_FACE.symbol}")
+                            else {
+                                data.blacklistedRoles?.remove(role.id)
+                                data.update()
+                                event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK.symbol} " + "Unblacklisted the **{0}** role".tr(event, role.name))
+                            }
+                        } else {
+                            val channel = event.message.mentionedChannels.getOrNull(0) ?: event.guild.getTextChannelsByName(arguments.concat(), true).getOrNull(0)
+                            if (channel != null) {
+                                if (data.blacklistedChannels?.contains(channel.id) == false) event.channel.send("**{0}** isn't blacklisted!".tr(event, channel.name))
+                                else {
+                                    data.blacklistedChannels?.remove(channel.id)
+                                    data.update()
+                                    event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK.symbol} " + "Members can now use commands in **{0}**".tr(event, channel.name))
+
+                                }
+                            } else event.channel.send("You didn't specify a valid user, channel, or role")
+                        }
+                    }
+                }
+            }
+        })
+
+        with("list", null, "view a list of currently blacklisted users and roles", { _, event ->
+            val data = event.guild.getData()
+            val embed = event.member.embed("Ardent | Server Blacklists".tr(event))
+            if (data.blacklistedChannels?.isEmpty() == false) {
+                embed.appendDescription("**Blacklisted Channels**".tr(event))
+                val iterator = data.blacklistedChannels!!.iterator()
+                while (iterator.hasNext()) {
+                    val channelId = iterator.next()
+                    val channel = event.guild.getTextChannelById(channelId)
+                    if (channel == null) {
+                        iterator.remove()
+                        data.update()
+                    } else embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND} **" + channel.name + "**")
+                }
+            } else embed.appendDescription("*There are no blacklisted channels in this server!*".tr(event))
+
+            embed.appendDescription("\n\n")
+
+            if (data.blacklistedRoles?.isEmpty() == false) {
+                embed.appendDescription("**Blacklisted Roles**".tr(event))
+                val iterator = data.blacklistedRoles!!.iterator()
+                while (iterator.hasNext()) {
+                    val roleId = iterator.next()
+                    val role = event.guild.getRoleById(roleId)
+                    if (role == null) {
+                        iterator.remove()
+                        data.update()
+                    } else embed.appendDescription("\n${Emoji.SMALL_BLUE_DIAMOND} " + "**{0}** [{1} members]"
+                            .tr(event, role.name, event.guild.members.filter { it.roles.contains(role) }.count()))
+                }
+            } else embed.appendDescription("*There are no blacklisted roles in this server!*".tr(event))
+
+            embed.appendDescription("\n\n")
+
+            if (data.blacklistedUsers?.isEmpty() == false) {
+                embed.appendDescription("**Blacklisted Users**".tr(event))
+                val iterator = data.blacklistedUsers!!.iterator()
+                while (iterator.hasNext()) {
+                    val userId = iterator.next()
+                    val member = event.guild.getMemberById(userId)
+                    if (member == null) {
+                        iterator.remove()
+                        data.update()
+                    } else embed.appendDescription("\n${Emoji.SMALL_ORANGE_DIAMOND} " + member.withDiscrim())
+                }
+            } else embed.appendDescription("*There are no blacklisted users in this server!*".tr(event))
+            event.channel.send(embed)
+        })
+    }
+}
+
 fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
     val message = event.message
     val shortcuts = hashMapOf<String, Any>()
@@ -297,17 +457,10 @@ fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
     val timeout = 10
     val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.concat())
     val builder = MessageBuilder()
-    if (result.first is RestAction<*>)
-        (result.first as RestAction<*>).queue()
-    else if (result.first != null && (result.first as String).isNotEmpty())
-        builder.appendCodeBlock(result.first.toString(), "")
-    if (!result.second.isEmpty() && result.first != null)
-        builder.append("\n").appendCodeBlock(result.first as String, "")
-    if (!result.third.isEmpty())
-        builder.append("\n").appendCodeBlock(result.third, "")
-    if (builder.isEmpty)
-        event.message.addReaction("✅").queue()
-    else
-        for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE))
-            event.channel.sendMessage(m).queue()
+    if (result.first is RestAction<*>) (result.first as RestAction<*>).queue()
+    else if (result.first != null && (result.first as String).isNotEmpty()) builder.appendCodeBlock(result.first.toString(), "")
+    if (!result.second.isEmpty() && result.first != null) builder.append("\n").appendCodeBlock(result.first as String, "")
+    if (!result.third.isEmpty()) builder.append("\n").appendCodeBlock(result.third, "")
+    if (builder.isEmpty) event.message.addReaction("✅").queue()
+    else for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE)) event.channel.send(m.rawContent)
 }

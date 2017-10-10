@@ -25,7 +25,7 @@ class Daily : Command(Category.RPG, "daily", "get a daily stipend of gold") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.author.getData()
         if (data.canCollect()) event.channel.send("You got **{0}** gold today!".tr(event, data.collect()))
-        else event.channel.send("You already got your daily today!".tr(event))
+        else event.channel.send("You already got your daily today!".tr(event) + " " + "You'll next be able to redeem it at **{0}**".tr(event, data.collectionTime()))
     }
 
     override fun registerSubcommands() {
@@ -58,7 +58,7 @@ class ProfileCommand : Command(Category.RPG, "profile", "see your or others' pro
         val ticTacToeData = data.ticTacToeData()
         val spouse = profiled.getMarriage()
         val embed = event.member.embed("${profiled.withDiscrim()}'s Profile")
-                .setThumbnail(profiled.effectiveAvatarUrl)
+                .setThumbnail("https://robohash.org/${profiled.id}")
         if (profiled.isStaff()) embed.addField("Ardent Status", "Staff Member", true)
         else embed.addField("Patron Level", data.donationLevel.readable, true)
         embed.addField("Money", "**${data.gold}** gold", true)
@@ -140,50 +140,47 @@ class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working ou
     }
 }
 
-class TopMoney : Command(Category.RPG, "top", "see who has the most money in the Ardent database", "topmoney") {
+class TopMoney : Command(Category.RPG, "top", "see who has the most money in the Ardent database", "topmoney", "topserver") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        var page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
-        if (page <= 0) page = 1
-        val embed = event.member.embed("Global Money Leaderboards | Page {0}".tr(event, page))
-                .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
-        val builder = StringBuilder()
-        val top = r.table("playerData").orderBy().optArg("index", r.desc("gold")).slice(((page - 1) * 10))
-                .limit(10).run<Any>(conn).queryAsArrayList(PlayerData::class.java)
-        top.forEachIndexed { index, playerData ->
-            if (playerData != null && playerData.id.toUser() != null) builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${playerData.id.toUser()!!.withDiscrim()}** " +
-                    "*${playerData.gold} gold* (#${index + 1 + ((page - 1) * 10)})\n")
-        }
-        builder.append("\n").append("*You can see different pages by typing {0}top __page_number__*".tr(event, event.guild.getPrefix()))
-        event.channel.send(embed.setDescription(builder.toString()))
+        showHelp(event)
     }
 
     override fun registerSubcommands() {
-    }
-}
-
-class TopMoneyServer : Command(Category.RPG, "topserver", "see who has the most money in your server", "topmoneyserver") {
-    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
-        val embed = event.member.embed("{0}'s Money Leaderboards | Page {1}".tr(event, event.guild.name, page))
-                .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
-        val builder = StringBuilder()
-        val members = hashMapOf<String, Double>()
-        event.guild.playerDatas().forEach { members.put(it.id, it.gold) }
-        val top = members.sort().toList()
-        try {
-            for (includedMember in ((page - 1) * 10)..(((page - 1) * 10) + 10)) {
-                val user = top[includedMember].first.toUser()
-                if (user != null) {
-                    builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${user.withDiscrim()}** " +
-                            "*${top[includedMember].second} gold* (#${includedMember + 1})\n")
-                }
+        with("global", null, null, { arguments, event ->
+            var page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
+            if (page <= 0) page = 1
+            val embed = event.member.embed("Global Money Leaderboards | Page {0}".tr(event, page))
+                    .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
+            val builder = StringBuilder()
+            val top = r.table("playerData").orderBy().optArg("index", r.desc("gold")).slice(((page - 1) * 10))
+                    .limit(10).run<Any>(conn).queryAsArrayList(PlayerData::class.java)
+            top.forEachIndexed { index, playerData ->
+                if (playerData != null && playerData.id.toUser() != null) builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${playerData.id.toUser()!!.withDiscrim()}** " +
+                        "*${playerData.gold} gold* (#${index + 1 + ((page - 1) * 10)})\n")
             }
-        } catch (ignored: Exception) {
-        }
-        builder.append("\n").append("*You can see different pages by typing {0}topserver __page_number__*".tr(event, event.guild.getPrefix()))
-        event.channel.send(embed.setDescription(builder.toString()))
-    }
-
-    override fun registerSubcommands() {
+            builder.append("\n").append("*You can see different pages by typing {0}top __page_number__*".tr(event, event.guild.getPrefix()))
+            event.channel.send(embed.setDescription(builder.toString()))
+        })
+        with("server", null, null, { arguments, event ->
+            val page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
+            val embed = event.member.embed("{0}'s Money Leaderboards | Page {1}".tr(event, event.guild.name, page))
+                    .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
+            val builder = StringBuilder()
+            val members = hashMapOf<String, Double>()
+            event.guild.playerDatas().forEach { members.put(it.id, it.gold) }
+            val top = members.sort().toList()
+            try {
+                for (includedMember in ((page - 1) * 10)..(((page - 1) * 10) + 10)) {
+                    val user = top[includedMember].first.toUser()
+                    if (user != null) {
+                        builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${user.withDiscrim()}** " +
+                                "*${top[includedMember].second} gold* (#${includedMember + 1})\n")
+                    }
+                }
+            } catch (ignored: Exception) {
+            }
+            builder.append("\n").append("*You can see different pages by typing {0}topserver __page_number__*".tr(event, event.guild.getPrefix()))
+            event.channel.send(embed.setDescription(builder.toString()))
+        })
     }
 }

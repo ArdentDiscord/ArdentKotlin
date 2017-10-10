@@ -104,9 +104,9 @@ class Web {
             handle(request, map)
             map.put("showSnackbar", false)
             map.put("title", "Staff")
-            map.put("administrators", staff.filterByRole(Staff.StaffRole.ADMINISTRATOR).map { it.id.toUser() })
-            map.put("moderators", staff.filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
-            map.put("helpers", staff.filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
+            map.put("administrators", filterByRole(Staff.StaffRole.ADMINISTRATOR).map { it.id.toUser() })
+            map.put("moderators", filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
+            map.put("helpers", filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
             ModelAndView(map, "staff.hbs")
         }, handlebars)
         get("/patrons", { request, _ ->
@@ -116,6 +116,14 @@ class Web {
             map.put("title", "Patrons")
             map.put("patrons", r.table("patrons").run<Any>(conn).queryAsArrayList(Patron::class.java).filter { it != null }.map { it!!.id.toUser() })
             ModelAndView(map, "patrons.hbs")
+        }, handlebars)
+        get("/getting-started", { request, _ ->
+            val map = hashMapOf<String, Any>()
+            handle(request, map)
+            map.put("showSnackbar", false)
+            map.put("title", "Getting Started")
+            map.put("internals", internals)
+            ModelAndView(map, "getting_started.hbs")
         }, handlebars)
         get("/commands", { request, _ ->
             val map = hashMapOf<String, Any>()
@@ -196,7 +204,7 @@ class Web {
             map.put("openTickets", openTickets)
             map.put("commands", factory.commands.sortedBy { it.name })
             map.put("phrases", translationData.phrases.map { it.value })
-            map.put("staffMembers", staff.filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
+            map.put("staffMembers", filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
             if (isAdministrator(request, response)) {
                 map.put("showSnackbar", false)
                 ModelAndView(map, "administrators.hbs")
@@ -279,10 +287,8 @@ class Web {
                                                     phrase.translations.putIfAbsent(language.code, new)
                                                     if (language == Languages.ENGLISH.language) {
                                                         phrase.translations.replace("en", new)
-                                                        val temp = phrase.english
-                                                        phrase.english = new
-                                                        r.table("phrases").filter(r.hashMap("english", temp)).update(r.json(phrase.toJson())).runNoReply(conn)
-                                                        phrase.encoded = URLEncoder.encode(new)
+                                                        r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
+                                                        phrase.encoded = URLEncoder.encode(new, "UTF-8")
                                                     } else {
                                                         phrase.translations.replace(language.code, new)
                                                         r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
@@ -977,6 +983,15 @@ class Web {
                                             map.replace("showSnackbar", true)
                                             map.put("snackbarMessage", "Successfully updated the Announce Music setting")
                                         }
+                                        "stayinvc" -> {
+                                            val state: String? = request.queryParams("state")
+                                            when (state) {
+                                                "on" -> data.musicSettings.stayInChannel = true
+                                                else -> data.musicSettings.stayInChannel = false
+                                            }
+                                            map.replace("showSnackbar", true)
+                                            map.put("snackbarMessage", "Successfully updated the voice channel option")
+                                        }
                                         "trusteveryone" -> {
                                             val state: String? = request.queryParams("state")
                                             when (state) {
@@ -1077,7 +1092,7 @@ class Web {
                                             }
                                         }
                                     }
-                                    data.update()
+                                    data.update(true)
                                     manage(map, guild)
                                     ModelAndView(map, "manageGuild.hbs")
                                 } else {
@@ -1107,12 +1122,12 @@ class Web {
                                         if (role != null) session.attribute("role", role)
                                         session.attribute("user", getUserById(identification.id))
                                     }
-                                    response.redirect("/welcome")
+                                    response.redirect("/getting-started")
                                     null
                                 }
                             }
                         }, handlebars)
-                        post("/login", { _, response -> response.redirect("/welcome") })
+                        post("/login", { _, response -> response.redirect("/getting-started") })
                     })
                     path("/public", {
                         get("/status", { _, _ -> internals.toJson() })
@@ -1128,10 +1143,47 @@ class Web {
                                     else {
                                         val member = guild.getMemberById(id)
                                         if (member == null) Failure("invalid user specified")
-                                        else GuildMemberModel(id, member.effectiveName, member.roles.map { it.name }, member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
-
+                                        //else GuildMemberModel(id, member.effectiveName, member.roles.map { it.name }, member.hasOverride(guild.publicChannel, failQuietly = true)).toJson()
+                                        else 1
                                     }
                                 })
+                            })
+                        })
+                    })
+                    path("/v2", {
+                        get("/information", { _, _ -> internals.toJson() })
+                        get("/commands", { _, _ -> factory.commands })
+                        get("/staff", { _, _ -> staff.toJson() })
+                        path("/data", {
+                            get("/user/*", { request, _ ->
+                                val user = getUserById(request.splat().getOrNull(0))
+                                (if (user == null) APIError(401, "User not found")
+                                else UserModel(user.id, user.name, user.discriminator, user.effectiveAvatarUrl)).toJson()
+                            })
+                            path("/member/*/*", {
+                                get("/", { request, _ ->
+                                    (if (request.splat().size != 2) APIError(401, "Invalid parameters")
+                                    else {
+                                        val member = getGuildById(request.splat()[0])?.getMemberById(request.splat()[1])
+                                        if (member == null) APIError(401, "No member found with this id")
+                                        else GuildMemberModel(member.id(), member.effectiveName, member.roles.map { it.id }, member.hasOverride(member.guild.defaultChannel ?: member.guild.textChannels[0]), UserModel(member.id(), member.user.name, member.user.discriminator, member.user.effectiveAvatarUrl))
+                                    }).toJson()
+                                })
+                                get("/permissions", { request, _ ->
+                                    (if (request.splat().size != 2) APIError(401, "Invalid parameters")
+                                    else {
+                                        val member = getGuildById(request.splat()[0])?.getMemberById(request.splat()[1])
+                                        member?.permissions?.map { it.rawValue } ?: APIError(401, "No member found with this id")
+                                    }).toJson()
+                                })
+                                get("/roles", { request, _ ->
+                                    (if (request.splat().size != 2) APIError(401, "Invalid parameters")
+                                    else {
+                                        val member = getGuildById(request.splat()[0])?.getMemberById(request.splat()[1])
+                                        member?.roles?.map { "${it.name} :: ${it.permissionsRaw}" } ?: APIError(401, "No member found with this id")
+                                    }).toJson()
+                                })
+
                             })
                         })
                     })
@@ -1195,6 +1247,7 @@ fun manage(map: HashMap<String, Any>, guild: Guild) {
     else map.put("leaveMessage", data.leaveMessage!!.first!!)
     map.put("channels", channels)
     map.put("autoplayMusic", data.musicSettings.autoQueueSongs)
+    map.put("stayInVc", data.musicSettings.stayInChannel == true)
     map.put("data", data)
 }
 
@@ -1231,7 +1284,8 @@ fun createUserModel(id: String): Any {
 
 data class LangModel(val name: String, val code: String)
 
-data class UserModel(val id: String, val username: String, val discrim: String, val avatar: String)
+data class UserModel(val id: String, val username: String, val discrim: String, val avatar: String, val isPatron: Boolean = id.toUser()!!.isPatron())
 
-data class GuildMemberModel(val id: String, val effectiveName: String, val roles: List<String>, val hasOverride: Boolean)
+data class GuildMemberModel(val id: String, val effectiveName: String, val roles: List<String>, val hasOverride: Boolean, val userModel: UserModel)
 
+data class APIError(val code: Int, val message: String)

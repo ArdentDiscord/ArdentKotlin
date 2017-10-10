@@ -4,6 +4,7 @@ import main.conn
 import main.factory
 import main.r
 import main.test
+import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -20,6 +21,7 @@ class CommandFactory {
     val commands = mutableListOf<Command>()
     val executor: ExecutorService = Executors.newCachedThreadPool()
     val commandsById = hashMapOf<String, Int>()
+    val commandsByShard = hashMapOf<Int, Int>()
     val messagesReceived = AtomicLong(0)
 
     fun commandsReceived(): Int {
@@ -36,7 +38,7 @@ class CommandFactory {
     @SubscribeEvent
     fun onMessageEvent(event: MessageReceivedEvent) {
         if (event.author.isBot) return
-        event.guild.getData()
+        val data = event.guild.getData()
         event.guild.punishments().forEach { punishment ->
             if (punishment != null && punishment.userId == event.author.id) {
                 if (event.textChannel.canTalk()) {
@@ -46,10 +48,11 @@ class CommandFactory {
             }
         }
         messagesReceived.getAndIncrement()
+
         var args = event.message.rawContent.split(" ").toMutableList()
         val prefix = event.guild.getPrefix()
         when {
-            args[0].startsWith(prefix) -> args[0] = args[0].replace(prefix, "")
+            args[0].startsWith(prefix) && !test -> args[0] = args[0].replace(prefix, "")
             args[0].startsWith("/") && !test -> args[0] = args[0].replace("/", "")
             args[0] == "ardent" && !test -> args.removeAt(0)
             args[0] == "test" && test -> args.removeAt(0)
@@ -62,31 +65,45 @@ class CommandFactory {
                 when {
                     arg.startsWith(cmd.name) -> args = arg.removePrefix(cmd.name).split(" ").toMutableList()
                     arg.startsWith(cmd.name.tr(event.guild)) -> args = arg.removePrefix(cmd.name.tr(event.guild)).split(" ").toMutableList()
-                    else -> {
-                        cmd.aliases.forEach { a ->
-                            if (arg.startsWith(a)) args = arg.removePrefix(a).split(" ").toMutableList()
-                        }
-                    }
+                    else -> cmd.aliases.forEach { a -> if (arg.startsWith(a)) args = arg.removePrefix(a).split(" ").toMutableList() }
                 }
                 (0..(args.size - 1))
                         .filter { args[it].isEmpty() }
                         .forEach { args.removeAt(it) }
                 commandsById.incrementValue(cmd.name)
+                commandsByShard.incrementValue(event.guild.getShard())
                 val name = event.author.name
                 if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
                     event.channel.send("Here at Ardent, we hate derogatory and discriminatory statements. Thus, {0}, you need to change your username to be able to use any command".tr(event.guild, event.author.asMention))
                 } else {
+                    if (!event.member.hasPermission(Permission.MANAGE_SERVER)) {
+                        when {
+                            data.blacklistedChannels!!.contains(event.textChannel.id) -> {
+                                event.channel.send("You're not allowed to use Ardent commands in this channel! Type *{0}blacklist list* to view all blacklisted channels".tr(event, event.guild.getPrefix()))
+                                return
+                            }
+                            data.blacklistedUsers!!.contains(event.author.id) -> {
+                                event.author.openPrivateChannel().queue {
+                                    it.send("{0}, you're **blacklisted** from using Ardent commands on this server!".tr(event, event.author.asMention))
+                                }
+                                return
+                            }
+                            else -> event.member.roles.forEach { memberRole ->
+                                if (data.blacklistedRoles!!.contains(memberRole.id)) {
+                                    event.channel.send("One of your roles, **{0}**, is blacklisted from using Ardent commands. You'll be able to use them again once you no longer have this role".tr(event, memberRole.name))
+                                    return
+                                }
+                            }
+                        }
+                    }
                     executor.execute {
                         try {
-                            val data = event.member.data()
-                            data.gold += 2
-                            data.update()
                             cmd.executeInternal(args, event)
-                            r.table("commands").insert(r.json(getGson().toJson(
-                                    LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))
-                            ).runNoReply(conn)
+                            r.table("commands").insert(r.json(getGson().toJson(LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
+                            "363785648911679488".toChannel()!!.send("${cmd.name} command received in **${event.guild.name}** - ${event.guild.members.size} members (${event.guild.members.filter { it.user.isBot }.count()} bots) | ${System.currentTimeMillis().readableDate()}")
                         } catch (e: Throwable) {
                             e.log()
+                            logChannel!!.send("^ Exception thrown in **${event.guild.name}** with command ${cmd.name}")
                             event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support>") + "\n${ExceptionUtils.getStackTrace(e)}")
                         }
                     }
@@ -111,7 +128,9 @@ abstract class Command(val category: Category, val name: String, val description
             subcommands.forEach {
                 val identifier = it.englishIdentifier.tr(event.guild)
                 if (args.concat().startsWith(identifier)) {
-                    it.consumer.invoke(args.concat().removePrefix(identifier).split(" ").toMutableList(), event)
+                    var temp = args.concat().removePrefix(identifier)
+                    while (temp.startsWith(" ")) temp = temp.removePrefix(" ")
+                    it.consumer.invoke(temp.split(" ").toMutableList(), event)
                     return
                 }
             }
