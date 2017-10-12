@@ -652,7 +652,7 @@ class Internals {
             tracksPlayed = query.size.toLong()
             var tempMusicPlayed = 0.0
             query.forEach { if (it != null) tempMusicPlayed += it.position }
-            if (tempMusicPlayed != musicPlayed) musicPlayed = tempMusicPlayed
+            musicPlayed = tempMusicPlayed
         }, 0, 10, TimeUnit.SECONDS)
     }
 }

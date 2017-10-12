@@ -39,6 +39,7 @@ import web.Web
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 val test = false
@@ -55,7 +56,7 @@ val factory = CommandFactory()
 var config: Config = if (test) Config("C:\\Users\\Adam\\Desktop\\config.txt") else Config("/root/Ardent/config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
-val managers = hashMapOf<Long, GuildMusicManager>()
+val managers = ConcurrentHashMap<Long, GuildMusicManager>()
 
 val spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
 
@@ -78,7 +79,7 @@ fun main(args: Array<String>) {
         (1..shards).forEach { sh ->
             jdas.add(JDABuilder(AccountType.BOT)
                     .setCorePoolSize(10)
-                    .setGame(Game.of("Starting my engine..."))
+                    .setGame(Game.of("Starting up... 418 I'm a teapot"))
                     .addEventListener(waiter)
                     .addEventListener(factory)
                     .addEventListener(JoinRemoveEvents())
@@ -148,7 +149,7 @@ fun addCommands() {
             IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), MutualGuilds(), ProfileCommand(),
             MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
             LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
-            Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand())
+            Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand(), Meme())
 }
 
 /**

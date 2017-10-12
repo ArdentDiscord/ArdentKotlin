@@ -13,6 +13,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 import translation.Languages
 import utils.*
 import java.awt.Color
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
@@ -23,7 +24,7 @@ class CommandFactory {
     val commandsById = hashMapOf<String, Int>()
     val commandsByShard = hashMapOf<Int, Int>()
     val messagesReceived = AtomicLong(0)
-
+    val ratelimits = ConcurrentHashMap<String, Long>()
     fun commandsReceived(): Int {
         var temp = 0
         commandsById.forEach { temp += it.value }
@@ -117,7 +118,7 @@ class CommandFactory {
 data class Subcommand(val englishIdentifier: String, val syntax: String, val description: String? = null,
                       val consumer: (MutableList<String>, MessageReceivedEvent) -> Unit)
 
-abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String) {
+abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String, val ratelimit: Int = 0) {
     val subcommands = mutableListOf<Subcommand>()
     fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent) {
         if (event.channelType == ChannelType.PRIVATE)
@@ -125,6 +126,18 @@ abstract class Command(val category: Category, val name: String, val description
                 channel.send("Please use commands inside a Discord server!".tr(Languages.ENGLISH.language))
             }
         else {
+            if (ratelimit != 0) {
+                val time = factory.ratelimits[event.author.id]
+                if (time != null) {
+                    if (time > System.currentTimeMillis()) {
+                        event.channel.send("{0}, chill out a bit! You can use this command again in **{1}** second(s)"
+                                .tr(event, event.author.asMention, ((time - System.currentTimeMillis()) / 1000).toInt()))
+                        return
+                    }
+                    else factory.ratelimits.remove(event.author.id)
+                }
+                if (!event.author.isPatron()) factory.ratelimits.put(event.author.id, System.currentTimeMillis() + (1000 * ratelimit))
+            }
             subcommands.forEach {
                 val identifier = it.englishIdentifier.tr(event.guild)
                 if (args.concat().startsWith(identifier)) {

@@ -1,10 +1,10 @@
 package commands.administrate
 
+import com.ardentbot.Eval
 import commands.games.activeGames
 import commands.games.gamesInLobby
 import events.Category
 import events.Command
-import javaUtils.Engine
 import main.*
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
@@ -14,7 +14,6 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import utils.*
 import java.awt.Color
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 
@@ -454,13 +453,17 @@ fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
     shortcuts.put("bot", message.jda.selfUser)
     shortcuts.put("config", config)
     shortcuts.put("jdas", jdas)
-    val timeout = 10
-    val result = Engine.GROOVY.eval(shortcuts, Collections.emptyList(), Engine.DEFAULT_IMPORTS, timeout, arguments.concat())
-    val builder = MessageBuilder()
-    if (result.first is RestAction<*>) (result.first as RestAction<*>).queue()
-    else if (result.first != null && (result.first as String).isNotEmpty()) builder.appendCodeBlock(result.first.toString(), "")
-    if (!result.second.isEmpty() && result.first != null) builder.append("\n").appendCodeBlock(result.first as String, "")
-    if (!result.third.isEmpty()) builder.append("\n").appendCodeBlock(result.third, "")
-    if (builder.isEmpty) event.message.addReaction("✅").queue()
-    else for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE)) event.channel.send(m.rawContent)
+    try {
+        val result = Eval.evalJda(arguments.concat(), shortcuts, 10)
+        val builder = MessageBuilder()
+        if (result.first is RestAction<*>) (result.first as RestAction<*>).queue()
+        else if (result.first != null && (result.first as String).isNotEmpty()) builder.appendCodeBlock(result.first.toString(), "")
+        if (!result.second.isEmpty() && result.first != null) builder.append("\n").appendCodeBlock(result.first as String, "")
+        if (!result.third.isEmpty()) builder.append("\n").appendCodeBlock(result.third, "")
+        if (builder.isEmpty) event.message.addReaction("✅").queue()
+        else for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE)) event.channel.send(m.rawContent)
+    }
+    catch(e: Exception) {
+        e.printStackTrace()
+    }
 }

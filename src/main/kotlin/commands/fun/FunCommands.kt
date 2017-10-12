@@ -9,6 +9,7 @@ import events.Category
 import events.Command
 import main.config
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import utils.*
 import java.awt.Color
@@ -40,6 +41,16 @@ __Please Note__: You are limited to 999999x10, meaning that at maximum you can r
                 }
             } else event.channel.send("Invalid arguments. Please type {0}roll to see how to use this command".tr(event, event.guild.getPrefix()))
         }
+    }
+
+    override fun registerSubcommands() {
+    }
+}
+
+class Meme : Command(Category.FUN, "gif", "get a random meme from giphy", "meme", ratelimit = 5) {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        event.channel.send(JSONObject(Jsoup.connect("https://api.giphy.com/v1/gifs/random").data("api_key", config.getValue("giphy"))
+                .ignoreContentType(true).get().body().text()).getJSONObject("data").getString("image_url"))
     }
 
     override fun registerSubcommands() {

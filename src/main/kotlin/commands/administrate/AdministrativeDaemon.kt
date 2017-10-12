@@ -1,9 +1,6 @@
 package commands.administrate
 
-import main.config
-import main.conn
-import main.r
-import main.test
+import main.*
 import org.jsoup.Jsoup
 import utils.*
 import java.util.concurrent.Executors
@@ -15,6 +12,11 @@ val administrativeExecutor: ScheduledExecutorService = Executors.newScheduledThr
 
 class AdministrativeDaemon : Runnable {
     override fun run() {
+        val iterator = managers.iterator()
+        while (iterator.hasNext()) {
+            if (getGuildById(iterator.next().key.toString())?.audioManager?.isConnected != true) iterator.remove()
+        }
+
         val activePunishments = r.table("punishments").run<Any>(conn).queryAsArrayList(Punishment::class.java)
         val time = System.currentTimeMillis()
         activePunishments.forEach { punishment ->

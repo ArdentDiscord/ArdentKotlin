@@ -982,6 +982,8 @@ class TriviaCommand : Command(Category.GAMES, "trivia", "start a trivia game") {
 
 class GuessTheNumberCommand : Command(Category.GAMES, "guessthenumber", "start a Guess The Number game", "gtn") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        event.channel.send("This is currently undergoing development")
+        return
         val channel = event.textChannel
         val member = event.member
         if (member.isInGameOrLobby()) channel.send("{0}, You're already in game! You can't create another game!".tr(event, member.asMention))
