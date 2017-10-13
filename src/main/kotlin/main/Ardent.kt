@@ -132,7 +132,7 @@ data class Config(val url: String) {
             e.printStackTrace()
             System.exit(1)
         }
-        conn = r.connection().timeout(5000).db("ardent").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
+        conn = r.connection().timeout(5000).db("ardent_v2").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
     }
 
     fun getValue(keyName: String): String {

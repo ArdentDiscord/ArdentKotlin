@@ -76,12 +76,12 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
             val builder = StringBuilder().append("This is the **autoroles** list for *{0}* - to add or delete them, type **{1}**".tr(event, event.guild.name, "${event.guild.getPrefix()}webpanel") + "\n")
             if (data.iamList.size == 0) builder.append("You don't have any autoroles :(".tr(event))
             else {
-                data.iamList.forEach {
+                val iterator = data.iamList.iterator()
+                while (iterator.hasNext()) {
+                    val it = iterator.next()
                     val role = it.roleId.toRole(event.guild)
                     if (role != null) builder.append("{0} Typing **{1}** will give you the **{2}** role".tr(event, Emoji.SMALL_ORANGE_DIAMOND.symbol, it.name, role.name)).append("\n")
-                    else {
-                        data.iamList.remove(it)
-                    }
+                    else iterator.remove()
                 }
                 data.update()
                 builder.append("\n").append("**Give yourself one of these roles by typing _/iam NAME_**".tr(event))
@@ -164,12 +164,13 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
             return
         }
         val name = arguments.concat()
-        var found = false
-        data.iamList.forEach {
+        val iterator = data.iamList.iterator()
+        while (iterator.hasNext()) {
+            val it = iterator.next()
             if (it.name.equals(name, true)) {
                 val role = it.roleId.toRole(event.guild)
                 if (role == null) {
-                    data.iamList.remove(it)
+                    iterator.remove()
                     data.update()
                 } else {
                     if (event.member.roles.contains(role)) {
@@ -184,11 +185,10 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
                         }
                     } else event.channel.send("You can't remove a role you don't have!".tr(event))
                 }
-                found = true
                 return
             }
         }
-        if (!found) event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to get a full list".tr(event, data.prefix ?: "/"))
+        event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to get a full list".tr(event, data.prefix ?: "/"))
     }
 
     override fun registerSubcommands() {
