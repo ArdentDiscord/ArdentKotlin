@@ -1,23 +1,22 @@
 package utils
 
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.rethinkdb.net.Cursor
 import commands.info.formatter
 import main.conn
 import main.r
+import main.waiter
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject
-import translation.ArdentLanguage
-import translation.Languages
+import translation.LanguageData
+import translation.Language
 import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.time.Instant
 import java.util.*
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.management.Attribute
 import javax.management.ObjectName
@@ -28,16 +27,7 @@ class Pair2(val first1: Any?, val second1: Any?)
 var logChannel: TextChannel? = null
 
 val random = Random()
-private val gsons = listOf(GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create(),
-        GsonBuilder().serializeSpecialFloatingPointValues().create())
+val gson = GsonBuilder().serializeSpecialFloatingPointValues().create()
 
 fun Throwable.log() {
     logChannel!!.sendMessage("```${ExceptionUtils.getStackTrace(this)}```").queue()
@@ -87,11 +77,11 @@ fun <E> MutableList<E>.addIfNotExists(e: E) {
 }
 
 fun Any.insert(table: String) {
-    r.table(table).insert(r.json(getGson().toJson(this))).runNoReply(conn)
+    r.table(table).insert(r.json(gson.toJson(this))).runNoReply(conn)
 }
 
 fun <T> asPojo(map: HashMap<*, *>?, tClass: Class<T>): T? {
-    return getGson().fromJson(JSONObject.toJSONString(map), tClass)
+    return gson.fromJson(JSONObject.toJSONString(map), tClass)
 }
 
 fun <T> Any.queryAsArrayList(t: Class<T>): MutableList<T?> {
@@ -135,14 +125,9 @@ fun <K> MutableMap<K, Int>.incrementValue(key: K): Int {
     return value
 }
 
-fun PlayerData.update(blocking: Boolean = false) {
-    if (!blocking) r.table("playerData").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
-    else r.table("playerData").get(id).update(r.json(getGson().toJson(this))).run<Any>(conn)
-}
-
 fun GuildData.update(blocking: Boolean = false) {
-    if (!blocking) r.table("guilds").get(id).update(r.json(getGson().toJson(this))).runNoReply(conn)
-    else r.table("guilds").get(id).update(r.json(getGson().toJson(this))).run<Any>(conn)
+    if (!blocking) r.table("guilds").get(id).update(r.json(gson.toJson(this))).runNoReply(conn)
+    else r.table("guilds").get(id).update(r.json(gson.toJson(this))).run<Any>(conn)
 }
 
 fun Long.formatMinSec(): String {
@@ -152,9 +137,6 @@ fun Long.formatMinSec(): String {
     else "$minutes minutes, $seconds seconds"
 }
 
-fun getGson(): Gson {
-    return gsons[random.nextInt(gsons.size)]
-}
 
 fun String.trReplace(event: MessageReceivedEvent, vararg new: Any): String {
     return trReplace(event.guild, *new)
@@ -164,20 +146,20 @@ fun String.trReplace(guild: Guild, vararg new: Any): String {
     return trReplace(guild.getLanguage(), *new)
 }
 
-fun String.trReplace(ardentLanguage: ArdentLanguage, vararg new: Any): String {
+fun String.trReplace(languageData: LanguageData, vararg new: Any): String {
     var current = 0
     var str = this
     new.forEach {
-        str = str.trReplace(ardentLanguage, current, it as? String ?: it.toString())
+        str = str.trReplace(languageData, current, it as? String ?: it.toString())
         current++
     }
     return str
 }
 
-private fun String.trReplace(language: ArdentLanguage, param: Int, new: String): String {
+private fun String.trReplace(languageData: LanguageData, param: Int, new: String): String {
     val split = split("{$param}")
-    when (language) {
-        Languages.FRENCH.language -> {
+    when (languageData) {
+        Language.FRENCH.data -> {
             if ((split[0].endsWith(" le ", true) || split[0].endsWith(" la ", true)
                     || split[0].endsWith(" le **", true) || split[0].endsWith(" la **", true)
                     || split[0].endsWith(" le *", true) || split[0].endsWith(" la *", true))
@@ -190,9 +172,8 @@ private fun String.trReplace(language: ArdentLanguage, param: Int, new: String):
     return replace("{$param}", new)
 }
 
-val waiterExecutor = Executors.newScheduledThreadPool(3)!!
 fun after(consumer: () -> Unit, time: Int, unit: TimeUnit = TimeUnit.SECONDS) {
-    waiterExecutor.schedule({ consumer.invoke() }, time.toLong(), unit)
+    waiter.executor.schedule({ consumer.invoke() }, time.toLong(), unit)
 }
 
 fun Double.toMinutes(): Int {
@@ -219,7 +200,7 @@ fun <A, B : Number> Map<A, B>.sort(descending: Boolean = true): MutableMap<A, B>
 }
 
 fun Any.toJson(): String {
-    return getGson().toJson(this)
+    return gson.toJson(this)
 }
 
 fun <T> MutableList<T>.without(t: T): MutableList<T> {

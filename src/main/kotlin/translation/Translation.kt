@@ -15,7 +15,7 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
     init {
         executor.scheduleAtFixedRate({
             update()
-        }, 0, 2, TimeUnit.MINUTES)
+        }, 0, 1, TimeUnit.MINUTES)
     }
 
     private fun update() {
@@ -23,10 +23,10 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
         // Primary key is "en" signifying the english translation
         databaseTranslations.forEach { phrase ->
             if (phrase != null) {
-                val localPhrase = phrases[phrase.translate(Languages.ENGLISH)]
+                val localPhrase = phrases[phrase.translate(Language.ENGLISH)]
                 if (localPhrase == null) {
                     if (phrase.encoded == null) phrase.encoded = URLEncoder.encode(phrase.english)
-                    if (phrase.translate(Languages.ENGLISH) != null) phrases.put(phrase.translate(Languages.ENGLISH)!!, phrase)
+                    if (phrase.translate(Language.ENGLISH) != null) phrases.put(phrase.translate(Language.ENGLISH)!!, phrase)
                 } else {
                     phrase.translations.forEach { languageCode, translation ->
                         if (localPhrase.translations[languageCode] != translation) {
@@ -45,28 +45,27 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
         return null
     }
 
-    fun get(english: String, command: String): ArdentPhraseTranslation? {
+    fun get(english: String): ArdentPhraseTranslation? {
         phrases.forEach { if (it.value.english == english) return it.value }
         return null
     }
 }
 
-data class ArdentPhraseTranslation(var english: String, val command: String, var encoded: String? = URLEncoder.encode(english), val translations: HashMap<String /* language code */, String /* translated phrase */> = hashMapOf()) {
-    fun instantiate(englishPhrase: String): ArdentPhraseTranslation {
-        translations.put("en", englishPhrase)
-        return this
+data class ArdentPhraseTranslation(var english: String, val command: String, var encoded: String? = URLEncoder.encode(english), val translations: HashMap<String /* data code */, String /* translated phrase */> = hashMapOf()) {
+    init {
+        translations.put("en", english)
     }
 
-    fun translate(languages: Languages): String? {
-        return translate(languages.language)
+    fun translate(language: Language): String? {
+        return translate(language.data)
     }
 
-    fun translate(language: ArdentLanguage): String {
-        return translations[language.code] ?: english
+    fun translate(languageData: LanguageData): String {
+        return translations[languageData.code] ?: english
     }
 }
 
-data class ArdentLanguage(val code: String, val readable: String, val maturity: LanguageMaturity = LanguageMaturity.INFANCY) {
+data class LanguageData(val code: String, val readable: String, val maturity: LanguageMaturity = LanguageMaturity.INFANCY) {
     fun translate(english: String?): String? {
         translationData.phrases.forEach { if (it.key == english || it.value.english == english) return it.value.translate(this)}
         return null
@@ -93,48 +92,48 @@ data class ArdentLanguage(val code: String, val readable: String, val maturity: 
     }
 }
 
-fun String.toLanguage(): ArdentLanguage? {
+fun String.toLanguage(): LanguageData? {
     return when (this) {
-        "en" -> Languages.ENGLISH
-        "fr" -> Languages.FRENCH
-        "da" -> Languages.DANISH
-        "de" -> Languages.GERMAN
-        "hi" -> Languages.HINDI
-        "ru" -> Languages.RUSSIAN
-        "it" -> Languages.ITALIAN
-        "cr" -> Languages.CROATIAN
-        "nl" -> Languages.DUTCH
-        "ej" -> Languages.EMOJI
-        "es" -> Languages.SPANISH
-        "po" -> Languages.POLISH
-        "zh-TR" -> Languages.MANDARIN_TRADITIONAL
-        "zh-SI" -> Languages.MANDARIN_SIMPLIFIED
-        "pt-BR" -> Languages.PORTUGESE_BRAZIL
+        "en" -> Language.ENGLISH
+        "fr" -> Language.FRENCH
+        "da" -> Language.DANISH
+        "de" -> Language.GERMAN
+        "hi" -> Language.HINDI
+        "ru" -> Language.RUSSIAN
+        "it" -> Language.ITALIAN
+        "cr" -> Language.CROATIAN
+        "nl" -> Language.DUTCH
+        "ej" -> Language.EMOJI
+        "es" -> Language.SPANISH
+        "po" -> Language.POLISH
+        "zh-TR" -> Language.MANDARIN_TRADITIONAL
+        "zh-SI" -> Language.MANDARIN_SIMPLIFIED
+        "pt-BR" -> Language.PORTUGESE_BRAZIL
         else -> null
-    }?.language
+    }?.data
 }
 
-fun String.fromLangName(): ArdentLanguage? {
-    Languages.values().forEach { if (it.language.readable.equals(this, true)) return it.language }
+fun String.fromLangName(): LanguageData? {
+    Language.values().forEach { if (it.data.readable.equals(this, true)) return it.data }
     return null
 }
 
-enum class Languages(val language: ArdentLanguage) {
-    ENGLISH(ArdentLanguage("en", "English", LanguageMaturity.DEVELOPMENT)),
-    FRENCH(ArdentLanguage("fr", "Français")),
-    GERMAN(ArdentLanguage("de", "Deutsch")),
-    RUSSIAN(ArdentLanguage("ru", "Russian")),
-    DANISH(ArdentLanguage("da", "Dansk")),
-    DUTCH(ArdentLanguage("nl", "Nederlands")),
-    HINDI(ArdentLanguage("hi", "Hindi")),
-    ITALIAN(ArdentLanguage("it", "Italian")),
-    CROATIAN(ArdentLanguage("cr", "Croatian")),
-    EMOJI(ArdentLanguage("ej", "Emoji")),
-    POLISH(ArdentLanguage("po", "Polish")),
-    SPANISH(ArdentLanguage("es", "Spanish")),
-    MANDARIN_TRADITIONAL(ArdentLanguage("zh-TR", "Traditional Mandarin")),
-    MANDARIN_SIMPLIFIED(ArdentLanguage("zh-SI", "Simplified Mandarin")),
-    PORTUGESE_BRAZIL(ArdentLanguage("pt-BR", "Português"))
+enum class Language(val data: LanguageData) {
+    ENGLISH(LanguageData("en", "English", LanguageMaturity.DEVELOPMENT)),
+    FRENCH(LanguageData("fr", "Français")),
+    GERMAN(LanguageData("de", "Deutsch")),
+    RUSSIAN(LanguageData("ru", "Russian")),
+    DANISH(LanguageData("da", "Dansk")),
+    DUTCH(LanguageData("nl", "Nederlands")),
+    HINDI(LanguageData("hi", "Hindi")),
+    ITALIAN(LanguageData("it", "Italian")),
+    CROATIAN(LanguageData("cr", "Croatian")),
+    EMOJI(LanguageData("ej", "Emoji")),
+    POLISH(LanguageData("po", "Polish")),
+    SPANISH(LanguageData("es", "Spanish")),
+    MANDARIN_TRADITIONAL(LanguageData("zh-TR", "Traditional Mandarin")),
+    MANDARIN_SIMPLIFIED(LanguageData("zh-SI", "Simplified Mandarin")),
+    PORTUGESE_BRAZIL(LanguageData("pt-BR", "Português"))
 }
 
 enum class LanguageMaturity(val readable: String) {

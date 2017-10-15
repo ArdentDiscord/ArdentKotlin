@@ -18,7 +18,7 @@ import spark.Service
 import spark.Spark.*
 import spark.template.handlebars.HandlebarsTemplateEngine
 import translation.ArdentPhraseTranslation
-import translation.Languages
+import translation.Language
 import translation.toLanguage
 import translation.translationData
 import utils.*
@@ -248,7 +248,7 @@ class Web {
                                     map.put("completedTranslations", completedTranslations)
                                     map.put("undoneTotal", nullTranslations.size)
                                     map.put("completedTotal", completedTranslations.size)
-                                    map.put("language", language)
+                                    map.put("data", language)
                                     map.put("percent", "%.2f".format(internals.languageStatuses[language]?.toFloat()) ?: "NaN")
                                     map.put("title", "${language.readable} Translations")
                                     ModelAndView(map, "languageHome.hbs")
@@ -259,7 +259,7 @@ class Web {
                                         proofed.add(ProofreadPhrase(translation, translation.translate(language) ?: "Doesn't exist", false))
                                     }
                                     map.put("proofed", proofed)
-                                    map.put("language", language)
+                                    map.put("data", language)
                                     map.put("title", "Proofreading | ${language.readable}")
                                     ModelAndView(map, "proofread.hbs")
                                 } else {
@@ -273,7 +273,7 @@ class Web {
                                                 val langTranslation = phrase.translations[language.code] ?: ""
                                                 map.put("english", phrase.translations["en"] ?: phrase.english)
                                                 map.put("langTranslation", langTranslation)
-                                                map.put("language", language)
+                                                map.put("data", language)
                                                 map.put("encoded", phrase.encoded ?: "")
                                                 map.put("original", phrase.english)
                                                 ModelAndView(map, "translationView.hbs")
@@ -285,7 +285,7 @@ class Web {
                                                     null
                                                 } else {
                                                     phrase.translations.putIfAbsent(language.code, new)
-                                                    if (language == Languages.ENGLISH.language) {
+                                                    if (language == Language.ENGLISH.data) {
                                                         phrase.translations.replace("en", new)
                                                         r.table("phrases").filter(r.hashMap("english", phrase.english)).update(r.json(phrase.toJson())).runNoReply(conn)
                                                         phrase.encoded = URLEncoder.encode(new, "UTF-8")
@@ -327,7 +327,7 @@ class Web {
                         handle(request, map)
                         map.put("showSnackbar", false)
                         map.put("title", "Translation Home")
-                        map.put("languages", Languages.values())
+                        map.put("languages", Language.values())
                         ModelAndView(map, "translationHome.hbs")
                     }
                 }

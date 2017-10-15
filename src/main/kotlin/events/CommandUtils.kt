@@ -10,7 +10,7 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
-import translation.Languages
+import translation.Language
 import utils.*
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
@@ -123,7 +123,7 @@ abstract class Command(val category: Category, val name: String, val description
     fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent) {
         if (event.channelType == ChannelType.PRIVATE)
             event.author.openPrivateChannel().queue { channel ->
-                channel.send("Please use commands inside a Discord server!".tr(Languages.ENGLISH.language))
+                channel.send("Please use commands inside a Discord server!".tr(Language.ENGLISH.data))
             }
         else {
             if (ratelimit != 0) {
@@ -211,7 +211,7 @@ enum class Category(val fancyName: String, val description: String) {
     ADMINISTRATE("Administrate", "Administrate your server: this category includes commands like warnings and mutes"),
     FUN("Fun", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
     RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!"),
-    LANGUAGE("Language", "Want to change your server's language or translate a phrase?"),
+    LANGUAGE("Language", "Want to change your server's data or translate a phrase?"),
     STATISTICS("Statistics", "Interested in Ardent or how our system's been running?")
     ;
 

@@ -8,8 +8,8 @@ import events.Command
 import main.*
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import translation.ArdentLanguage
-import translation.Languages
+import translation.LanguageData
+import translation.Language
 import utils.*
 import java.awt.Color
 
@@ -52,20 +52,20 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
 
 class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", "see how many Ardent servers are using which bot locale", "glangs", "slangs") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        var langs = hashMapOf<ArdentLanguage, Int /* Usages */>()
+        var langs = hashMapOf<LanguageData, Int /* Usages */>()
         val guilds = r.table("guilds").run<Any>(conn).queryAsArrayList(GuildData::class.java)
         guilds.forEach { data ->
             if (data != null) {
-                if (data.language == null) {
-                    data.language = Languages.ENGLISH.language
+                if (data.languageData == null) {
+                    data.languageData = Language.ENGLISH.data
                     data.update()
                 }
-                if (langs.containsKey(data.language!!)) langs.incrementValue(data.language!!)
-                else langs.put(data.language!!, 1)
+                if (langs.containsKey(data.languageData!!)) langs.incrementValue(data.languageData!!)
+                else langs.put(data.languageData!!, 1)
             }
         }
-        langs = langs.sort(true) as HashMap<ArdentLanguage, Int>
-        val embed = event.member.embed("Ardent | Server Languages".tr(event))
+        langs = langs.sort(true) as HashMap<LanguageData, Int>
+        val embed = event.member.embed("Ardent | Server Language".tr(event))
         langs.forEachIndexed { index, l, usages ->
             embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND).symbol +
                     " **${l.readable}**: *$usages servers* (${"%.2f".format(usages * 100 / guilds.size.toFloat())}%)\n")

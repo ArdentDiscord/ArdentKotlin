@@ -10,11 +10,14 @@ import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame
 import main.managers
 import main.playerManager
 import main.spotifyApi
+import main.waiter
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
+import sun.util.resources.cldr.lag.LocaleNames_lag
 import utils.*
+import utils.music.LocalTrackObj
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
@@ -37,44 +40,21 @@ class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHa
     }
 }
 
-data class ArdentTrack(val author: String, val channel: String?, var track: AudioTrack) {
-    private val votedToSkip = ArrayList<String>()
-
-    fun addSkipVote(user: User): Boolean {
-        TODO()
-        if (votedToSkip.contains(user.id)) return false
-        votedToSkip.add(user.id)
-        return true
-    }
-}
-
-
 class GuildMusicManager(manager: AudioPlayerManager, channel: TextChannel?, guild: Guild) {
-    val scheduler: TrackScheduler
-    internal val player: AudioPlayer = manager.createPlayer()
-
+    val player: AudioPlayer = manager.createPlayer()
+    val scheduler: TrackScheduler = TrackScheduler(player, channel, guild)
+    val manager = ArdentMusicManager(player)
+    internal val sendHandler: AudioPlayerSendHandler get() = AudioPlayerSendHandler(player)
     init {
-        scheduler = TrackScheduler(player, channel, guild)
         player.addListener(scheduler)
     }
-
-    internal val sendHandler: AudioPlayerSendHandler get() = AudioPlayerSendHandler(player)
 }
 
-class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = null, var lastPlayedAt: Instant? = null) {
-    var queue = LinkedBlockingDeque<ArdentTrack>()
-    var current: ArdentTrack? = null
+class ArdentMusicManager(val player: AudioPlayer) {
+    var queue = LinkedBlockingDeque<LocalTrackObj>()
+    var current: LocalTrackObj? = null
 
-    fun getChannel(): TextChannel? {
-        if (textChannel == null) return null
-        return textChannel!!.toChannel()
-    }
-
-    fun setChannel(channel: TextChannel?) {
-        textChannel = channel?.id
-    }
-
-    fun queue(track: ArdentTrack) {
+    fun queue(track: LocalTrackObj) {
         if (!player.startTrack(track.track, true)) queue.offer(track)
         else current = track
     }
@@ -96,17 +76,12 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
         }
     }
 
-    fun addToQueue(track: ArdentTrack) {
-        queue(track)
-        lastPlayedAt = Instant.now()
-    }
-
     fun resetQueue() {
-        this.queue = LinkedBlockingDeque<ArdentTrack>()
+        this.queue = LinkedBlockingDeque<LocalTrackObj>()
     }
 
     fun shuffle() {
-        val tracks = ArrayList<ArdentTrack>()
+        val tracks = ArrayList<LocalTrackObj>()
         tracks.addAll(queue)
         Collections.shuffle(tracks)
         queue = LinkedBlockingDeque(tracks)
@@ -116,7 +91,7 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
         var count = 0
         val iterator = queue.iterator()
         while (iterator.hasNext()) {
-            if (iterator.next().author == user.id) {
+            if (iterator.next().user == user.id) {
                 count++
                 iterator.remove()
             }
@@ -124,9 +99,9 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
         return count
     }
 
-    val queueAsList: MutableList<ArdentTrack> get() = queue.toMutableList()
+    val queueList: MutableList<LocalTrackObj> get() = queue.toMutableList()
 
-    fun addToBeginningOfQueue(track: ArdentTrack?) {
+    fun addToBeginningOfQueue(track: LocalTrackObj?) {
         if (track == null) return
         track.track = track.track.makeClone()
         queue.addFirst(track)
@@ -140,11 +115,10 @@ class ArdentMusicManager(val player: AudioPlayer, var textChannel: String? = nul
     }
 }
 
-class TrackScheduler(player: AudioPlayer, var channel: TextChannel?, val guild: Guild) : AudioEventAdapter() {
-    var manager: ArdentMusicManager = ArdentMusicManager(player, channel?.id)
+class TrackScheduler(player: AudioPlayer, val guild: Guild) : AudioEventAdapter() {
     var autoplay = true
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
-        waiterExecutor.schedule({
+        waiter.executor.schedule({
             if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel() && !player.isPaused && player.playingTrack != null && player.playingTrack == track) {
                 val queue = mutableListOf<ArdentTrack>(manager.current ?: ArdentTrack(guild.selfMember.id(), channel?.id, track))
                 queue.addAll(manager.queue)

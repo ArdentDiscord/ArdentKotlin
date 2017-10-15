@@ -6,19 +6,19 @@
 <!-- Main -->
 <section id="main" class="container 75%" xmlns="http://www.w3.org/1999/html">
     <header>
-        <h2>{{language.readable}} Homepage ({{percent}}% complete)</h2>
-        <p>Proofread easily by clicking <a href="/translation/ar/{{language.code}}/proofread/all">here</a></p>
+        <h2>{{languageData.readable}} Homepage ({{percent}}% complete)</h2>
+        <p>Proofread easily by clicking <a href="/translation/ar/{{languageData.code}}/proofread/all">here</a></p>
     </header>
     <h2>Undone Translations ({{undoneTotal}} Total)</h2>
     {{#each nullTranslations}}
         <div class="box">
-            <h4 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{language.code}}/view/{{encoded}}"><b>{{english}}</b></a></h4>
+            <h4 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{languageData.code}}/view/{{encoded}}"><b>{{english}}</b></a></h4>
         </div>
     {{/each}}
     <h2>Completed Translations ({{completedTotal}} Total)</h2>
     {{#each completedTranslations}}
         <div class="box">
-            <h4 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{language.code}}/view/{{encoded}}"><b>{{english}}</b></a></h4>
+            <h4 style="display: inline-block;">{{@index_1}}: <a href="/translation/ar/{{languageData.code}}/view/{{encoded}}"><b>{{english}}</b></a></h4>
         </div>
     {{/each}}
 </section>

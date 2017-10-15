@@ -59,7 +59,7 @@ class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
         val builder = event.member.embed("About the bot and its founders".tr(event))
         builder.appendDescription("Ardent was originally founded in November 2016 by Adam#9261. It reached over 4,000 servers " +
                 "by June, but Adam had to shut it down due to chronic stability issues with the bot and the fact that he was going on " +
-                "a language learning program without any internet for nearly two months. When he came back, he decided to recreate Ardent with a " +
+                "a data learning program without any internet for nearly two months. When he came back, he decided to recreate Ardent with a " +
                 "new focus on modern design, utility, usability, and games. This is the continuation of the original Ardent bot. We hope you like it!")
         event.channel.send(builder)
     }

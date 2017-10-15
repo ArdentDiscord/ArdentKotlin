@@ -6,12 +6,12 @@
 <!-- Main -->
 <section id="main" class="container 75%" xmlns="http://www.w3.org/1999/html">
     <header>
-        <h2>{{language.readable}} | Proofreading</h2>
+        <h2>{{languageData.readable}} | Proofreading</h2>
     </header>
     {{#each proofed}}
         <div class="box">
             <h4>{{phrase}}</h4>
-            <p style="display: inline-block;"><a href="/translation/ar/{{language.code}}/view/{{original.encoded}}">Click here to edit phrase {{@index_1}}</a></p>
+            <p style="display: inline-block;"><a href="/translation/ar/{{languageData.code}}/view/{{original.encoded}}">Click here to edit phrase {{@index_1}}</a></p>
         </div>
     {{/each}}
 </section>

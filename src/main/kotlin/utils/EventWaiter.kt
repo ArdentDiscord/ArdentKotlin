@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 
 class EventWaiter : EventListener {
-    val executor = Executors.newScheduledThreadPool(35)
+    val executor = Executors.newScheduledThreadPool(10)
     private val gameEvents = CopyOnWriteArrayList<Triple<String, Long, Pair<((Message) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
     private val reactionEvents = CopyOnWriteArrayList<Quadruple<String, String, /* Message ID */ Long, Pair<((User, MessageReaction) -> Unit) /* ID of channel, Long MS of expiration */, (() -> Unit)?>>>()
     private val messageEvents = CopyOnWriteArrayList<Pair<Settings, (Message) -> Unit>>()
@@ -161,8 +161,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 val responseInt = response.rawContent.toIntOrNull()?.minus(1)
                 if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) {
                     failure?.invoke() ?: send("You specified an invalid response!".tr(id.toChannel()!!.guild))
-                }
-                else {
+                } else {
                     if (options.containsEq(response.rawContent)) {
                         consumer.invoke(options.get(response.rawContent)!!.first, message)
                     } else {
