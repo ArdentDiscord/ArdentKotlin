@@ -14,12 +14,8 @@ import main.waiter
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
-import net.dv8tion.jda.core.entities.User
-import sun.util.resources.cldr.lag.LocaleNames_lag
 import utils.*
 import utils.music.LocalTrackObj
-import java.time.Instant
-import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 
@@ -40,11 +36,12 @@ class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHa
     }
 }
 
-class GuildMusicManager(manager: AudioPlayerManager, channel: TextChannel?, guild: Guild) {
-    val player: AudioPlayer = manager.createPlayer()
-    val scheduler: TrackScheduler = TrackScheduler(player, channel, guild)
+class GuildMusicManager(audioPlayerManager: AudioPlayerManager, var channel: TextChannel?, val guild: Guild) {
+    val player: AudioPlayer = audioPlayerManager.createPlayer()
+    val scheduler: TrackScheduler = TrackScheduler(this, guild)
     val manager = ArdentMusicManager(player)
     internal val sendHandler: AudioPlayerSendHandler get() = AudioPlayerSendHandler(player)
+
     init {
         player.addListener(scheduler)
     }
@@ -80,52 +77,31 @@ class ArdentMusicManager(val player: AudioPlayer) {
         this.queue = LinkedBlockingDeque<LocalTrackObj>()
     }
 
-    fun shuffle() {
-        val tracks = ArrayList<LocalTrackObj>()
-        tracks.addAll(queue)
-        Collections.shuffle(tracks)
-        queue = LinkedBlockingDeque(tracks)
-    }
-
-    fun removeFrom(user: User): Int {
-        var count = 0
-        val iterator = queue.iterator()
-        while (iterator.hasNext()) {
-            if (iterator.next().user == user.id) {
-                count++
-                iterator.remove()
-            }
-        }
-        return count
-    }
-
-    val queueList: MutableList<LocalTrackObj> get() = queue.toMutableList()
-
     fun addToBeginningOfQueue(track: LocalTrackObj?) {
         if (track == null) return
         track.track = track.track.makeClone()
         queue.addFirst(track)
     }
 
-    fun removeAt(num: Int?): Boolean {
-        if (num == null) return false
+    fun removeAt(num: Int): Boolean {
         val track = queue.toList().getOrNull(num) ?: return false
         queue.removeFirstOccurrence(track)
         return true
     }
 }
 
-class TrackScheduler(player: AudioPlayer, val guild: Guild) : AudioEventAdapter() {
+class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild) : AudioEventAdapter() {
     var autoplay = true
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
         waiter.executor.schedule({
             if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel() && !player.isPaused && player.playingTrack != null && player.playingTrack == track) {
-                val queue = mutableListOf<ArdentTrack>(manager.current ?: ArdentTrack(guild.selfMember.id(), channel?.id, track))
-                queue.addAll(manager.queue)
-                player.isPaused = false
-                manager.resetQueue()
-                manager.nextTrack()
-                queue.forEach { manager.queue(it) }
+                val queue = guildMusicManager.manager.queue.toList()
+                guildMusicManager.player.isPaused = false
+                guildMusicManager.manager.resetQueue()
+                val current = guildMusicManager.manager.current
+                guildMusicManager.manager.nextTrack()
+                if (current != null) guildMusicManager.manager.queue(current)
+                queue.forEach { guildMusicManager.manager.queue(it) }
             }
         }, 5, TimeUnit.SECONDS)
         autoplay = true
@@ -179,7 +155,7 @@ class TrackScheduler(player: AudioPlayer, val guild: Guild) : AudioEventAdapter(
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
-        guild.getGuildAudioPlayer(channel).scheduler.manager.nextTrack()
+        guild.musicManager(channel).scheduler.manager.nextTrack()
         channel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "The player got stuck... attempting to skip now now (this is Discord's fault) - If you encounter this multiple times, please type {0}leave".tr(channel!!.guild, guild.getPrefix()))
     }
 
@@ -224,18 +200,13 @@ fun AudioTrack.getCurrentTime(): String {
 }
 
 @Synchronized
-fun Guild.getGuildAudioPlayer(channel: TextChannel?): GuildMusicManager {
+fun Guild.musicManager(channel: TextChannel?): GuildMusicManager {
     val guildId = id.toLong()
     var musicManager = managers[guildId]
     if (musicManager == null) {
         musicManager = GuildMusicManager(playerManager, channel, this)
         audioManager.sendingHandler = musicManager.sendHandler
         managers.put(guildId, musicManager)
-    } else {
-        if (channel != null) {
-            musicManager.scheduler.channel = channel
-            musicManager.scheduler.manager.setChannel(channel)
-        }
-    }
+    } else if (channel != null) musicManager.channel = channel
     return musicManager
 }

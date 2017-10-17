@@ -4,7 +4,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import commands.administrate.Staff
 import commands.administrate.staff
 import commands.games.questions
-import commands.music.getGuildAudioPlayer
+import commands.music.musicManager
 import main.*
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
@@ -17,7 +17,7 @@ import java.util.*
 var internals = Internals()
 
 fun AudioPlayer.currentlyPlaying(channel: TextChannel): Boolean {
-    if (playingTrack != null && channel.guild.getGuildAudioPlayer(channel).scheduler.manager.current != null) return true
+    if (playingTrack != null && channel.guild.musicManager(channel).scheduler.manager.current != null) return true
     channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "There isn't a currently playing track!".tr(channel.guild))
     return false
 }
@@ -70,7 +70,7 @@ fun Member.hasOverride(channel: TextChannel, ifAloneInVoice: Boolean = false, fa
     val data = guild.getData()
     if (staff.map { it.id }.contains(id()) || data.advancedPermissions.contains(id()) || hasOverride() || (ifAloneInVoice && voiceChannel() != null && voiceChannel()!!.members.size == 2 && voiceChannel()!!.members.contains(this)) || (djCommand && data.allowGlobalOverride)) return true
     if (djCommand) {
-        val track = guild.getGuildAudioPlayer(channel).scheduler.manager.current
+        val track = guild.musicManager(channel).scheduler.manager.current
         if (track != null && track.author == id()) return true
     }
     if (!failQuietly) channel.send("${Emoji.NEGATIVE_SQUARED_CROSSMARK} " + "You need to be given advanced permissions or the `Manage Server` permission to use this!".tr(guild))

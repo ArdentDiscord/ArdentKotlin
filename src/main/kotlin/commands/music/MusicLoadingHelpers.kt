@@ -8,10 +8,15 @@ import main.config
 import main.playerManager
 import main.spotifyApi
 import main.youtube
-import net.dv8tion.jda.core.entities.*
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Member
+import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.entities.VoiceChannel
 import obj.Album
 import obj.Playlist
 import utils.*
+import utils.discord.send
+import utils.music.LocalTrackObj
 
 val teenParty = mutableListOf<AudioTrack>()
 val todaysTopHits = mutableListOf<AudioTrack>()
@@ -32,12 +37,12 @@ fun VoiceChannel.connect(textChannel: TextChannel?, complain: Boolean = true): B
     }
 }
 
-fun play(channel: TextChannel?, member: Member, track: ArdentTrack) {
+fun play(channel: TextChannel?, member: Member, track: LocalTrackObj) {
     if (!member.guild.audioManager.isConnected) {
         if (member.voiceState.channel != null) member.guild.audioManager.openAudioConnection(member.voiceChannel())
         else return
     }
-    member.guild.getGuildAudioPlayer(channel).scheduler.manager.addToQueue(track)
+    member.guild.musicManager(channel).manager.queue(track)
 }
 
 fun Member.checkSameChannel(textChannel: TextChannel?, complain: Boolean = true): Boolean {
@@ -45,19 +50,67 @@ fun Member.checkSameChannel(textChannel: TextChannel?, complain: Boolean = true)
         textChannel?.send("${Emoji.CROSS_MARK} " + "You need to be connected to a voice channel".tr(textChannel.guild))
         return false
     }
-    if (guild.selfMember.voiceState.channel == null) {
-        return voiceState.channel.connect(textChannel, complain)
-    }
     if (guild.selfMember.voiceState.channel != voiceState.channel) {
-        if (complain) textChannel?.send("${Emoji.CROSS_MARK} " + "We need to be connected to the **same** voice channel".tr(textChannel.guild))
-        return false
+        return voiceState.channel.connect(textChannel, complain)
     }
     return true
 }
 
+// Loading Music into bot
+fun String.loadSpotifyPlaylist(member: Member, channel: TextChannel, consumerFoundTrack: (String, AudioTrack) -> (Unit)) {
+    val split = removePrefix("https://open.spotify.com/user/").split("/playlist/")
+    val user = split.getOrNull(0)
+    val playlistId = split.getOrNull(1)
+    if (user == null || playlistId == null) channel.send("You provided an invalid playlist url!".tr(channel.guild))
+    else {
+        try {
+            val playlist = spotifyApi.playlists.getPlaylist(user, playlistId)!!
+            playlist.tracks.items.forEach { track ->
+                "${track.track.name} ${track.track.artists[0].name}"
+                        .getSingleTrack(channel.guild, { loadedTrack -> consumerFoundTrack.invoke(playlist.name, loadedTrack) }, true)
+                channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes. I'll add progress bars as the playlist is processed".tr(channel.guild, ((playlist as? Playlist)?.name) ?: (playlist as Album).name))
+                        .queue { message ->
+                            var percentage = 0.0
+                            var current = 0
+                            val items = hashMapOf<String, String>()
+                            playlist.tracks.items.forEach { items.put(it.track.name, it.track.artists[0].name) }
+                            items.forEach { playlistTrack ->
+                                "${playlistTrack.key} ${playlistTrack.value}".getSingleTrack(member.guild, { foundTrack ->
+                                    current++
+                                    val ardentTrack = LocalTrackObj(member.id(), channel.id, foundTrack)
+                                    play(channel, member, ardentTrack)
+                                    if (current / items.size.toDouble() >= percentage && percentage <= 1) {
+                                        percentage += 0.1
+                                        when (percentage) {
+                                            0.1 -> message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
+                                            0.2 -> message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
+                                            0.3 -> message.addReaction(Emoji.KEYCAP_DIGIT_THREE.symbol).queue()
+                                            0.4 -> message.addReaction(Emoji.KEYCAP_DIGIT_FOUR.symbol).queue()
+                                            0.5 -> message.addReaction(Emoji.KEYCAP_DIGIT_FIVE.symbol).queue()
+                                            0.6 -> message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
+                                            0.7 -> message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
+                                            0.8 -> message.addReaction(Emoji.KEYCAP_DIGIT_EIGHT.symbol).queue()
+                                            0.9 -> message.addReaction(Emoji.KEYCAP_DIGIT_NINE.symbol).queue()
+                                            1.0 -> message.addReaction(Emoji.KEYCAP_TEN.symbol).queue()
+                                        }
+                                    }
+                                    if (current / items.size.toDouble() == 1.0) {
+                                        message.addReaction(Emoji.HEAVY_CHECK_MARK.symbol).queue()
+                                    }
+                                    Thread.sleep(500)
+                                })
+                            }
+                        }
+            }
+    } catch (e: Exception) {
+        channel.send("You provided an invalid playlist url!".tr(channel.guild))
+    }
+}
+}
+
 fun String.getSingleTrack(guild: Guild, foundConsumer: (AudioTrack) -> (Unit), search: Boolean = false, soundcloud: Boolean = false) {
     val string = this
-    playerManager.loadItemOrdered(guild.getGuildAudioPlayer(null), "${if (search) (if (soundcloud) "scsearch:" else "ytsearch:") else ""}$this", object : AudioLoadResultHandler {
+    playerManager.loadItemOrdered(guild.musicManager(null), "${if (search) (if (soundcloud) "scsearch:" else "ytsearch:") else ""}$this", object : AudioLoadResultHandler {
         override fun loadFailed(exception: FriendlyException) {
             if (!soundcloud) string.getSingleTrack(guild, foundConsumer, true, search)
         }
@@ -67,8 +120,9 @@ fun String.getSingleTrack(guild: Guild, foundConsumer: (AudioTrack) -> (Unit), s
         }
 
         override fun noMatches() {
-            if (!search) { this@getSingleTrack.getSingleTrack(guild, foundConsumer, true, false) }
-            else this@getSingleTrack.getSingleTrack(guild, foundConsumer, true, true)
+            if (!search) {
+                this@getSingleTrack.getSingleTrack(guild, foundConsumer, true, false)
+            } else this@getSingleTrack.getSingleTrack(guild, foundConsumer, true, true)
         }
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
@@ -90,8 +144,8 @@ fun String.load(member: Member, channel: TextChannel?, search: Boolean = false, 
                     }
                 }
                 this.startsWith("https://open.spotify.com/user/") -> {
-                    this.getSpotifyPlaylist(channel
-                            ?: member.guild.getGuildAudioPlayer(null).scheduler.channel
+                    this.loadSpotifyPlaylist(channel
+                            ?: member.guild.musicManager(null).scheduler.channel
                             ?: member.guild.textChannels[0], member)
                     return
                 }
@@ -105,7 +159,7 @@ fun String.load(member: Member, channel: TextChannel?, search: Boolean = false, 
             }
             channel?.send("We couldn't find the item you were looking for. Please recheck the link you're providing".tr(member.guild))
         } else {
-            playerManager.loadItemOrdered(member.guild.getGuildAudioPlayer(channel), this@load, object : AudioLoadResultHandler {
+            playerManager.loadItemOrdered(member.guild.musicManager(channel), this@load, object : AudioLoadResultHandler {
                 override fun playlistLoaded(playlist: AudioPlaylist) {
                     when (playlist.isSearchResult) {
                         false -> {
@@ -169,40 +223,6 @@ fun String.load(member: Member, channel: TextChannel?, search: Boolean = false, 
     }
 }
 
-fun String.getSpotifyPlaylist(channel: TextChannel, member: Member) {
-    when (this) {
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M" -> {
-            if (todaysTopHits.size > 0) todaysTopHits.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd" -> {
-            if (rapCaviar.size > 0) rapCaviar.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj" -> {
-            if (powerGaming.size > 0) powerGaming.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p" -> {
-            if (teenParty.size > 0) teenParty.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotifycharts/playlist/37i9dQZEVXbLRQDuF5jeBp" -> {
-            if (usTop50.size > 0) usTop50.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva" -> {
-            if (vivaLatino.size > 0) vivaLatino.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda" -> {
-            if (hotCountry.size > 0) hotCountry.forEach { play(channel, member, ArdentTrack(member.id(), channel.id, it.makeClone())) }
-            else searchAndLoadPlaylists(channel, member)
-        }
-        else -> searchAndLoadPlaylists(channel, member)
-    }
-}
-
 /**
  * @return [Pair] with first as the title, and second as the video id
  */
@@ -219,63 +239,5 @@ fun String.searchYoutubeOfficial(): List<Pair<String, String>>? {
     } catch (e: Exception) {
         e.log()
         null
-    }
-}
-
-fun String.searchAndLoadPlaylists(channel: TextChannel, member: Member) {
-    try {
-        val info = this.removePrefix("https://open.spotify.com/user/").split("/playlist/")
-        val playlist: Any? = (if (info.size > 1) spotifyApi.playlists.getPlaylist(info[0], info[1]) else spotifyApi.albums.getAlbum(this.removePrefix("https://open.spotify.com/album/")))
-        if (playlist == null || (playlist is Playlist && playlist.tracks.items.isEmpty()) || (playlist is Album && playlist.tracks.items.isEmpty())) channel.send("No playlist with tracks was found with this search query".tr(channel.guild))
-        else {
-            channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes. I'll add progress bars as the playlist is processed".tr(channel.guild, ((playlist as? Playlist)?.name) ?: (playlist as Album).name))
-                    .queue { message ->
-                        var percentage = 0.0
-                        var current = 0
-                        val items = hashMapOf<String, String>()
-                        if (playlist is Playlist) {
-                            playlist.tracks.items.forEach { items.put(it.track.name, it.track.artists[0].name) }
-                        } else if (playlist is Album) {
-                            playlist.tracks.items.forEach { items.put(it.name, it.artists[0].name) }
-                        }
-                        items.forEach { playlistTrack ->
-                            "${playlistTrack.key} ${playlistTrack.value}".getSingleTrack(member.guild, { foundTrack ->
-                                current++
-                                val ardentTrack = ArdentTrack(member.id(), channel.id, foundTrack)
-                                play(channel, member, ardentTrack)
-                                when (this) {
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DXcBWIGoYBM5M" -> todaysTopHits.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX0XUsuxWHRQd" -> rapCaviar.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX6taq20FeuKj" -> powerGaming.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1N5uK98ms5p" -> teenParty.add(foundTrack)
-                                    "https://open.spotify.com/user/spotifycharts/playlist/37i9dQZEVXbLRQDuF5jeBp" -> usTop50.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX10zKzsJ2jva" -> vivaLatino.add(foundTrack)
-                                    "https://open.spotify.com/user/spotify/playlist/37i9dQZF1DX1lVhptIYRda" -> hotCountry.add(foundTrack)
-                                }
-                                if (current / items.size.toDouble() >= percentage && percentage <= 1) {
-                                    percentage += 0.1
-                                    when (percentage) {
-                                        0.1 -> message.addReaction(Emoji.KEYCAP_DIGIT_ONE.symbol).queue()
-                                        0.2 -> message.addReaction(Emoji.KEYCAP_DIGIT_TWO.symbol).queue()
-                                        0.3 -> message.addReaction(Emoji.KEYCAP_DIGIT_THREE.symbol).queue()
-                                        0.4 -> message.addReaction(Emoji.KEYCAP_DIGIT_FOUR.symbol).queue()
-                                        0.5 -> message.addReaction(Emoji.KEYCAP_DIGIT_FIVE.symbol).queue()
-                                        0.6 -> message.addReaction(Emoji.KEYCAP_DIGIT_SIX.symbol).queue()
-                                        0.7 -> message.addReaction(Emoji.KEYCAP_DIGIT_SEVEN.symbol).queue()
-                                        0.8 -> message.addReaction(Emoji.KEYCAP_DIGIT_EIGHT.symbol).queue()
-                                        0.9 -> message.addReaction(Emoji.KEYCAP_DIGIT_NINE.symbol).queue()
-                                        1.0 -> message.addReaction(Emoji.KEYCAP_TEN.symbol).queue()
-                                    }
-                                }
-                                if (current / items.size.toDouble() == 1.0) {
-                                    message.addReaction(Emoji.HEAVY_CHECK_MARK.symbol).queue()
-                                }
-                                Thread.sleep(750)
-                            })
-                        }
-                    }
-        }
-    } catch (e: Exception) {
-        channel.send(("You specified an invalid url.. Please try again after checking the link").tr(channel.guild))
     }
 }

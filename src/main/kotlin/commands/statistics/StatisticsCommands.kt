@@ -2,7 +2,7 @@ package commands.statistics
 
 import com.udojava.evalex.Expression
 import commands.music.getCurrentTime
-import commands.music.getGuildAudioPlayer
+import commands.music.musicManager
 import events.Category
 import events.Command
 import main.*
@@ -189,7 +189,7 @@ class AudioAnalysisCommand : Command(Category.STATISTICS, "trackanalysis", "see 
 
     override fun registerSubcommands() {
         with("current", null, "see an analysis for the currently playing track", { arguments, event ->
-            val playing = event.guild.getGuildAudioPlayer(event.textChannel).player.playingTrack
+            val playing = event.guild.musicManager(event.textChannel).player.playingTrack
             if (playing == null) event.channel.send("There isn't a currently playing track..".tr(event))
             else {
                 val embed = getAnalysis(playing.info.title, event)

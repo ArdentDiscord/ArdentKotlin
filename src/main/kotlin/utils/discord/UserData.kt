@@ -3,11 +3,23 @@ package utils.discord
 import commands.games.*
 import main.conn
 import main.r
+import net.dv8tion.jda.core.entities.User
 import translation.Language
 import utils.*
+import utils.music.MusicLibrary
+import utils.music.MusicPlaylist
 import java.util.concurrent.TimeUnit
 
-class UserData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0, val gender: Gender, val languagesSpoken: List<Language>, val reminders: MutableList<Reminder> = mutableListOf()) {
+fun User.getData(): UserData {
+    var data = asPojo(r.table("users").get(id).run(conn), UserData::class.java)
+    if (data != null) return data
+    data = UserData(id, DonationLevel.NONE, 25.0, 0L, UserData.Gender.UNDEFINED, mutableListOf())
+    data.insert("users")
+    return data
+}
+
+class UserData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0,
+               val gender: Gender, val languagesSpoken: MutableList<Language>, val reminders: MutableList<Reminder> = mutableListOf()) {
     fun canCollect(): Boolean {
         return ((System.currentTimeMillis() - collected) / 1000) > 86399
     }
@@ -25,12 +37,23 @@ class UserData(val id: String, var donationLevel: DonationLevel, var gold: Doubl
     }
 
     fun update(blocking: Boolean = false) {
-        if (!blocking) r.table("playerData").get(id).update(r.json(gson.toJson(this))).runNoReply(conn)
-        else r.table("playerData").get(id).update(r.json(gson.toJson(this))).run<Any>(conn)
+        if (!blocking) r.table("users").get(id).update(r.json(gson.toJson(this))).runNoReply(conn)
+        else r.table("users").get(id).update(r.json(gson.toJson(this))).run<Any>(conn)
     }
 
     fun getMusicLibrary(): MusicLibrary {
+        var lib = asPojo(r.table("musicLibraries").get(id).run(conn), MusicLibrary::class.java)
+        if (lib != null) return lib
+        lib = MusicLibrary(id, mutableListOf())
+        lib.insert("musicLibraries")
+        return lib
+    }
 
+    fun getPlaylists(): List<MusicPlaylist> {
+        val playlists = mutableListOf<MusicPlaylist>()
+        r.table("musicPlaylists").filter { it.g("owner").eq(id) }.run<Any>(conn).queryAsArrayList(MusicPlaylist::class.java)
+                .forEach { if (it != null) playlists.add(it) }
+        return playlists
     }
 
     enum class Gender(val display: String) { MALE("♂"), FEMALE("♀"), UNDEFINED("Not Specified") }
