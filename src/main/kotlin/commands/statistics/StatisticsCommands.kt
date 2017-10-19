@@ -10,7 +10,10 @@ import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.LanguageData
 import translation.Language
-import utils.*
+import utils.discord.LoggedTrack
+import utils.discord.internals
+import utils.functionality.*
+import utils.web.paste
 import java.awt.Color
 
 class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many servers we're currently serving with music", "minfo") {
@@ -22,7 +25,7 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
             val guild = getGuildById(id.toString())
             if (manager.player.playingTrack != null && guild != null) {
                 var lengthHours = 0.0
-                r.table("musicPlayed").filter(r.hashMap("guildId", guild.id)).run<Any>(conn).queryAsArrayList(PlayedMusic::class.java).forEach {
+                r.table("musicPlayed").filter(r.hashMap("guildId", guild.id)).run<Any>(conn).queryAsArrayList(LoggedTrack::class.java).forEach {
                     if (it != null) lengthHours += it.position
                 }
                 embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol + " " +
@@ -60,7 +63,7 @@ class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", 
                     data.languageData = Language.ENGLISH.data
                     data.update()
                 }
-                if (langs.containsKey(data.languageData!!)) langs.incrementValue(data.languageData!!)
+                if (langs.containsKey(data.languageData!!)) langs.increment(data.languageData!!)
                 else langs.put(data.languageData!!, 1)
             }
         }
@@ -120,7 +123,7 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
                     if (arguments.size == 0) factory.commandsById.sort(true)
                     else {
                         val temp = hashMapOf<String, Int>()
-                        r.table("commands").run<Any>(conn).queryAsArrayList(LoggedCommand::class.java).forEach { if (it != null) if (temp.containsKey(it.commandId)) temp.incrementValue(it.commandId) else temp.put(it.commandId, 1) }
+                        r.table("commands").run<Any>(conn).queryAsArrayList(LoggedCommand::class.java).forEach { if (it != null) if (temp.containsKey(it.commandId)) temp.increment(it.commandId) else temp.put(it.commandId, 1) }
                         temp.sort(true)
                     }
             val embed = event.member.embed((if (isOverall) "Ardent | Lifetime Command Distribution" else "Ardent | Current Session Command Distribution").tr(event))
@@ -152,7 +155,7 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
     }
 }
 
-class GetGuilds : Command(Category.STATISTICS, "guilds", "get a hastebin paste of servers", "servers") {
+class GetGuilds : Command(Category.STATISTICS, "guilds", "getWithIndex a hastebin paste of servers", "servers") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val builder = StringBuilder().append("Ardent Server Data, collected at ${System.currentTimeMillis().readableDate()}\n\n")
         guilds().sortedByDescending { it.members.size }.forEach { guild -> builder.append("${guild.name} - ${guild.members.size} members & ${guild.botSize()} bots\n") }
@@ -163,7 +166,7 @@ class GetGuilds : Command(Category.STATISTICS, "guilds", "get a hastebin paste o
     }
 }
 
-class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "get a list of servers I'm in with a specified user", "mutualservers") {
+class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "getWithIndex a list of servers I'm in with a specified user", "mutualservers") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val user = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         if (user.id == "339101087569281045") event.channel.send("Nice try :-)".tr(event))
@@ -219,7 +222,7 @@ class AudioAnalysisCommand : Command(Category.STATISTICS, "trackanalysis", "see 
                     .addField("Speechiness", features.speechiness.times(100).format() + "%", true)
                     .addField("Valence", features.valence.times(100).format() + "%", true)
                     .addField("Tempo", features.tempo.format() + " bpm", true)
-                    .addField("Duration", features.duration_ms.toLong().formatMinSec(), true)
+                    .addField("Duration", features.duration_ms.toLong().toMinutesAndSeconds(), true)
                     .addField("Track Link", "https://open.spotify.com/track/${features.id}", true)
                     .addField("Analysis URL", features.analysis_url, true)
 

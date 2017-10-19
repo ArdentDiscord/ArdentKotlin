@@ -7,6 +7,7 @@ import main.r
 import main.waiter
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import utils.functionality.*
 import java.awt.Color
 import java.util.*
 
@@ -21,7 +22,7 @@ class Balance : Command(Category.RPG, "bal", "see someone's balance (or yours)",
     }
 }
 
-class Daily : Command(Category.RPG, "daily", "get a daily stipend of gold") {
+class Daily : Command(Category.RPG, "daily", "getWithIndex a daily stipend of gold") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.author.getData()
         if (data.canCollect()) event.channel.send("You got **{0}** gold today!".tr(event, data.collect()))
@@ -92,7 +93,7 @@ class MarryCommand : Command(Category.RPG, "marry", "really fond of someone? mak
             spouse != null -> event.channel.send("We live in the 21st century! No polygamic marriages!".tr(event))
             proposed.getMarriage() != null -> event.channel.send("This person's already married. Sorry :-(".tr(event))
             else -> {
-                event.channel.send("{0}, {1} is proposing to you! Do you want to accept? Type `yes` to get married or `no` to break their heart".tr(event, proposed.asMention, event.author.asMention))
+                event.channel.send("{0}, {1} is proposing to you! Do you want to accept? Type `yes` to getWithIndex married or `no` to break their heart".tr(event, proposed.asMention, event.author.asMention))
                 waiter.waitForMessage(Settings(proposed.id, event.channel.id, event.guild.id), { response ->
                     if (response.content.startsWith("ye", true)) {
                         if (event.author.getMarriage() != null || proposed.getMarriage() != null) event.channel.send("Unable to create marriage, one of you was just recently married".tr(event))
@@ -112,7 +113,7 @@ class MarryCommand : Command(Category.RPG, "marry", "really fond of someone? mak
     }
 }
 
-class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working out? get a divorce!") {
+class DivorceCommand : Command(Category.RPG, "divorce", "marriage not working out? getWithIndex a divorce!") {
     private val random = Random()
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val marriage = event.author.getMarriageModeled()

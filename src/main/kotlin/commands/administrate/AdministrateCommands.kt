@@ -13,6 +13,10 @@ import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import utils.*
+import utils.functionality.Emoji
+import utils.functionality.concat
+import utils.functionality.insert
+import utils.functionality.readableDate
 import java.awt.Color
 import java.util.concurrent.TimeUnit
 

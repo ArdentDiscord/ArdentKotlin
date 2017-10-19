@@ -6,6 +6,9 @@ import main.conn
 import main.hangout
 import main.r
 import utils.*
+import utils.functionality.insert
+import utils.functionality.logChannel
+import utils.functionality.queryAsArrayList
 import java.util.concurrent.CopyOnWriteArrayList
 
 val staff = CopyOnWriteArrayList<Staff>()

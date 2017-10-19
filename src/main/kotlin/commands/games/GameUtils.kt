@@ -4,6 +4,10 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.*
 import utils.*
+import utils.functionality.Emoji
+import utils.functionality.toMinutesAndSeconds
+import utils.functionality.insert
+import utils.functionality.sort
 import java.awt.Color
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -62,7 +66,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         val member = channel.guild.selfMember
         val embed = member.embed("${type.readable} Game Lobby", Color.ORANGE)
                 .setFooter("Ardent Game Engine By Adam#9261".tr(channel.guild), member.user.avatarUrl)
-                .setDescription("This lobby has been active for {0}".tr(channel.guild, ((System.currentTimeMillis() - creation) / 1000).formatMinSec()) + "\n" +
+                .setDescription("This lobby has been active for {0}".tr(channel.guild, ((System.currentTimeMillis() - creation) / 1000).toMinutesAndSeconds()) + "\n" +
                         "It currently has **{0}** of **{1}** players required to start | {2}".tr(channel.guild, players.size, playerCount, players.toUsers()) + "\n" +
                         "To start, the host can also type *{0}forcestart*".tr(channel.guild, prefix) + "\n\n" +
                         "This game was created by __{0}__".tr(channel.guild, creator.toUser()?.withDiscrim() ?: "unable to determine"))

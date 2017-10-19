@@ -11,7 +11,11 @@ import main.config
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.json.JSONObject
 import org.jsoup.Jsoup
-import utils.*
+import utils.functionality.Emoji
+import utils.functionality.concat
+import utils.functionality.encode
+import utils.functionality.format
+import utils.web.EightBallResult
 import java.awt.Color
 import java.net.URLEncoder
 import java.security.SecureRandom
@@ -47,7 +51,7 @@ __Please Note__: You are limited to 999999x10, meaning that at maximum you can r
     }
 }
 
-class Meme : Command(Category.FUN, "gif", "get a random meme from giphy", "meme", ratelimit = 5) {
+class Meme : Command(Category.FUN, "gif", "getWithIndex a random meme from giphy", "meme", ratelimit = 5) {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send(JSONObject(Jsoup.connect("https://api.giphy.com/v1/gifs/random").data("api_key", config.getValue("giphy"))
                 .ignoreContentType(true).get().body().text()).getJSONObject("data").getString("image_url"))
@@ -57,7 +61,7 @@ class Meme : Command(Category.FUN, "gif", "get a random meme from giphy", "meme"
     }
 }
 
-class UrbanDictionary : Command(Category.FUN, "urban", "get search results for your favorite words from urban dictionary", "ud") {
+class UrbanDictionary : Command(Category.FUN, "urban", "getWithIndex search results for your favorite words from urban dictionary", "ud") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) event.channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "You gotta include a search term".tr(event))
         else {

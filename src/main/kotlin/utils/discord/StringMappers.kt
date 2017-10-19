@@ -2,9 +2,8 @@ package utils.discord
 
 import main.jdas
 import net.dv8tion.jda.core.entities.*
-import utils.concat
-import utils.stringify
-import utils.withDiscrim
+import utils.functionality.concat
+import utils.functionality.stringify
 
 // Guilds
 fun getGuildById(id: String): Guild? {
@@ -59,7 +58,7 @@ fun getUserById(id: String?): User? {
 }
 
 fun List<String>.toUsers(): String {
-    return map { getUserById(it)?.withDiscrim() ?: "Unknown" }.stringify()
+    return map { getUserById(it)?.toFancyString() ?: "Unknown" }.stringify()
 }
 
 // Roles

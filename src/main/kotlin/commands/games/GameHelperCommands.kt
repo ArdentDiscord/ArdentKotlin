@@ -5,6 +5,8 @@ import events.Command
 import main.waiter
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import utils.functionality.Emoji
+import utils.functionality.Settings
 import java.util.concurrent.TimeUnit
 
 class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running game") {

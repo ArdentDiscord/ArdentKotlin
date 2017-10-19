@@ -14,7 +14,10 @@ import main.waiter
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
-import utils.*
+import utils.discord.LoggedTrack
+import utils.functionality.Emoji
+import utils.functionality.insert
+import utils.functionality.log
 import utils.music.LocalTrackObj
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
@@ -124,7 +127,7 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
         try {
             if (guild.audioManager.isConnected) {
-                if (track.position != 0L) PlayedMusic(guild.id ?: "unknown", track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
+                if (track.position != 0L) LoggedTrack(guild.id ?: "unknown", track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
                 if (track.position != 0L && player.playingTrack == null && manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
                     try {
                         val get = spotifyApi.search.searchTrack(track.info.title.rmCharacters("()").rmCharacters("[]")
@@ -200,7 +203,7 @@ fun AudioTrack.getCurrentTime(): String {
 }
 
 @Synchronized
-fun Guild.musicManager(channel: TextChannel?): GuildMusicManager {
+fun Guild.getAudioManager(channel: TextChannel?): GuildMusicManager {
     val guildId = id.toLong()
     var musicManager = managers[guildId]
     if (musicManager == null) {

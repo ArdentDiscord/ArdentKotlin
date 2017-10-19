@@ -1,4 +1,4 @@
-package utils
+package utils.functionality
 
 /**
  * Shayan Rais (http://shanraisshan.com) created on 8/1/2016

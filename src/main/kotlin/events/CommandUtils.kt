@@ -12,6 +12,7 @@ import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import translation.Language
 import utils.*
+import utils.functionality.*
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
@@ -71,8 +72,8 @@ class CommandFactory {
                 (0..(args.size - 1))
                         .filter { args[it].isEmpty() }
                         .forEach { args.removeAt(it) }
-                commandsById.incrementValue(cmd.name)
-                commandsByShard.incrementValue(event.guild.getShard())
+                commandsById.increment(cmd.name)
+                commandsByShard.increment(event.guild.getShard())
                 val name = event.author.name
                 if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
                     event.channel.send("Here at Ardent, we hate derogatory and discriminatory statements. Thus, {0}, you need to change your username to be able to use any command".tr(event.guild, event.author.asMention))

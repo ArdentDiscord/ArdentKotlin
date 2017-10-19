@@ -7,7 +7,9 @@ import main.jdas
 import main.r
 import net.dv8tion.jda.core.entities.User
 import org.jsoup.Jsoup
-import utils.*
+import utils.functionality.log
+import utils.functionality.queryAsArrayList
+import utils.functionality.readableDate
 import java.util.*
 
 val dapi = "https://discordapp.com/api"

@@ -6,8 +6,9 @@ import main.factory
 import main.waiter
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import utils.*
-import utils.Settings
+import utils.discord.internals
+import utils.functionality.*
+import utils.functionality.Settings
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
@@ -27,7 +28,7 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
     }
 }
 
-class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL", "ardent") {
+class Invite : Command(Category.BOT_INFO, "invite", "getWithIndex Ardent's invite URL", "ardent") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("My invite link is {0} - have fun using Ardent!".tr(event).trReplace(event, "<https://ardentbot.com/invite>"))
     }
@@ -36,7 +37,7 @@ class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL", "
     }
 }
 
-class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and get special perks for it!") {
+class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and getWithIndex special perks for it!") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Want to support our work and obtain some perks along the way? Head to {0} to see the different ways you could help us out!".tr(event).trReplace(event, "<https://ardentbot.com/patreon>"))
     }
@@ -149,7 +150,7 @@ class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you
                 return@forEach
             }
         }
-        if (!found) event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to get a full list".tr(event, event.guild.getPrefix()))
+        if (!found) event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to getWithIndex a full list".tr(event, event.guild.getPrefix()))
     }
 
     override fun registerSubcommands() {
@@ -160,7 +161,7 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()
         if (arguments.size == 0) {
-            event.channel.send("Please type **{0}iam** to get a full list of available autoroles".tr(event, data.prefix ?: "/"))
+            event.channel.send("Please type **{0}iam** to getWithIndex a full list of available autoroles".tr(event, data.prefix ?: "/"))
             return
         }
         val name = arguments.concat()
@@ -188,7 +189,7 @@ class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role
                 return
             }
         }
-        event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to get a full list".tr(event, data.prefix ?: "/"))
+        event.channel.send("An autorole with that name wasn't found. Please type **{0}iam** to getWithIndex a full list".tr(event, data.prefix ?: "/"))
     }
 
     override fun registerSubcommands() {
@@ -290,7 +291,7 @@ class Support : Command(Category.BOT_INFO, "support", "need help? something not 
     }
 }
 
-class GetId : Command(Category.SERVER_INFO, "getid", "get the id of people in your server by mentioning them") {
+class GetId : Command(Category.SERVER_INFO, "getid", "getWithIndex the id of people in your server by mentioning them") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) event.channel.send("You need to mention some people (or bots)!".tr(event))
@@ -322,7 +323,7 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
     }
 }
 
-class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for Ardent's cool website") {
+class WebsiteCommand : Command(Category.BOT_INFO, "website", "getWithIndex the link for Ardent's cool website") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Check out our site @ {0}".tr(event, "<https://ardentbot.com>"))
     }

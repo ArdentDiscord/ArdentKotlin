@@ -4,9 +4,18 @@ import com.vdurmont.emoji.EmojiParser
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.ChannelType
+import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.MessageChannel
+import translation.tr
+import utils.functionality.random
+import java.awt.Color
 
+fun Member.embed(title: String, channel: MessageChannel, consumer: ((Message) -> Unit)? = null): EmbedWrapper {
+    return EmbedWrapper(EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
+            .setColor(Color.getHSBColor(random.nextFloat(), random.nextFloat(), 1f))
+            .setFooter("Ardent v2 | ardentbot.com".tr(guild), user.effectiveAvatarUrl), channel, consumer)
+}
 
 fun MessageChannel.send(message: String) {
     try {
@@ -27,15 +36,16 @@ fun MessageChannel.send(message: String) {
     }
 }
 
-class EmbedWrapper(val embedBuilder: EmbedBuilder, val channel: MessageChannel, vararg val reactions: String, val consumer: ((Message) -> Unit)?) {
+class EmbedWrapper(val embedBuilder: EmbedBuilder, val channel: MessageChannel, val consumer: ((Message) -> Unit)?, vararg val reactions: String) {
     fun appendDescription(string: String, final: Boolean = false) {
         if (embedBuilder.descriptionBuilder.length + string.length > 2048) {
-            channel.send(embedBuilder, *reactions, consumer = consumer)
+            channel.send(embedBuilder, *reactions)
             embedBuilder.setDescription("")
         }
         embedBuilder.appendDescription(string)
         if (final) channel.send(embedBuilder, *reactions, consumer = consumer)
     }
+
     fun send() {
         channel.send(embedBuilder, *reactions, consumer = consumer)
     }

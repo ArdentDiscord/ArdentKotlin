@@ -7,7 +7,9 @@ import net.dv8tion.jda.core.events.guild.GuildLeaveEvent
 import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent
 import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
-import utils.*
+import utils.discord.EventType
+import utils.functionality.log
+import utils.functionality.logChannel
 
 class JoinRemoveEvents {
     @SubscribeEvent

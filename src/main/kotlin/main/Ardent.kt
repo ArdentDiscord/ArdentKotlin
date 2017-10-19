@@ -35,6 +35,8 @@ import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
 import translation.Translate
 import utils.*
+import utils.discord.internals
+import utils.functionality.*
 import web.Web
 import java.io.File
 import java.io.FileReader
@@ -43,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 val test = false
+var beta = true
 
 var hangout: Guild? = null
 

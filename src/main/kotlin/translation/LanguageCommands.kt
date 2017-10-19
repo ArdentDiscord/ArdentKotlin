@@ -5,7 +5,10 @@ import com.github.vbauer.yta.service.YTranslateApiImpl
 import events.Category
 import events.Command
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import utils.*
+import utils.discord.internals
+import utils.functionality.Emoji
+import utils.functionality.concat
+import utils.functionality.without
 import java.awt.Color
 
 class LanguageCommand : Command(Category.LANGUAGE, "data", "view or change Ardent's data on this server!", "lang") {

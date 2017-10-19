@@ -1,25 +1,50 @@
 package utils.discord
 
+import commands.administrate.Staff
+import commands.administrate.staff
 import commands.games.*
 import main.conn
 import main.r
+import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import translation.Language
+import translation.tr
 import utils.*
+import utils.functionality.*
 import utils.music.MusicLibrary
 import utils.music.MusicPlaylist
 import java.util.concurrent.TimeUnit
 
+fun User.isAdministrator(channel: TextChannel, complain: Boolean = false): Boolean {
+    staff.forEach { if (it.id == id && it.role == Staff.StaffRole.ADMINISTRATOR) return true }
+    if (complain) channel.send("You need to be an **Ardent Administrator** to use this command")
+    return false
+}
+
+fun TextChannel.requires(user: User, requiredLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
+    if (guild.isPatronGuild()) return true
+    else send("${Emoji.CROSS_MARK} " + "{0}, This command requires that you or the owner of this server have a donation level of **{0}** to be able to use it".tr(guild, user.asMention, requiredLevel.readable))
+    return false
+}
+
+fun User.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
+    return if (getData().donationLevel.level >= donationLevel.level) true
+    else channel.requires(this, donationLevel, failQuietly)
+}
+
+enum class DonationLevel(val readable: String, val level: Int) { NONE("None", 1), SUPPORTER("Supporter", 2), BASIC("Basic", 3), INTERMEDIATE("Intermediate", 4), EXTREME("Extreme", 5) }
+
 fun User.getData(): UserData {
     var data = asPojo(r.table("users").get(id).run(conn), UserData::class.java)
     if (data != null) return data
-    data = UserData(id, DonationLevel.NONE, 25.0, 0L, UserData.Gender.UNDEFINED, mutableListOf())
+    data = UserData(id, DonationLevel.NONE, 25.0, 0L, UserData.Gender.UNDEFINED, mutableListOf(), connectedAccounts = ConnectedAccounts())
     data.insert("users")
     return data
 }
 
 class UserData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0,
-               val gender: Gender, val languagesSpoken: MutableList<Language>, val reminders: MutableList<Reminder> = mutableListOf()) {
+               val gender: Gender, val languagesSpoken: MutableList<Language>, val reminders: MutableList<Reminder> = mutableListOf(),
+               val connectedAccounts: ConnectedAccounts) {
     fun canCollect(): Boolean {
         return ((System.currentTimeMillis() - collected) / 1000) > 86399
     }
@@ -51,7 +76,7 @@ class UserData(val id: String, var donationLevel: DonationLevel, var gold: Doubl
 
     fun getPlaylists(): List<MusicPlaylist> {
         val playlists = mutableListOf<MusicPlaylist>()
-        r.table("musicPlaylists").filter { it.g("owner").eq(id) }.run<Any>(conn).queryAsArrayList(MusicPlaylist::class.java)
+        r.table("musicPlaylists").filter { r.hashMap("owner", id) }.run<Any>(conn).queryAsArrayList(MusicPlaylist::class.java)
                 .forEach { if (it != null) playlists.add(it) }
         return playlists
     }
@@ -59,6 +84,19 @@ class UserData(val id: String, var donationLevel: DonationLevel, var gold: Doubl
     enum class Gender(val display: String) { MALE("♂"), FEMALE("♀"), UNDEFINED("Not Specified") }
 }
 
+enum class StaffRole(val readable: String, val level: Int) {
+    TRANSLATOR("Translator", 0), MODERATOR("Moderator", 1), ADMINISTRATOR("Administrator", 2), DEVELOPER("Developer", 3);
+    fun hasPermission(role: StaffRole): Boolean {
+        return level >= role.level
+    }
+}
+
+enum class PatronLevel(val readable: String, val level: Int) {
+    SUPPORTER("Supporter", 1), BASIC("Basic", 3), INTERMEDIATE("Intermediate", 5), AMAZING("Amazing", 10);
+    fun hasPermission(patron: PatronLevel): Boolean {
+        return level >= patron.level
+    }
+}
 
 fun UserData.getBlackjackData(): BlackjackPlayerData {
     val data = BlackjackPlayerData()
@@ -143,3 +181,5 @@ fun UserData.getTriviaData(): TriviaPlayerData {
     data.overallCorrectPercent = (data.questionsCorrect.toDouble() / (data.questionsCorrect + data.questionsWrong).toDouble()) * 100.0
     return data
 }
+
+data class ConnectedAccounts(var spotifyId: String? = null)

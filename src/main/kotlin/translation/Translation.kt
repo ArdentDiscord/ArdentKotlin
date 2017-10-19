@@ -1,8 +1,17 @@
 package translation
 
+import main.beta
 import main.conn
 import main.r
-import utils.queryAsArrayList
+import main.test
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.TextChannel
+import utils.discord.getData
+import utils.discord.send
+import utils.functionality.insert
+import utils.functionality.logChannel
+import utils.functionality.queryAsArrayList
+import utils.functionality.trReplace
 import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -112,6 +121,32 @@ fun String.toLanguage(): LanguageData? {
         else -> null
     }?.data
 }
+
+
+fun String.tr(languageData: LanguageData, vararg new: Any): String {
+    return languageData.translate(this)?.trReplace(languageData, *new) ?: translationDoesntExist(languageData, *new)
+}
+
+fun String.translationDoesntExist(languageData: LanguageData, vararg new: Any): String {
+    if (!test && !beta) {
+        val phrase = ArdentPhraseTranslation(this, "Unknown")
+        translationData.phrases.put(this, phrase)
+        if (r.table("phrases").filter(r.hashMap("english", this)).count().run<Long>(conn) == 0.toLong()) {
+            phrase.insert("phrases")
+            logChannel!!.send("```Translation for the following doesn't exist and was automatically inserted into the database: $this```")
+        }
+    }
+    return this.trReplace(languageData, *new)
+}
+
+fun String.tr(textChannel: TextChannel, vararg new: Any): String {
+    return tr(textChannel.guild, *new)
+}
+
+fun String.tr(guild: Guild, vararg new: Any): String {
+    return tr(guild.getData().languageSettings.getLanguage(), *new)
+}
+
 
 fun String.fromLangName(): LanguageData? {
     Language.values().forEach { if (it.data.readable.equals(this, true)) return it.data }

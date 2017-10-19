@@ -22,6 +22,8 @@ import translation.Language
 import translation.toLanguage
 import translation.translationData
 import utils.*
+import utils.discord.internals
+import utils.functionality.*
 import java.net.URLEncoder
 
 val settings = mutableListOf<Setting>()

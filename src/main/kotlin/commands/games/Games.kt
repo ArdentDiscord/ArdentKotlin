@@ -9,6 +9,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
+import utils.functionality.*
 import java.awt.Color
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -41,7 +42,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
             } else {
                 val dealerHand = Hand(true).blackjackPlus(2)
                 val userHand = Hand().blackjackPlus(1)
-                display(dealerHand, userHand, "You've been dealt 1 card.".tr(channel.guild) + " " + "The dealer's second card is hidden.".tr(channel.guild) + " " + "The goal is to get as close as possible to **21**. Type `" + "hit".tr(channel.guild) + "` if you'd like to get another card or `" + "stay".tr(channel.guild) + "` to stay at your current amount".tr(channel.guild))
+                display(dealerHand, userHand, "You've been dealt 1 card.".tr(channel.guild) + " " + "The dealer's second card is hidden.".tr(channel.guild) + " " + "The goal is to getWithIndex as close as possible to **21**. Type `" + "hit".tr(channel.guild) + "` if you'd like to getWithIndex another card or `" + "stay".tr(channel.guild) + "` to stay at your current amount".tr(channel.guild))
                 wait(bet.toDouble(), dealerHand, userHand, user)
             }
         }, { cancel(user) }, silentExpiration = true)
@@ -54,7 +55,7 @@ class BlackjackGame(channel: TextChannel, creator: String, playerCount: Int, isP
                     userHand.blackjackPlus(1)
                     if (userHand.value() >= 21) displayRoundScore(bet, dealerHand, userHand, user)
                     else {
-                        display(dealerHand, userHand, "The dealer's second card is hidden.".tr(channel.guild) + " " + "The goal is to get as close as possible to **21**. Type `" + "hit".tr(channel.guild) + "` if you'd like to get another card or `" + "stay".tr(channel.guild) + "` to stay at your current amount".tr(channel.guild))
+                        display(dealerHand, userHand, "The dealer's second card is hidden.".tr(channel.guild) + " " + "The goal is to getWithIndex as close as possible to **21**. Type `" + "hit".tr(channel.guild) + "` if you'd like to getWithIndex another card or `" + "stay".tr(channel.guild) + "` to stay at your current amount".tr(channel.guild))
                         wait(bet, dealerHand, userHand, user)
                     }
                 }
@@ -251,7 +252,7 @@ class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPubl
             var guessed = false
             waiter.gameChannelWait(channel.id, { response ->
                 if (players.contains(response.author.id) && !guessed) {
-                    if (question.answers.containsEq(response.rawContent.toLowerCase())) {
+                    if (question.answers.contains(response.rawContent.toLowerCase())) {
                         channel.send("{0} guessed the correct answer and got **{1}** points!".tr(channel.guild, response.author.asMention, question.value))
                         guessed = true
                         endRound(players.without(response.author.id), question, currentRound, questions, response.author.id)
@@ -291,7 +292,7 @@ class TriviaGame(channel: TextChannel, creator: String, playerCount: Int, isPubl
                 winners.forEach { winner ->
                     if (points.containsKey(winner)) points.replace(winner, points[winner]!! + q.value)
                     else points.put(winner, q.value)
-                    questions.incrementValue(winner)
+                    questions.increment(winner)
                 }
             }
         }
@@ -558,7 +559,7 @@ class Connect4Game(channel: TextChannel, creator: String) : Game(GameType.CONNEC
 
     private fun doRound(game: GameBoard, player: Member, cancelIfExpired: Boolean = false) {
         if (game.full()) {
-            channel.send("All tiles have been placed without a winner (lol). Therefore, I choose {0} as the winner! (They will not get any gold for winning this game)".tr(channel.guild, player.asMention))
+            channel.send("All tiles have been placed without a winner (lol). Therefore, I choose {0} as the winner! (They will not getWithIndex any gold for winning this game)".tr(channel.guild, player.asMention))
             val embed = channel.guild.selfMember.embed("Connect 4 | Results", Color.BLUE)
             embed.appendDescription("{0} has won (technically) in a tied game".tr(channel.guild, player.asMention) + "\n$game")
             channel.send(embed)

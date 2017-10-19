@@ -1,4 +1,4 @@
-package utils
+package utils.functionality
 
 import com.google.gson.GsonBuilder
 import com.rethinkdb.net.Cursor
@@ -11,18 +11,19 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject
-import translation.LanguageData
 import translation.Language
+import translation.LanguageData
+import utils.discord.getData
 import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
 import javax.management.Attribute
 import javax.management.ObjectName
 
 class Quadruple<A, B, C, D>(var first: A, var second: B, var third: C, var fourth: D)
-class Pair2(val first1: Any?, val second1: Any?)
 
 var logChannel: TextChannel? = null
 
@@ -30,7 +31,7 @@ val random = Random()
 val gson = GsonBuilder().serializeSpecialFloatingPointValues().create()
 
 fun Throwable.log() {
-    logChannel!!.sendMessage("```${ExceptionUtils.getStackTrace(this)}```").queue()
+    logChannel?.sendMessage("```${ExceptionUtils.getStackTrace(this)}```")?.queue() ?: printStackTrace()
 }
 
 fun Float.format(): String {
@@ -42,29 +43,24 @@ fun <E> MutableList<E>.shuffle(): MutableList<E> {
     return this
 }
 
-fun <E> List<E>.get(e: E): Pair<Int, E>? {
+fun <E> List<E>.getWithIndex(e: E): Pair<Int, E>? {
     var index = 0
     forEach { if (it == e) return Pair(index, it) else index++ }
     return null
 }
 
 /**
- * Append [List] items using a comma to seperate them
+ * Append a [List] of items using a comma as a separator
  */
-fun List<String>.stringify(): String {
-    if (size == 0) return "none"
-    val builder = StringBuilder()
-    forEach { builder.append(it + ", ") }
-    return builder.removeSuffix(", ").toString()
+fun <T> List<T>.stringify(): String {
+    return if (size == 0) "none" else map { it.toString() }.stream().collect(Collectors.joining(", "))
 }
 
 /**
  * Creates an equivalent string out of the constituent strings
  */
 fun List<String>.concat(): String {
-    val builder = StringBuilder()
-    forEach { builder.append("$it ") }
-    return builder.removeSuffix(" ").toString()
+    return stream().collect(Collectors.joining(" "))
 }
 
 
@@ -72,7 +68,7 @@ fun String.encode(): String {
     return URLEncoder.encode(this, "UTF-8")
 }
 
-fun <E> MutableList<E>.addIfNotExists(e: E) {
+fun <E> MutableList<E>.putIfNotThere(e: E) {
     if (!contains(e)) add(e)
 }
 
@@ -100,7 +96,6 @@ fun Int.format(): String {
     return formatter.format(this)
 }
 
-
 fun Double.format(): String {
     return formatter.format(this)
 }
@@ -119,18 +114,13 @@ fun <K> MutableList<K>.forEach(consumer: (MutableIterator<K>, current: K) -> Uni
     while (iterator.hasNext()) consumer.invoke(iterator, iterator.next())
 }
 
-fun <K> MutableMap<K, Int>.incrementValue(key: K): Int {
+fun <K> MutableMap<K, Int>.increment(key: K): Int {
     val value = putIfAbsent(key, 0) ?: 0
     replace(key, value + 1)
     return value
 }
 
-fun GuildData.update(blocking: Boolean = false) {
-    if (!blocking) r.table("guilds").get(id).update(r.json(gson.toJson(this))).runNoReply(conn)
-    else r.table("guilds").get(id).update(r.json(gson.toJson(this))).run<Any>(conn)
-}
-
-fun Long.formatMinSec(): String {
+fun Long.toMinutesAndSeconds(): String {
     val seconds = this % 60
     val minutes = (this % 3600) / 60
     return if (minutes.compareTo(0) == 0) "$seconds seconds"
@@ -143,7 +133,7 @@ fun String.trReplace(event: MessageReceivedEvent, vararg new: Any): String {
 }
 
 fun String.trReplace(guild: Guild, vararg new: Any): String {
-    return trReplace(guild.getLanguage(), *new)
+    return trReplace(guild.getData().languageSettings.getLanguage(), *new)
 }
 
 fun String.trReplace(languageData: LanguageData, vararg new: Any): String {
@@ -203,20 +193,23 @@ fun Any.toJson(): String {
     return gson.toJson(this)
 }
 
-fun <T> MutableList<T>.without(t: T): MutableList<T> {
-    val n = mutableListOf<T>()
-    n.addAll(this)
-    n.remove(t)
-    return n
+fun <T> MutableList<T>.without(index: Int): MutableList<T> {
+    removeAt(index)
+    return this
 }
 
-fun List<String>.containsEq(string: String): Boolean {
+fun <T> MutableList<T>.without(t: T): MutableList<T> {
+    remove(t)
+    return this
+}
+
+fun List<String>.containsEqualsIgnoreCase(string: String): Boolean {
     forEach { if (string.toLowerCase().equals(it, true)) return true }
     return false
 }
 
 /**
- * Full credit goes to http://stackoverflow.com/questions/18489273/how-to-get-percentage-of-cpu-usage-of-os-from-java
+ * Full credit goes to http://stackoverflow.com/questions/18489273/how-to-getWithIndex-percentage-of-cpu-usage-of-os-from-java
  */
 fun getProcessCpuLoad(): Double {
     val mbs = ManagementFactory.getPlatformMBeanServer()
@@ -228,15 +221,12 @@ fun getProcessCpuLoad(): Double {
     val att = list[0] as Attribute
     val value = att.value as Double
 
-    // usually takes a couple of seconds before we get real values
+    // usually takes a couple of seconds before we getWithIndex real values
     if (value == -1.0) return Double.NaN
     // returns a percentage value with 1 decimal point precision
     return (value * 1000).toInt() / 10.0
 }
 
-/**
- * Thanks StackOverflow
- */
 fun replaceLast(text: String, regex: String, replacement: String): String {
     return text.replaceFirst(("(?s)(.*)" + regex).toRegex(), "$1$replacement")
 }

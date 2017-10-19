@@ -1,4 +1,4 @@
-package utils
+package utils.functionality
 
 import main.factory
 import main.waiter
@@ -7,6 +7,7 @@ import net.dv8tion.jda.core.events.Event
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
+import utils.embed
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
@@ -162,8 +163,8 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) {
                     failure?.invoke() ?: send("You specified an invalid response!".tr(id.toChannel()!!.guild))
                 } else {
-                    if (options.containsEq(response.rawContent)) {
-                        consumer.invoke(options.get(response.rawContent)!!.first, message)
+                    if (options.contains(response.rawContent)) {
+                        consumer.invoke(options.getWithIndex(response.rawContent)!!.first, message)
                     } else {
                         consumer.invoke(responseInt, message)
                         waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))

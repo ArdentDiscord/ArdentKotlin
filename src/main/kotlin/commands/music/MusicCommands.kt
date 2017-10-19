@@ -6,7 +6,10 @@ import main.spotifyApi
 import main.waiter
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import obj.Market
-import utils.*
+import utils.functionality.Emoji
+import utils.functionality.putIfNotThere
+import utils.functionality.concat
+import utils.functionality.selectFromList
 
 class Radio : Command(Category.MUSIC, "radio", "play a spotify playlist or radio station live from a list of provided options. this is a **patron-only** feature", "pr") {
     private val stations = mutableListOf(
@@ -90,13 +93,13 @@ class ArtistSearch : Command(Category.MUSIC, "searchartist", "search top songs b
                                 waiter.gameReactionWait(embedMessage, { author, messageReaction ->
                                     if (author.id == event.author.id) {
                                         when (messageReaction.emote.name) {
-                                            Emoji.KEYCAP_DIGIT_ONE.symbol -> songsToQueue.addIfNotExists(tracks[0].name)
-                                            Emoji.KEYCAP_DIGIT_TWO.symbol -> songsToQueue.addIfNotExists(tracks[1].name)
-                                            Emoji.KEYCAP_DIGIT_THREE.symbol -> songsToQueue.addIfNotExists(tracks[2].name)
-                                            Emoji.KEYCAP_DIGIT_FOUR.symbol -> songsToQueue.addIfNotExists(tracks[3].name)
-                                            Emoji.KEYCAP_DIGIT_FIVE.symbol -> songsToQueue.addIfNotExists(tracks[4].name)
-                                            Emoji.KEYCAP_DIGIT_SIX.symbol -> songsToQueue.addIfNotExists(tracks[5].name)
-                                            Emoji.KEYCAP_DIGIT_SEVEN.symbol -> songsToQueue.addIfNotExists(tracks[6].name)
+                                            Emoji.KEYCAP_DIGIT_ONE.symbol -> songsToQueue.putIfNotThere(tracks[0].name)
+                                            Emoji.KEYCAP_DIGIT_TWO.symbol -> songsToQueue.putIfNotThere(tracks[1].name)
+                                            Emoji.KEYCAP_DIGIT_THREE.symbol -> songsToQueue.putIfNotThere(tracks[2].name)
+                                            Emoji.KEYCAP_DIGIT_FOUR.symbol -> songsToQueue.putIfNotThere(tracks[3].name)
+                                            Emoji.KEYCAP_DIGIT_FIVE.symbol -> songsToQueue.putIfNotThere(tracks[4].name)
+                                            Emoji.KEYCAP_DIGIT_SIX.symbol -> songsToQueue.putIfNotThere(tracks[5].name)
+                                            Emoji.KEYCAP_DIGIT_SEVEN.symbol -> songsToQueue.putIfNotThere(tracks[6].name)
                                         }
                                     }
                                 }, {
@@ -218,7 +221,7 @@ class Stop : Command(Category.MUSIC, "stop", "stop the player and remove all tra
     }
 }
 
-class SongUrl : Command(Category.MUSIC, "songlink", "get the link for the currently playing track!", "su") {
+class SongUrl : Command(Category.MUSIC, "songlink", "getWithIndex the link for the currently playing track!", "su") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!event.member.checkSameChannel(event.textChannel)) return
         val player = event.guild.musicManager(event.textChannel).player
