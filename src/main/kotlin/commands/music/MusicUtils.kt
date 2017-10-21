@@ -13,8 +13,13 @@ import main.spotifyApi
 import main.waiter
 import net.dv8tion.jda.core.audio.AudioSendHandler
 import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.entities.VoiceChannel
+import translation.tr
 import utils.discord.LoggedTrack
+import utils.discord.getData
+import utils.discord.send
 import utils.functionality.Emoji
 import utils.functionality.insert
 import utils.functionality.log
@@ -59,16 +64,16 @@ class ArdentMusicManager(val player: AudioPlayer) {
         else current = track
     }
 
-    fun nextTrack() {
+    fun skipToNextTrack() {
         val track = queue.poll()
-        if (track != null) {
-            val set: Boolean = track.track.position != 0.toLong()
+        if (track?.track != null) {
+            val set: Boolean = track.track!!.position != 0.toLong()
             try {
                 player.startTrack(track.track, false)
             } catch (e: Exception) {
-                player.startTrack(track.track.makeClone(), false)
+                player.startTrack(track.track!!.makeClone(), false)
             }
-            if (set && player.playingTrack != null) player.playingTrack.position = track.track.position
+            if (set && player.playingTrack != null) player.playingTrack.position = track.track!!.position
             current = track
         } else {
             player.startTrack(null, false)
@@ -80,10 +85,9 @@ class ArdentMusicManager(val player: AudioPlayer) {
         this.queue = LinkedBlockingDeque<LocalTrackObj>()
     }
 
-    fun addToBeginningOfQueue(track: LocalTrackObj?) {
-        if (track == null) return
-        track.track = track.track.makeClone()
-        queue.addFirst(track)
+    fun addToBeginningOfQueue(track: LocalTrackObj) {
+        track.track = track.track?.makeClone()
+        if (track.track != null) queue.addFirst(track)
     }
 
     fun removeAt(num: Int): Boolean {
@@ -96,70 +100,59 @@ class ArdentMusicManager(val player: AudioPlayer) {
 class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild) : AudioEventAdapter() {
     var autoplay = true
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
+        autoplay = true
         waiter.executor.schedule({
             if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel() && !player.isPaused && player.playingTrack != null && player.playingTrack == track) {
                 val queue = guildMusicManager.manager.queue.toList()
                 guildMusicManager.player.isPaused = false
                 guildMusicManager.manager.resetQueue()
                 val current = guildMusicManager.manager.current
-                guildMusicManager.manager.nextTrack()
+                guildMusicManager.manager.skipToNextTrack()
                 if (current != null) guildMusicManager.manager.queue(current)
                 queue.forEach { guildMusicManager.manager.queue(it) }
             }
         }, 5, TimeUnit.SECONDS)
-        autoplay = true
-        if (channel?.guild?.getData()?.musicSettings?.announceNewMusic == true) {
-            if (guild.selfMember.voiceChannel() != null) {
-                val builder = guild.selfMember.embed("Now Playing: {0}".tr(channel!!.guild, track.info.title))
-                builder.setThumbnail("https://s-media-cache-ak0.pinimg.com/736x/69/96/5c/69965c2849ec9b7148a5547ce6714735.jpg")
-                builder.addField("Title".tr(channel!!.guild), track.info.title, true)
-                        .addField("Author".tr(channel!!.guild), track.info.author, true)
-                        .addField("Duration".tr(channel!!.guild), track.getDurationFancy(), true)
-                        .addField("URL".tr(channel!!.guild), track.info.uri, true)
-                        .addField("Is Stream".tr(channel!!.guild), track.info.isStream.toString(), true)
-                channel?.send(builder)
-            } else {
-                player.stopTrack()
-            }
-        }
     }
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
-        try {
-            if (guild.audioManager.isConnected) {
-                if (track.position != 0L) LoggedTrack(guild.id ?: "unknown", track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
-                if (track.position != 0L && player.playingTrack == null && manager.queue.size == 0 && guild.getData().musicSettings.autoQueueSongs && guild.selfMember.voiceChannel() != null && autoplay) {
+        if (guild.audioManager.isConnected) {
+            if (track.position > 0L) {
+                LoggedTrack(guild.id, track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
+                if (player.playingTrack == null && guildMusicManager.manager.queue.size == 0 && autoplay
+                        && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState.channel != null) {
                     try {
-                        val get = spotifyApi.search.searchTrack(track.info.title.rmCharacters("()").rmCharacters("[]")
-                                .replace("ft.", "").replace("feat", "")
-                                .replace("feat.", ""))
-                        if (get.items.isEmpty()) {
-                            (channel ?: manager.getChannel())?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(channel!!.guild))
-                            return
+                        val trackId = if (guildMusicManager.manager.current != null) {
+                            spotifyApi.tracks.getTrack(guildMusicManager.manager.current!!.spotifyTrackId!!)!!.id
+                        } else {
+                            spotifyApi.search.searchTrack(track.info.title.rm("()").rm("[]")
+                                    .replace("ft.", "").replace("feat", "")
+                                    .replace("feat.", "")).items[0].id
                         }
-                        val recommendation = spotifyApi.browse.getRecommendations(seedTracks = listOf(get.items[0].id), limit = 1).tracks[0]
-                        println("${recommendation.name} by ${recommendation.artists[0].name}")
-                        "${recommendation.name} by ${recommendation.artists[0].name}".load(guild.selfMember, channel ?: guild.defaultChannel)
+                        val recommendation = spotifyApi.browse
+                                .getRecommendations(seedTracks = listOf(trackId), limit = 1).tracks[0]
+                        "${recommendation.name} by ${recommendation.artists[0].name}"
+                                .loadYoutube(guild.selfMember, guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0])
                     } catch (ignored: Exception) {
-                        ignored.printStackTrace()
+                        guildMusicManager.channel?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(guildMusicManager.channel!!.guild))
                     }
-                } else manager.nextTrack()
+                    return
+                }
             }
-        } catch (e: Exception) {
+            guildMusicManager.manager.skipToNextTrack()
         }
     }
 
-    private fun String.rmCharacters(characterSymbol: String): String {
+    private fun String.rm(characterSymbol: String): String {
         return when {
-            characterSymbol.contains("[]") -> this.replace("\\s*\\[[^\\]]*\\]\\s*".toRegex(), " ")
-            characterSymbol.contains("{}") -> this.replace("\\s*\\{[^\\}]*\\}\\s*".toRegex(), " ")
-            else -> this.replace("\\s*\\([^\\)]*\\)\\s*".toRegex(), " ")
+            characterSymbol.contains("[]") -> this.replace("\\s*\\[[^]]*\\]\\s*".toRegex(), " ")
+            characterSymbol.contains("{}") -> this.replace("\\s*\\{[^}]*\\}\\s*".toRegex(), " ")
+            else -> this.replace("\\s*\\([^)]*\\)\\s*".toRegex(), " ")
         }
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
-        guild.musicManager(channel).scheduler.manager.nextTrack()
-        channel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "The player got stuck... attempting to skip now now (this is Discord's fault) - If you encounter this multiple times, please type {0}leave".tr(channel!!.guild, guild.getPrefix()))
+        guildMusicManager.manager.skipToNextTrack()
+        guildMusicManager.channel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "Oh no! My voice connection got stuck (#blamediscord) - I'll attempt to skip now now - If you encounter this repeatedly, please make me leave then rejoin the channel!".tr(guildMusicManager.channel!!))
     }
 
     override fun onTrackException(player: AudioPlayer, track: AudioTrack, exception: FriendlyException) {
@@ -178,7 +171,7 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
     }
 }
 
-fun AudioTrack.getDurationFancy(): String {
+fun AudioTrack.getDurationString(): String {
     val length = info.length
     val seconds = (length / 1000).toInt()
     val minutes = seconds / 60
@@ -212,4 +205,23 @@ fun Guild.getAudioManager(channel: TextChannel?): GuildMusicManager {
         managers.put(guildId, musicManager)
     } else if (channel != null) musicManager.channel = channel
     return musicManager
+}
+
+fun VoiceChannel.connect(textChannel: TextChannel?, complain: Boolean = true): Boolean {
+    val audioManager = guild.audioManager
+    return try {
+        audioManager.openAudioConnection(this)
+        true
+    } catch (e: Throwable) {
+        if (complain) textChannel?.send("${Emoji.CROSS_MARK} " + "I can't join the **{0}** voice channel! Reason: *{1}*".tr(textChannel.guild, name, e.localizedMessage))
+        false
+    }
+}
+
+fun play(channel: TextChannel?, member: Member, track: LocalTrackObj) {
+    if (!member.guild.audioManager.isConnected) {
+        if (member.voiceState.channel != null) member.guild.audioManager.openAudioConnection(member.voiceState.channel)
+        else return
+    }
+    member.guild.getAudioManager(channel).manager.queue(track)
 }

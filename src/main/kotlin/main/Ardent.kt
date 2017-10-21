@@ -34,9 +34,10 @@ import okhttp3.OkHttpClient
 import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
 import translation.Translate
-import utils.*
-import utils.discord.internals
+import translation.tr
+import utils.discord.*
 import utils.functionality.*
+import utils.music.ServerQueue
 import web.Web
 import java.io.File
 import java.io.FileReader
@@ -78,27 +79,36 @@ fun main(args: Array<String>) {
             .execute()
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
     Web()
-    waiter.executor.execute {
-        (1..shards).forEach { sh ->
-            jdas.add(JDABuilder(AccountType.BOT)
-                    .setCorePoolSize(10)
-                    .setGame(Game.of("Starting up... 418 I'm a teapot"))
-                    .addEventListener(waiter)
-                    .addEventListener(factory)
-                    .addEventListener(JoinRemoveEvents())
-                    .addEventListener(VoiceUtils())
-                    .setEventManager(AnnotatedEventManager())
-                    .useSharding(sh - 1, shards)
-                    .setToken(config.getValue("token"))
-                    .buildBlocking())
-        }
-        logChannel = "351368131639246848".toChannel()
-        hangout = getGuildById("351220166018727936")
+    (1..shards).forEach { sh ->
+        jdas.add(JDABuilder(AccountType.BOT)
+                .setCorePoolSize(10)
+                .setGame(Game.of("Starting up... 418 I'm a teapot"))
+                .addEventListener(waiter)
+                .addEventListener(factory)
+                .addEventListener(JoinRemoveEvents())
+                .addEventListener(VoiceUtils())
+                .setEventManager(AnnotatedEventManager())
+                .useSharding(sh - 1, shards)
+                .setToken(config.getValue("token"))
+                .buildBlocking())
     }
 
-    registerAudioSettings()
+    logChannel = getTextChannelById("351368131639246848")
+    hangout = getGuildById("351220166018727936")
+
+    playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
+    playerManager.registerSourceManager(YoutubeAudioSourceManager())
+    playerManager.registerSourceManager(SoundCloudAudioSourceManager())
+    playerManager.registerSourceManager(HttpAudioSourceManager())
+    AudioSourceManagers.registerRemoteSources(playerManager)
+    AudioSourceManagers.registerLocalSource(playerManager)
+
+    val administrativeDaemon = AdministrativeDaemon()
+    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 15, 30, TimeUnit.SECONDS)
+    val ranksDaemon = CheckPatrons()
+    administrativeExecutor.scheduleAtFixedRate(ranksDaemon, 15, 30, TimeUnit.SECONDS)
+
     addCommands()
-    startAdministrativeDaemon()
 
     waiter.executor.scheduleWithFixedDelay({
         jdas.forEach { jda ->
@@ -155,38 +165,21 @@ fun addCommands() {
             Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand(), Meme())
 }
 
-/**
- * Procedurally go through the "queue" table and resume playback for guilds.
- */
 fun checkQueueBackups() {
-    val queues = r.table("queues").run<Any>(conn).queryAsArrayList(QueueModel::class.java)
-    queues.forEach {
-        if (it != null) {
-            val channel = it.channelId?.toChannel()
-            val voiceChannel = getVoiceChannelById(it.voiceId)
-            if (voiceChannel != null && voiceChannel.members.size > 0) {
-                val guild = getGuildById(it.guildId)
-                val manager = guild?.getGuildAudioPlayer(channel)
-                if (guild != null && manager != null && it.music.size > 0) {
-                    voiceChannel.connect(channel)
-                    Thread.sleep(1250)
-                    channel?.send("**I'm now restoring your queue**... If you appreciate Ardent & its features, take a second and pledge a few dollars at {0} - we'd really appreciate it".tr(guild, "<https://patreon.com/ardent>"))
-                    it.music.forEach { trackUri -> trackUri.load(guild.selfMember, null) }
-                    println("Successfully resumed playback for ${guild.name}")
-                }
-            }
+    val queues = r.table("savedQueues").run<Any>(conn).queryAsArrayList(ServerQueue::class.java)
+    queues.forEach { queue ->
+        if (queue == null || queue.tracks.isEmpty()) return
+        val channel = getVoiceChannelById(queue.voiceId) ?: return
+        val textChannel = getTextChannelById(queue.channelId) ?: return
+        if (channel.members.size > 1 || (channel.members.size == 1 && channel.members[0] == channel.guild.selfMember)) {
+            val manager = channel.guild.getAudioManager(textChannel)
+            if (channel.guild.selfMember.voiceState.channel != channel) channel.connect(textChannel)
+            textChannel.send(("**Restarting playback...**... Check out {0} for other cool features we offer in Ardent **Premium**").tr(channel.guild, "<https://ardentbot.com/premium>"))
+            queue.tracks.forEach { trackUrl -> trackUrl.loadYoutube(channel.guild.selfMember, textChannel) }
+            logChannel?.send("Resumed playback in `${channel.guild.name}` - channel `${channel.name}`")
         }
     }
-    r.table("queues").delete().runNoReply(conn)
-}
-
-fun registerAudioSettings() {
-    playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
-    playerManager.registerSourceManager(YoutubeAudioSourceManager())
-    playerManager.registerSourceManager(SoundCloudAudioSourceManager())
-    playerManager.registerSourceManager(HttpAudioSourceManager())
-    AudioSourceManagers.registerRemoteSources(playerManager)
-    AudioSourceManagers.registerLocalSource(playerManager)
+    r.table("savedQueues").delete().runNoReply(conn)
 }
 
 fun setupDrive(): Sheets {

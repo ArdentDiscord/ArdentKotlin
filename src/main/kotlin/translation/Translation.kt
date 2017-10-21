@@ -60,7 +60,7 @@ class ArdentTranslationData(val phrases: ConcurrentHashMap<String, ArdentPhraseT
     }
 }
 
-data class ArdentPhraseTranslation(var english: String, val command: String, var encoded: String? = URLEncoder.encode(english), val translations: HashMap<String /* data code */, String /* translated phrase */> = hashMapOf()) {
+data class ArdentPhraseTranslation(var english: String, var command: Boolean = false, var subcommand: Boolean = false, var translationTip: String? = null, var encoded: String? = URLEncoder.encode(english), val translations: HashMap<String /* data code */, String /* translated phrase */> = hashMapOf()) {
     init {
         translations.put("en", english)
     }
@@ -123,13 +123,14 @@ fun String.toLanguage(): LanguageData? {
 }
 
 
-fun String.tr(languageData: LanguageData, vararg new: Any): String {
-    return languageData.translate(this)?.trReplace(languageData, *new) ?: translationDoesntExist(languageData, *new)
+
+fun String.tr(languageData: LanguageData, vararg new: Any, command: Boolean = false, subcommand: Boolean = false): String {
+    return languageData.translate(this)?.trReplace(languageData, *new) ?: translationDoesntExist(languageData, *new, command, subcommand)
 }
 
-fun String.translationDoesntExist(languageData: LanguageData, vararg new: Any): String {
+fun String.translationDoesntExist(languageData: LanguageData, vararg new: Any, command: Boolean = false, subcommand: Boolean = false): String {
     if (!test && !beta) {
-        val phrase = ArdentPhraseTranslation(this, "Unknown")
+        val phrase = ArdentPhraseTranslation(this, command, subcommand)
         translationData.phrases.put(this, phrase)
         if (r.table("phrases").filter(r.hashMap("english", this)).count().run<Long>(conn) == 0.toLong()) {
             phrase.insert("phrases")

@@ -24,7 +24,8 @@ fun getGuildsByName(name: String, ignoreCase: Boolean = true): MutableList<Guild
 }
 
 // Text Channels
-fun getTextChannelById(id: String): TextChannel? {
+fun getTextChannelById(id: String?): TextChannel? {
+    if (id == null) return null
     jdas.forEach { jda ->
         val channel = jda.getTextChannelById(id)
         if (channel != null) return channel

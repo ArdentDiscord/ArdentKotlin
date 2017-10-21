@@ -1,7 +1,5 @@
 package utils.discord
 
-import commands.administrate.Staff
-import commands.administrate.staff
 import commands.games.*
 import main.conn
 import main.r
@@ -9,40 +7,39 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
 import translation.Language
 import translation.tr
-import utils.*
 import utils.functionality.*
-import utils.music.MusicLibrary
-import utils.music.MusicPlaylist
+import utils.music.DatabaseMusicLibrary
+import utils.music.DatabaseMusicPlaylist
+import utils.music.LinkedPlaylist
 import java.util.concurrent.TimeUnit
 
 fun User.isAdministrator(channel: TextChannel, complain: Boolean = false): Boolean {
-    staff.forEach { if (it.id == id && it.role == Staff.StaffRole.ADMINISTRATOR) return true }
-    if (complain) channel.send("You need to be an **Ardent Administrator** to use this command")
+    if (getStaffLevel(id) == StaffRole.ADMINISTRATOR)
+    if (complain) channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "You need to be an **Ardent Administrator** to use this command!".tr(channel))
     return false
 }
 
-fun TextChannel.requires(user: User, requiredLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
+fun TextChannel.requires(user: User, requiredLevel: PatronLevel, failQuietly: Boolean = false): Boolean {
     if (guild.isPatronGuild()) return true
     else send("${Emoji.CROSS_MARK} " + "{0}, This command requires that you or the owner of this server have a donation level of **{0}** to be able to use it".tr(guild, user.asMention, requiredLevel.readable))
     return false
 }
 
-fun User.hasDonationLevel(channel: TextChannel, donationLevel: DonationLevel, failQuietly: Boolean = false): Boolean {
-    return if (getData().donationLevel.level >= donationLevel.level) true
+fun User.hasPatronPermission(channel: TextChannel, donationLevel: PatronLevel, failQuietly: Boolean = false): Boolean {
+    val patronLevel = getPatronLevel(id)
+    return if (patronLevel != null && patronLevel.level >= donationLevel.level) true
     else channel.requires(this, donationLevel, failQuietly)
 }
-
-enum class DonationLevel(val readable: String, val level: Int) { NONE("None", 1), SUPPORTER("Supporter", 2), BASIC("Basic", 3), INTERMEDIATE("Intermediate", 4), EXTREME("Extreme", 5) }
 
 fun User.getData(): UserData {
     var data = asPojo(r.table("users").get(id).run(conn), UserData::class.java)
     if (data != null) return data
-    data = UserData(id, DonationLevel.NONE, 25.0, 0L, UserData.Gender.UNDEFINED, mutableListOf(), connectedAccounts = ConnectedAccounts())
+    data = UserData(id, 25.0, 0L, UserData.Gender.UNDEFINED, mutableListOf(), connectedAccounts = ConnectedAccounts())
     data.insert("users")
     return data
 }
 
-class UserData(val id: String, var donationLevel: DonationLevel, var gold: Double = 50.0, var collected: Long = 0,
+class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0,
                val gender: Gender, val languagesSpoken: MutableList<Language>, val reminders: MutableList<Reminder> = mutableListOf(),
                val connectedAccounts: ConnectedAccounts) {
     fun canCollect(): Boolean {
@@ -66,37 +63,59 @@ class UserData(val id: String, var donationLevel: DonationLevel, var gold: Doubl
         else r.table("users").get(id).update(r.json(gson.toJson(this))).run<Any>(conn)
     }
 
-    fun getMusicLibrary(): MusicLibrary {
-        var lib = asPojo(r.table("musicLibraries").get(id).run(conn), MusicLibrary::class.java)
+    fun getMusicLibrary(): DatabaseMusicLibrary {
+        var lib = asPojo(r.table("musicLibraries").get(id).run(conn), DatabaseMusicLibrary::class.java)
         if (lib != null) return lib
-        lib = MusicLibrary(id, mutableListOf())
+        lib = DatabaseMusicLibrary(id, mutableListOf())
         lib.insert("musicLibraries")
         return lib
     }
 
-    fun getPlaylists(): List<MusicPlaylist> {
-        val playlists = mutableListOf<MusicPlaylist>()
-        r.table("musicPlaylists").filter { r.hashMap("owner", id) }.run<Any>(conn).queryAsArrayList(MusicPlaylist::class.java)
+    fun getPlaylists(): List<DatabaseMusicPlaylist> {
+        val playlists = mutableListOf<DatabaseMusicPlaylist>()
+        r.table("musicPlaylists").filter { r.hashMap("owner", id) }.run<Any>(conn).queryAsArrayList(DatabaseMusicPlaylist::class.java)
                 .forEach { if (it != null) playlists.add(it) }
+        return playlists
+    }
+
+    fun getLinkedPlaylists(): List<DatabaseMusicPlaylist> {
+        val playlists = mutableListOf<DatabaseMusicPlaylist>()
+        r.table("linkedMusicPlaylists").filter { r.hashMap("user", id) }.run<Any>(conn).queryAsArrayList(LinkedPlaylist::class.java)
+                .forEach { linkedPlaylist ->
+                    if (linkedPlaylist != null) {
+                        val playlist = asPojo(r.table("musicPlaylists").get(linkedPlaylist.playlistId).run(conn), DatabaseMusicPlaylist::class.java)
+                        if (playlist != null) playlists.add(playlist)
+                        else r.table("linkedMusicPlaylists").filter { r.hashMap("playlistId", linkedPlaylist.playlistId) }.delete().runNoReply(conn)
+                    }
+                }
         return playlists
     }
 
     enum class Gender(val display: String) { MALE("♂"), FEMALE("♀"), UNDEFINED("Not Specified") }
 }
 
+data class StaffMember(val id: String, var role: StaffRole)
+
 enum class StaffRole(val readable: String, val level: Int) {
-    TRANSLATOR("Translator", 0), MODERATOR("Moderator", 1), ADMINISTRATOR("Administrator", 2), DEVELOPER("Developer", 3);
+    TRANSLATOR("Translator", 0), STAFF("Moderator", 1), ADMINISTRATOR("Administrator", 2);
+
     fun hasPermission(role: StaffRole): Boolean {
         return level >= role.level
     }
 }
 
-enum class PatronLevel(val readable: String, val level: Int) {
-    SUPPORTER("Supporter", 1), BASIC("Basic", 3), INTERMEDIATE("Intermediate", 5), AMAZING("Amazing", 10);
-    fun hasPermission(patron: PatronLevel): Boolean {
-        return level >= patron.level
-    }
+fun getStaffLevel(id: String): StaffRole? {
+    return asPojo(r.table("staff").filter(r.hashMap("id", id)).run(conn), StaffMember::class.java)?.role
 }
+
+fun getPatronLevel(id: String): PatronLevel? {
+    return asPojo(r.table("patrons").filter(r.hashMap("id", id)).run(conn), Patron::class.java)?.level
+}
+
+enum class PatronLevel(val readable: String, val level: Int) { SUPPORTER("Supporter", 1), PREMIUM("Premium", 3), SPONSOR("Sponsor", 7) }
+
+
+data class Patron(val id: String, val level: PatronLevel)
 
 fun UserData.getBlackjackData(): BlackjackPlayerData {
     val data = BlackjackPlayerData()

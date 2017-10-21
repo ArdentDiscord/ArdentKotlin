@@ -13,6 +13,7 @@ import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import utils.*
+import utils.discord.getData
 import utils.functionality.Emoji
 import utils.functionality.concat
 import utils.functionality.insert
@@ -20,11 +21,9 @@ import utils.functionality.readableDate
 import java.awt.Color
 import java.util.concurrent.TimeUnit
 
-
 class Prefix : Command(Category.ADMINISTRATE, "prefix", "view or change your server's prefix for Ardent") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()
-
         if (arguments.size != 2) {
             event.channel.send("${Emoji.INFORMATION_SOURCE} " + "The current prefix is **{0}**\nYou can change it by typing **{0}prefix set PREFIX_HERE** - Spaces are not allowed".tr(event, data.prefix ?: "/"))
             return

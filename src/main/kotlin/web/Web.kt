@@ -107,8 +107,8 @@ class Web {
             map.put("showSnackbar", false)
             map.put("title", "Staff")
             map.put("administrators", filterByRole(Staff.StaffRole.ADMINISTRATOR).map { it.id.toUser() })
-            map.put("moderators", filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
-            map.put("helpers", filterByRole(Staff.StaffRole.HELPER).map { it.id.toUser() })
+            map.put("moderators", filterByRole(Staff.StaffRole.STAFF).map { it.id.toUser() })
+            map.put("helpers", filterByRole(Staff.StaffRole.TRANSLATOR).map { it.id.toUser() })
             ModelAndView(map, "staff.hbs")
         }, handlebars)
         get("/patrons", { request, _ ->
@@ -206,7 +206,7 @@ class Web {
             map.put("openTickets", openTickets)
             map.put("commands", factory.commands.sortedBy { it.name })
             map.put("phrases", translationData.phrases.map { it.value })
-            map.put("staffMembers", filterByRole(Staff.StaffRole.MODERATOR).map { it.id.toUser() })
+            map.put("staffMembers", filterByRole(Staff.StaffRole.STAFF).map { it.id.toUser() })
             if (isAdministrator(request, response)) {
                 map.put("showSnackbar", false)
                 ModelAndView(map, "administrators.hbs")
@@ -713,7 +713,7 @@ class Web {
                                                         map.put("snackbarMessage", "This person is already a staff member!")
                                                         ModelAndView(map, "fail.hbs")
                                                     } else {
-                                                        val newStaff = Staff(actionUser.id, Staff.StaffRole.MODERATOR)
+                                                        val newStaff = Staff(actionUser.id, Staff.StaffRole.STAFF)
                                                         staff.add(newStaff)
                                                         newStaff.insert("staff")
                                                         val redirect = request.queryParams("redirect")

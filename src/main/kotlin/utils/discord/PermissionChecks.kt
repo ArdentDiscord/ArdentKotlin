@@ -1,6 +1,7 @@
 package utils.discord
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
+import commands.music.connect
 import commands.music.getAudioManager
 import main.conn
 import main.r
@@ -38,4 +39,16 @@ fun Member.hasPermission(channel: TextChannel, musicCommand: Boolean = false, fa
     }
     if (!has && !failQuietly) channel.send("You need `Administrator` priviledges in this server to be able to use this command")
     return has
+}
+
+
+fun Member.checkSameChannel(textChannel: TextChannel?, complain: Boolean = true): Boolean {
+    if (voiceState.channel == null) {
+        textChannel?.send("${Emoji.CROSS_MARK} " + "You need to be connected to a voice channel".tr(textChannel.guild))
+        return false
+    }
+    if (guild.selfMember.voiceState.channel != voiceState.channel) {
+        return voiceState.channel.connect(textChannel, complain)
+    }
+    return true
 }

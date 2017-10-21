@@ -1,29 +1,74 @@
 package utils.music
 
-data class MusicLibrary(val userId: String, var tracks: List<DatabaseTrackObj>, var lastModified: Long = System.currentTimeMillis())
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import commands.music.*
+import main.conn
+import main.r
+import net.dv8tion.jda.core.entities.Member
+import net.dv8tion.jda.core.entities.TextChannel
+import translation.tr
+import utils.discord.send
+import utils.functionality.asPojo
 
-data class MusicPlaylist(val id: String, val owner: String, var name: String, var lastModified: Long, var spotifyAlbumId: String?,
-                         val spotifyPlaylistId: String?, val youtubePlaylistId: String, val tracks: List<DatabaseTrackObj>? = null)
+data class DatabaseMusicLibrary(val id: String, var tracks: MutableList<DatabaseTrackObj>, var lastModified: Long = System.currentTimeMillis())
 
-data class DatabaseTrackObj(val owner: String, val addedAt: Long, val playlistId: String?, val url: String)
+data class DatabaseMusicPlaylist(val id: String, val owner: String, var name: String, var lastModified: Long, var spotifyAlbumId: String?,
+                                 val spotifyPlaylistId: String?, val youtubePlaylistUrl: String?, val tracks: MutableList<DatabaseTrackObj>? = null)
 
-data class LocalTrackObj(val user: String, val owner: String, val playlistId: String?, val spotifyId: String?, var url: String) {
-
+data class DatabaseTrackObj(val owner: String, val addedAt: Long, val playlistId: String?, val title: String, val author: String, val url: String) {
+    fun toDisplayTrack(musicPlaylist: DatabaseMusicPlaylist? = null, lib: DatabaseMusicLibrary? = null): DisplayTrack {
+        if (musicPlaylist == null && lib == null) throw IllegalArgumentException("Lib or playlist must be present to convert to display track")
+        return DisplayTrack(musicPlaylist?.owner ?: lib!!.id, musicPlaylist?.spotifyAlbumId, null,
+                null, title, author)
+    }
 }
 
-data class LocalPlaylist(val user: String, val playlist: MusicPlaylist) {
+data class LocalTrackObj(val user: String, val owner: String, val playlistId: String?, val spotifyPlaylistId: String?, val spotifyAlbumId: String?, val spotifyTrackId: String?, var track: AudioTrack?, var url: String? = track?.info?.uri)
+
+data class LinkedPlaylist(val user: String, val playlistId: String)
+
+data class LocalPlaylist(val member: Member, val playlist: DatabaseMusicPlaylist) {
     fun isSpotify(): Boolean = playlist.spotifyAlbumId != null || playlist.spotifyPlaylistId != null
-    fun getYoutubePlaylist(): String? = playlist.youtubePlaylistId
-    fun getSpotifyPlaylist(): String? = playlist.spotifyPlaylistId
-    fun getSpotifyAlbum(): String? = playlist.spotifyAlbumId
-    fun getTracks(user: String? = null): List<LocalTrackObj>? {
-        if (playlist.tracks == null) return null
+    fun loadTracks(channel: TextChannel, member: Member) {
+        if (playlist.tracks == null) return
         else {
-            val localTracks = mutableListOf<LocalTrackObj>()
-            playlist.tracks.forEach { track ->
-                localTracks.add(LocalTrackObj(user ?: this.user, this.user, playlist.id, null, track.url))
+            when {
+                playlist.spotifyAlbumId != null -> playlist.spotifyAlbumId!!.loadSpotifyAlbum(this.member, channel, { audioTrack, id ->
+                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, playlist.id, null, playlist.spotifyAlbumId, id, audioTrack))
+                })
+                playlist.spotifyPlaylistId != null -> playlist.spotifyPlaylistId.loadSpotifyPlaylist(this.member, channel, { audioTrack, id ->
+                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, playlist.spotifyPlaylistId, playlist.id, null, id, audioTrack))
+                })
+                playlist.youtubePlaylistUrl != null -> {
+                    playlist.youtubePlaylistUrl.loadYoutube(member, channel, playlist)
+                }
+                else -> {
+                    channel.send("Now loading local playlist **{0}** with **{1}** tracks".tr(channel, playlist.name, playlist.tracks.size))
+                    playlist.tracks.forEach { track ->
+                        track.url.loadYoutube(member, channel, playlist, false, { found ->
+                            DEFAULT_TRACK_LOAD_HANDLER(member, channel, found, true, playlist)
+                        })
+                    }
+                }
             }
-            return localTracks
         }
     }
+}
+
+data class DisplayTrack(val owner: String, val playlistId: String?, val spotifyAlbumId: String?, val spotifyTrackId: String?,
+                        val title: String, val author: String)
+
+data class DisplayPlaylist(val owner: String, val lastModified: Long, val spotifyAlbumId: String?, val spotifyPlaylistId: String?,
+                           val youtubePlaylistUrl: String?, val tracks: MutableList<DisplayTrack> = mutableListOf())
+
+data class DisplayLibrary(val owner: String, val lastModified: Long, val tracks: MutableList<DisplayTrack> = mutableListOf())
+
+data class ServerQueue(val voiceId: String, val channelId: String?, val tracks: List<String>)
+
+fun getPlaylistById(id: String): DatabaseMusicPlaylist? {
+    return asPojo(r.table("musicPlaylists").filter(r.hashMap("id", id)).run(conn), DatabaseMusicPlaylist::class.java)
+}
+
+fun getMusicLibrary(id: String): DatabaseMusicLibrary? {
+    return asPojo(r.table("musicLibraries").filter(r.hashMap("id", id)).run(conn), DatabaseMusicLibrary::class.java)
 }

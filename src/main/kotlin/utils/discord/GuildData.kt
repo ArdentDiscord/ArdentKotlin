@@ -13,11 +13,11 @@ import utils.functionality.insert
 import utils.music.LocalTrackObj
 
 fun Guild.isPatronGuild(): Boolean {
-    return members.size > 300 || owner.user.getData().donationLevel != DonationLevel.NONE
+    return members.size > 300 || owner.user.getData().donationLevel != PatronLevel.NONE
 }
 
-fun Member.donationLevel(): DonationLevel {
-    return if (guild.isPatronGuild()) DonationLevel.EXTREME else user.getData().donationLevel
+fun Member.donationLevel(): PatronLevel {
+    return if (guild.isPatronGuild()) PatronLevel.EXTREME else user.getData().donationLevel
 }
 
 data class SavedQueue(val guildId: String, val voiceChannelId: String, val tracks: List<LocalTrackObj>)
