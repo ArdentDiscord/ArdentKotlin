@@ -16,13 +16,14 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.VoiceChannel
+import obj.SimpleTrack
 import translation.tr
 import utils.discord.LoggedTrack
 import utils.discord.getData
 import utils.discord.send
 import utils.functionality.Emoji
 import utils.functionality.insert
-import utils.functionality.log
+import utils.functionality.limit
 import utils.music.LocalTrackObj
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
@@ -82,7 +83,7 @@ class ArdentMusicManager(val player: AudioPlayer) {
     }
 
     fun resetQueue() {
-        this.queue = LinkedBlockingDeque<LocalTrackObj>()
+        this.queue = LinkedBlockingDeque()
     }
 
     fun addToBeginningOfQueue(track: LocalTrackObj) {
@@ -121,15 +122,34 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
                 if (player.playingTrack == null && guildMusicManager.manager.queue.size == 0 && autoplay
                         && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState.channel != null) {
                     try {
-                        val trackId = if (guildMusicManager.manager.current != null) {
-                            spotifyApi.tracks.getTrack(guildMusicManager.manager.current!!.spotifyTrackId!!)!!.id
-                        } else {
-                            spotifyApi.search.searchTrack(track.info.title.rm("()").rm("[]")
-                                    .replace("ft.", "").replace("feat", "")
-                                    .replace("feat.", "")).items[0].id
-                        }
-                        val recommendation = spotifyApi.browse
-                                .getRecommendations(seedTracks = listOf(trackId), limit = 1).tracks[0]
+                        val current = guildMusicManager.manager.current!!
+                        val recommendation: SimpleTrack = when {
+                            current.spotifyTrackId != null -> {
+                                val spotifyTrack = spotifyApi.tracks.getTrack(current.spotifyTrackId)!!
+                                spotifyApi.browse.getRecommendations(seedTracks = listOf(spotifyTrack.id), seedArtists = spotifyTrack.artists.map { it.id })
+                            }
+                            current.spotifyAlbumId != null -> {
+                                val album = spotifyApi.albums.getAlbum(current.spotifyAlbumId)!!
+                                spotifyApi.browse.getRecommendations(seedArtists = album.artists.map { it.id }, seedGenres = album.genres)
+                            }
+                            current.spotifyPlaylistId != null -> {
+                                val split = current.spotifyPlaylistId.split(" :: ")
+                                val spotifyPlaylist = spotifyApi.playlists.getPlaylist(split[0], split[1])!!
+                                spotifyApi.browse.getRecommendations(seedTracks = spotifyPlaylist.tracks.items.limit(10).map { it.track.id })
+                            }
+                            else -> {
+                                val tempTrack = spotifyApi.search.searchTrack("${track.info.title} " +
+                                        if (track.info.author.contains("official", true)
+                                                || track.info.author.contains("vevo", true)) track.info.author else "").items[0]
+                                spotifyApi.browse.getRecommendations(seedTracks = listOf(tempTrack.id), seedArtists = tempTrack.artists.map { it.id })
+                            }
+                        }.tracks[0]
+                        val channel = guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0]
+                        "https://open.spotify.com/track/${recommendation.id}"
+                                .loadSpotifyTrack(guild.selfMember, channel, { audioTrack, trackId ->
+                                    play(channel, guild.selfMember, LocalTrackObj(guild.selfMember.user.id, guild.selfMember.user.id, current.playlist,
+                                            current.spotifyPlaylistId, current.spotifyAlbumId, recommendation.id, audioTrack))
+                                })
                         "${recommendation.name} by ${recommendation.artists[0].name}"
                                 .loadYoutube(guild.selfMember, guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0])
                     } catch (ignored: Exception) {
@@ -142,14 +162,6 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
         }
     }
 
-    private fun String.rm(characterSymbol: String): String {
-        return when {
-            characterSymbol.contains("[]") -> this.replace("\\s*\\[[^]]*\\]\\s*".toRegex(), " ")
-            characterSymbol.contains("{}") -> this.replace("\\s*\\{[^}]*\\}\\s*".toRegex(), " ")
-            else -> this.replace("\\s*\\([^)]*\\)\\s*".toRegex(), " ")
-        }
-    }
-
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
         guildMusicManager.manager.skipToNextTrack()
         guildMusicManager.channel?.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "Oh no! My voice connection got stuck (#blamediscord) - I'll attempt to skip now now - If you encounter this repeatedly, please make me leave then rejoin the channel!".tr(guildMusicManager.channel!!))
@@ -159,15 +171,10 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
         onException(exception)
     }
 
-
     private fun onException(exception: FriendlyException) {
-        manager.current = null
-        manager.nextTrack()
-        try {
-            manager.getChannel()?.sendMessage("I wasn't able to play that track, skipping... **Reason: **{0}".tr(manager.getChannel()!!.guild, exception.localizedMessage))?.queue()
-        } catch (e: Exception) {
-            e.log()
-        }
+        guildMusicManager.manager.current = null
+        guildMusicManager.manager.skipToNextTrack()
+        guildMusicManager.channel?.send("I couldn't play that track, sorry :( - Reason: *{0}*".tr(guild, exception.localizedMessage))
     }
 }
 

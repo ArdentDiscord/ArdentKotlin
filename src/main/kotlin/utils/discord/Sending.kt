@@ -12,9 +12,10 @@ import utils.functionality.random
 import java.awt.Color
 
 fun Member.embed(title: String, channel: MessageChannel, consumer: ((Message) -> Unit)? = null): EmbedWrapper {
-    return EmbedWrapper(EmbedBuilder().setAuthor(title, "https://ardentbot.com", guild.iconUrl)
+    return EmbedWrapper(channel, consumer).setAuthor(title, "https://ardentbot.com", guild.iconUrl)
             .setColor(Color.getHSBColor(random.nextFloat(), random.nextFloat(), 1f))
-            .setFooter("Ardent v2 | ardentbot.com".tr(guild), user.effectiveAvatarUrl), channel, consumer)
+            .setFooter("Ardent v2 | ardentbot.com".tr(guild), user.effectiveAvatarUrl) as EmbedWrapper
+
 }
 
 fun MessageChannel.send(message: String) {
@@ -36,18 +37,18 @@ fun MessageChannel.send(message: String) {
     }
 }
 
-class EmbedWrapper(val embedBuilder: EmbedBuilder, val channel: MessageChannel, val consumer: ((Message) -> Unit)?, vararg val reactions: String) {
+class EmbedWrapper(val channel: MessageChannel, val consumer: ((Message) -> Unit)?, vararg val reactions: String) : EmbedBuilder() {
     fun appendDescription(string: String, final: Boolean = false) {
-        if (embedBuilder.descriptionBuilder.length + string.length > 2048) {
-            channel.send(embedBuilder, *reactions)
-            embedBuilder.setDescription("")
+        if (descriptionBuilder.length + string.length > 2048) {
+            channel.send(this, *reactions)
+            setDescription("")
         }
-        embedBuilder.appendDescription(string)
-        if (final) channel.send(embedBuilder, *reactions, consumer = consumer)
+        appendDescription(string)
+        if (final) channel.send(this, *reactions, consumer = consumer)
     }
 
     fun send() {
-        channel.send(embedBuilder, *reactions, consumer = consumer)
+        channel.send(this, *reactions, consumer = consumer)
     }
 }
 

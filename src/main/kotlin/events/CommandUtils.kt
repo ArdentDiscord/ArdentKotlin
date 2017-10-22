@@ -3,7 +3,6 @@ package events
 import main.conn
 import main.factory
 import main.r
-import main.test
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.ChannelType
 import net.dv8tion.jda.core.entities.Guild
@@ -11,9 +10,9 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import translation.Language
-import utils.*
+import translation.tr
+import utils.discord.*
 import utils.functionality.*
-import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -25,6 +24,7 @@ class CommandFactory {
     val commandsById = hashMapOf<String, Int>()
     val commandsByShard = hashMapOf<Int, Int>()
     val messagesReceived = AtomicLong(0)
+    val derogatoryTerms = getDerogatoryTerms()
     val ratelimits = ConcurrentHashMap<String, Long>()
     fun commandsReceived(): Int {
         var temp = 0
@@ -33,66 +33,53 @@ class CommandFactory {
     }
 
     fun addCommands(vararg inputCommands: Command): CommandFactory {
-        inputCommands.forEach { commands.add(it); it.registerSubcommands() }
+        inputCommands.forEach { commands.add(it); (it as? ExtensibleCommand)?.registerSubcommands() }
         return this
     }
 
     @SubscribeEvent
     fun onMessageEvent(event: MessageReceivedEvent) {
         if (event.author.isBot) return
-        val data = event.guild.getData()
-        event.guild.punishments().forEach { punishment ->
-            if (punishment != null && punishment.userId == event.author.id) {
-                if (event.textChannel.canTalk()) {
-                    event.message.delete().reason("This user is muted").queue()
-                    return
-                }
-            }
-        }
         messagesReceived.getAndIncrement()
-
-        var args = event.message.rawContent.split(" ").toMutableList()
-        val prefix = event.guild.getPrefix()
-        when {
-            args[0].startsWith(prefix) && !test -> args[0] = args[0].replace(prefix, "")
-            args[0].startsWith("/") && !test -> args[0] = args[0].replace("/", "")
-            args[0] == "ardent" && !test -> args.removeAt(0)
-            args[0] == "test" && test -> args.removeAt(0)
-            args[0] == "<@339101087569281045>" || args[0] == "<@!339101087569281045>" -> args.removeAt(0)
-            else -> return
+        val data = event.guild.getData()
+        var foundPrefix: String? = null
+        data.prefixSettings.prefixes.forEach { if (event.message.rawContent.startsWith(it)) foundPrefix = it }
+        if (foundPrefix == null) {
+            foundPrefix = if (!data.prefixSettings.disabledDefaultPrefix && event.message.rawContent.startsWith("/")) "/"
+            else if (event.message.rawContent.startsWith("ardent")) "ardent"
+            else if (event.message.rawContent.startsWith("<@339101087569281045>")) "<@339101087569281045>"
+            else if (event.message.rawContent.startsWith("<@!339101087569281045>")) "<@!339101087569281045>"
+            else return
         }
-        val arg = args.concat()
+        val content = event.message.rawContent.removePrefix(foundPrefix!!)
+        if (content.isEmpty()) return
         commands.forEach { cmd ->
-            if (cmd.containsAlias(arg, event.guild)) {
-                when {
-                    arg.startsWith(cmd.name) -> args = arg.removePrefix(cmd.name).split(" ").toMutableList()
-                    arg.startsWith(cmd.name.tr(event.guild)) -> args = arg.removePrefix(cmd.name.tr(event.guild)).split(" ").toMutableList()
-                    else -> cmd.aliases.forEach { a -> if (arg.startsWith(a)) args = arg.removePrefix(a).split(" ").toMutableList() }
-                }
-                (0..(args.size - 1))
-                        .filter { args[it].isEmpty() }
-                        .forEach { args.removeAt(it) }
+            if (cmd.containsAlias(content.split(" ")[0], event.guild)) {
+                val args = when {
+                    content.startsWith(cmd.name) -> content.removePrefix(cmd.name)
+                    content.startsWith(cmd.name.tr(event.guild)) -> content.removePrefix(cmd.name.tr(event.guild))
+                    else -> content.removePrefix(cmd.aliases.filter { content.startsWith(it) }[0])
+                }.split(" ").toMutableList()
                 commandsById.increment(cmd.name)
                 commandsByShard.increment(event.guild.getShard())
-                val name = event.author.name
-                if (name.contains("faggot", true) || name.contains("nigger") || name.contains("nigga")) {
-                    event.channel.send("Here at Ardent, we hate derogatory and discriminatory statements. Thus, {0}, you need to change your username to be able to use any command".tr(event.guild, event.author.asMention))
+                if (derogatoryTerms.filter { event.author.name.contains(it, true) }.count() > 0) {
+                    event.channel.send("Here at Ardent, we accept everyone for who they are. You must to change your username to be able to use any command".tr(event.guild))
                 } else {
                     if (!event.member.hasPermission(Permission.MANAGE_SERVER)) {
                         when {
-                            data.blacklistedChannels!!.contains(event.textChannel.id) -> {
-                                event.channel.send("You're not allowed to use Ardent commands in this channel! Type *{0}blacklist list* to view all blacklisted channels".tr(event, event.guild.getPrefix()))
+                            data.blacklistSettings.blacklistedChannels.contains(event.textChannel.id) -> {
+                                event.channel.send("You're not allowed to use Ardent commands in this channel! Type */blacklist list* to view all blacklisted channels".tr(event.guild))
                                 return
                             }
-                            data.blacklistedUsers!!.contains(event.author.id) -> {
+                            data.blacklistSettings.blacklistedUsers.contains(event.author.id) -> {
                                 event.author.openPrivateChannel().queue {
-                                    it.send("{0}, you're **blacklisted** from using Ardent commands on this server!".tr(event, event.author.asMention))
+                                    it.send("{0}, you're **blacklisted** from using Ardent commands on this server!")
                                 }
                                 return
                             }
                             else -> event.member.roles.forEach { memberRole ->
-                                if (data.blacklistedRoles!!.contains(memberRole.id)) {
-                                    event.channel.send("One of your roles, **{0}**, is blacklisted from using Ardent commands. You'll be able to use them again once you no longer have this role".tr(event, memberRole.name))
+                                if (data.blacklistSettings.blacklistedRoles.contains(memberRole.id)) {
+                                    event.channel.send("One of your roles, **{0}**, is blacklisted from using Ardent commands. You'll be able to use commands again once you no longer have this role".tr(event.guild, memberRole.name))
                                     return
                                 }
                             }
@@ -101,8 +88,7 @@ class CommandFactory {
                     executor.execute {
                         try {
                             cmd.executeInternal(args, event)
-                            r.table("commands").insert(r.json(getGson().toJson(LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate())))).runNoReply(conn)
-                            "363785648911679488".toChannel()!!.send("${cmd.name} command received in **${event.guild.name}** - ${event.guild.members.size} members (${event.guild.members.filter { it.user.isBot }.count()} bots) | ${System.currentTimeMillis().readableDate()}")
+                            r.table("commands").insert(r.json(LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate()).toJson())).runNoReply(conn)
                         } catch (e: Throwable) {
                             e.log()
                             logChannel!!.send("^ Exception thrown in **${event.guild.name}** with command ${cmd.name}")
@@ -119,38 +105,8 @@ class CommandFactory {
 data class Subcommand(val englishIdentifier: String, val syntax: String, val description: String? = null,
                       val consumer: (MutableList<String>, MessageReceivedEvent) -> Unit)
 
-abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String, val ratelimit: Int = 0) {
+abstract class ExtensibleCommand(category: Category, name: String, description: String, vararg aliases: String, ratelimit: Int = 0) : Command(category, name, description, *aliases, ratelimit = ratelimit) {
     val subcommands = mutableListOf<Subcommand>()
-    fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent) {
-        if (event.channelType == ChannelType.PRIVATE)
-            event.author.openPrivateChannel().queue { channel ->
-                channel.send("Please use commands inside a Discord server!".tr(Language.ENGLISH.data))
-            }
-        else {
-            if (ratelimit != 0) {
-                val time = factory.ratelimits[event.author.id]
-                if (time != null) {
-                    if (time > System.currentTimeMillis()) {
-                        event.channel.send("{0}, chill out a bit! You can use this command again in **{1}** second(s)"
-                                .tr(event, event.author.asMention, ((time - System.currentTimeMillis()) / 1000).toInt()))
-                        return
-                    }
-                    else factory.ratelimits.remove(event.author.id)
-                }
-                if (!event.author.isPatron()) factory.ratelimits.put(event.author.id, System.currentTimeMillis() + (1000 * ratelimit))
-            }
-            subcommands.forEach {
-                val identifier = it.englishIdentifier.tr(event.guild)
-                if (args.concat().startsWith(identifier)) {
-                    var temp = args.concat().removePrefix(identifier)
-                    while (temp.startsWith(" ")) temp = temp.removePrefix(" ")
-                    it.consumer.invoke(temp.split(" ").toMutableList(), event)
-                    return
-                }
-            }
-            executeBase(args, event)
-        }
-    }
 
     fun with(englishIdentifier: String, syntax: String?, description: String? = null, consumer: (MutableList<String>, MessageReceivedEvent) -> Unit): Command {
         subcommands.add(Subcommand(englishIdentifier, syntax ?: englishIdentifier, description, consumer))
@@ -158,22 +114,62 @@ abstract class Command(val category: Category, val name: String, val description
     }
 
     abstract fun registerSubcommands()
+}
+
+abstract class Command(val category: Category, val name: String, val description: String, vararg val aliases: String, val ratelimit: Int = 0) {
+    fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent): Boolean {
+        if (event.channelType == ChannelType.PRIVATE) {
+            event.author.openPrivateChannel().queue { channel ->
+                channel.send("Please use commands inside a Discord server!".tr(Language.ENGLISH.data))
+            }
+            return false
+        } else {
+            if (ratelimit != 0) {
+                val time = factory.ratelimits[event.author.id]
+                if (time != null) {
+                    if (time > System.currentTimeMillis()) {
+                        event.channel.send("{0}, chill out! You can use this command again in **{1}** seconds".tr(event.guild, event.author.asMention, ((time - System.currentTimeMillis()) / 1000).toInt()))
+                        return false
+                    } else factory.ratelimits.remove(event.author.id)
+                }
+                if (!event.author.hasPatronPermission(event.textChannel, PatronLevel.SUPPORTER, true)) factory.ratelimits.put(event.author.id, System.currentTimeMillis() + (1000 * ratelimit))
+            }
+            if (this is ExtensibleCommand) {
+                subcommands.forEach {
+                    val identifier = it.englishIdentifier.tr(event.guild)
+                    if (args.concat().startsWith(identifier)) {
+                        var temp = args.concat().removePrefix(identifier)
+                        while (temp.startsWith(" ")) temp = temp.removePrefix(" ")
+                        it.consumer.invoke(temp.split(" ").toMutableList(), event)
+                        return true
+                    }
+                }
+            }
+            executeBase(args, event)
+            return true
+        }
+    }
+
     abstract fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent)
 
     fun showHelp(event: MessageReceivedEvent) {
         val member = event.member
         val channel = event.textChannel
-        val prefix = member.guild.getPrefix()
-        val embed = member.embed("How can I use {0}?".tr(channel.guild).trReplace(channel.guild, "$prefix$name"), Color.BLACK)
+        val data = event.guild.getData()
+        val prefixSettings = data.prefixSettings
+        val prefix = if (prefixSettings.disabledDefaultPrefix) prefixSettings.prefixes.getOrNull(0) ?: "/" else "/"
+        val embed = member.embed("How can I use {0}?".tr(data.languageSettings.getLanguage(), "$prefix$name", command = true), channel)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
-                .setFooter("Aliases: {0}".tr(channel.guild).trReplace(channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
+                .setFooter("This can also be used with: {0}".tr(channel.guild, channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
                 .appendDescription("*${description.tr(channel.guild)}*\n")
-        subcommands.forEach {
-            embed.appendDescription("\n" + Emoji.SMALL_BLUE_DIAMOND + "**" + it.syntax.tr(channel) + "**: "
-                    + (it.description?.tr(channel) ?: "No description is available for this subcommand".tr(channel)))
+        if (this is ExtensibleCommand) {
+            subcommands.forEach {
+                embed.appendDescription("\n" + Emoji.SMALL_BLUE_DIAMOND + "**" + it.syntax.tr(data.languageSettings.getLanguage(), subcommand = true)
+                        + "**: " + (it.description?.tr(channel) ?: "No description is available for this subcommand".tr(channel)))
+            }
+            if (subcommands.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild, "$prefix$name ${subcommands[0].syntax.tr(channel)}"))
         }
-        if (subcommands.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild).trReplace(channel.guild, "$prefix$name ${subcommands[0].syntax.tr(channel)}"))
-        embed.appendDescription("\n\nType {0}help to view a full list of commands".tr(channel.guild).trReplace(channel.guild, member.guild.getPrefix()))
+        embed.appendDescription("\n\nType {0}help to view a full list of commands".tr(channel.guild, prefix))
         channel.send(embed)
     }
 
@@ -183,10 +179,8 @@ abstract class Command(val category: Category, val name: String, val description
     }
 
     override fun toString(): String {
-        return Model(category, name, description, aliases).toJson()
+        return this.toJson()
     }
-
-    private class Model(val category: Category, val name: String, val description: String, val aliases: Array<out String>)
 }
 
 fun String.toCategory(): Category {

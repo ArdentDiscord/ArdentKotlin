@@ -23,7 +23,7 @@ import utils.music.LocalTrackObj
 val DEFAULT_TRACK_LOAD_HANDLER: (Member, TextChannel, AudioTrack, Boolean, DatabaseMusicPlaylist?) -> Unit =
         { member, channel, track, isQuiet, musicPlaylist ->
             if (!isQuiet) channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "Adding **{0}** by **{1}** to the queue *{2}*...".tr(member.guild, track.info.title, track.info.author, track.getDurationString()))
-            play(channel, member, LocalTrackObj(member.user.id, musicPlaylist?.owner ?: member.user.id, musicPlaylist?.id,
+            play(channel, member, LocalTrackObj(member.user.id, musicPlaylist?.owner ?: member.user.id, musicPlaylist?.toLocalPlaylist(member),
                     musicPlaylist?.spotifyPlaylistId, musicPlaylist?.spotifyAlbumId, null, track))
         }
 
@@ -31,7 +31,7 @@ val DEFAULT_PLAYLIST_LOAD_HANDLER: (Member, TextChannel, AudioPlaylist, Boolean,
         { member, channel, tracksPlaylist, isQuiet, musicPlaylist ->
             if (!isQuiet) channel.send("Loading YouTube playlist **{0}** *{1} tracks*".tr(channel, tracksPlaylist.name, tracksPlaylist.tracks.size))
             tracksPlaylist.tracks.forEach { track ->
-                play(channel, member, LocalTrackObj(member.user.id, musicPlaylist?.owner ?: member.user.id, musicPlaylist?.id,
+                play(channel, member, LocalTrackObj(member.user.id, musicPlaylist?.owner ?: member.user.id, musicPlaylist?.toLocalPlaylist(member),
                         musicPlaylist?.spotifyPlaylistId, musicPlaylist?.spotifyAlbumId, null, track))
             }
         }

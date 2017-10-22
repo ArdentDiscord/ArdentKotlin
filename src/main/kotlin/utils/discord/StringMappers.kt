@@ -1,8 +1,11 @@
 package utils.discord
 
+import main.conn
 import main.jdas
+import main.r
 import net.dv8tion.jda.core.entities.*
 import utils.functionality.concat
+import utils.functionality.queryAsArrayList
 import utils.functionality.stringify
 
 // Guilds
@@ -71,4 +74,8 @@ fun Message.getFirstRole(arguments: List<String>): Role? {
         if (search.size > 0) return search[0]
     }
     return null
+}
+
+fun getDerogatoryTerms(): MutableList<String> {
+    return r.table("derogatoryTerms").run<Any>(conn).queryAsArrayList(String::class.java).filterNotNull().toMutableList()
 }

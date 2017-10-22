@@ -40,7 +40,7 @@ fun User.getData(): UserData {
 }
 
 class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0,
-               val gender: Gender, val languagesSpoken: MutableList<Language>, val reminders: MutableList<Reminder> = mutableListOf(),
+               val gender: Gender, val languagesSpoken: MutableList<String>, val reminders: MutableList<Reminder> = mutableListOf(),
                val connectedAccounts: ConnectedAccounts) {
     fun canCollect(): Boolean {
         return ((System.currentTimeMillis() - collected) / 1000) > 86399

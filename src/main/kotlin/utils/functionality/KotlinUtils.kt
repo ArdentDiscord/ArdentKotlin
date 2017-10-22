@@ -132,7 +132,7 @@ fun String.trReplace(event: MessageReceivedEvent, vararg new: Any): String {
     return trReplace(event.guild, *new)
 }
 
-fun String.trReplace(guild: Guild, vararg new: Any): String {
+private fun String.trReplace(guild: Guild, vararg new: Any): String {
     return trReplace(guild.getData().languageSettings.getLanguage(), *new)
 }
 

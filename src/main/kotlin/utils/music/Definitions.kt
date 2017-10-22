@@ -13,7 +13,11 @@ import utils.functionality.asPojo
 data class DatabaseMusicLibrary(val id: String, var tracks: MutableList<DatabaseTrackObj>, var lastModified: Long = System.currentTimeMillis())
 
 data class DatabaseMusicPlaylist(val id: String, val owner: String, var name: String, var lastModified: Long, var spotifyAlbumId: String?,
-                                 val spotifyPlaylistId: String?, val youtubePlaylistUrl: String?, val tracks: MutableList<DatabaseTrackObj>? = null)
+                                 val spotifyPlaylistId: String?, val youtubePlaylistUrl: String?, val tracks: MutableList<DatabaseTrackObj>? = null) {
+    fun toLocalPlaylist(member: Member): LocalPlaylist {
+        return LocalPlaylist(member, this)
+    }
+}
 
 data class DatabaseTrackObj(val owner: String, val addedAt: Long, val playlistId: String?, val title: String, val author: String, val url: String) {
     fun toDisplayTrack(musicPlaylist: DatabaseMusicPlaylist? = null, lib: DatabaseMusicLibrary? = null): DisplayTrack {
@@ -23,7 +27,7 @@ data class DatabaseTrackObj(val owner: String, val addedAt: Long, val playlistId
     }
 }
 
-data class LocalTrackObj(val user: String, val owner: String, val playlistId: String?, val spotifyPlaylistId: String?, val spotifyAlbumId: String?, val spotifyTrackId: String?, var track: AudioTrack?, var url: String? = track?.info?.uri)
+data class LocalTrackObj(val user: String, val owner: String, val playlist: LocalPlaylist?, val spotifyPlaylistId: String?, val spotifyAlbumId: String?, val spotifyTrackId: String?, var track: AudioTrack?, var url: String? = track?.info?.uri)
 
 data class LinkedPlaylist(val user: String, val playlistId: String)
 
@@ -34,10 +38,10 @@ data class LocalPlaylist(val member: Member, val playlist: DatabaseMusicPlaylist
         else {
             when {
                 playlist.spotifyAlbumId != null -> playlist.spotifyAlbumId!!.loadSpotifyAlbum(this.member, channel, { audioTrack, id ->
-                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, playlist.id, null, playlist.spotifyAlbumId, id, audioTrack))
+                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, null, playlist.spotifyAlbumId, id, audioTrack))
                 })
                 playlist.spotifyPlaylistId != null -> playlist.spotifyPlaylistId.loadSpotifyPlaylist(this.member, channel, { audioTrack, id ->
-                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, playlist.spotifyPlaylistId, playlist.id, null, id, audioTrack))
+                    play(channel, member, LocalTrackObj(member.user.id, member.user.id,this,playlist.spotifyPlaylistId, null, id, audioTrack))
                 })
                 playlist.youtubePlaylistUrl != null -> {
                     playlist.youtubePlaylistUrl.loadYoutube(member, channel, playlist)
