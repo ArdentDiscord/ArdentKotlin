@@ -6,14 +6,9 @@ import commands.info.formatter
 import main.conn
 import main.r
 import main.waiter
-import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject
-import translation.Language
-import translation.LanguageData
-import utils.discord.getData
 import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.time.Instant
@@ -125,41 +120,6 @@ fun Long.toMinutesAndSeconds(): String {
     val minutes = (this % 3600) / 60
     return if (minutes.compareTo(0) == 0) "$seconds seconds"
     else "$minutes minutes, $seconds seconds"
-}
-
-
-fun String.trReplace(event: MessageReceivedEvent, vararg new: Any): String {
-    return trReplace(event.guild, *new)
-}
-
-private fun String.trReplace(guild: Guild, vararg new: Any): String {
-    return trReplace(guild.getData().languageSettings.getLanguage(), *new)
-}
-
-fun String.trReplace(languageData: LanguageData, vararg new: Any): String {
-    var current = 0
-    var str = this
-    new.forEach {
-        str = str.trReplace(languageData, current, it as? String ?: it.toString())
-        current++
-    }
-    return str
-}
-
-private fun String.trReplace(languageData: LanguageData, param: Int, new: String): String {
-    val split = split("{$param}")
-    when (languageData) {
-        Language.FRENCH.data -> {
-            if ((split[0].endsWith(" le ", true) || split[0].endsWith(" la ", true)
-                    || split[0].endsWith(" le **", true) || split[0].endsWith(" la **", true)
-                    || split[0].endsWith(" le *", true) || split[0].endsWith(" la *", true))
-                    && (new.startsWith("a", true) || new.startsWith("e", true))) {
-                return split[0].replaceAfterLast(" le ", "l'${if (split[0].endsWith("**")) "**" else if (split[0].endsWith("*")) "*" else ""}$new${split[1]}")
-                        .replace(" le l'", " l'").replace(" la l'", " l'")
-            }
-        }
-    }
-    return replace("{$param}", new)
 }
 
 fun after(consumer: () -> Unit, time: Int, unit: TimeUnit = TimeUnit.SECONDS) {

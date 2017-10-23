@@ -1,9 +1,6 @@
 import main.test
 import spark.Spark.*
 import spark.template.handlebars.HandlebarsTemplateEngine
-import web.Setting
-
-val settings = mutableListOf<Setting>()
 
 val handlebars = HandlebarsTemplateEngine()
 

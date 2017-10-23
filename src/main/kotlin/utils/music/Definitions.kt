@@ -27,7 +27,18 @@ data class DatabaseTrackObj(val owner: String, val addedAt: Long, val playlistId
     }
 }
 
-data class LocalTrackObj(val user: String, val owner: String, val playlist: LocalPlaylist?, val spotifyPlaylistId: String?, val spotifyAlbumId: String?, val spotifyTrackId: String?, var track: AudioTrack?, var url: String? = track?.info?.uri)
+data class LocalTrackObj(val user: String, val owner: String, val playlist: LocalPlaylist?, val spotifyPlaylistId: String?, val spotifyAlbumId: String?, val spotifyTrackId: String?, var track: AudioTrack?, var url: String? = track?.info?.uri) {
+    fun getUri(): String? {
+        return when {
+            spotifyPlaylistId != null -> "https://open.spotify.com/user/${spotifyPlaylistId.split(" ")[0]}/playlist/${spotifyPlaylistId.split(" ")[1]}"
+            spotifyAlbumId != null -> "https://open.spotify.com/album/$spotifyAlbumId"
+            spotifyTrackId != null -> "https://open.spotify.com/track/$spotifyTrackId"
+            url != null -> url
+            track != null -> track!!.info.uri
+            else -> null
+        }
+    }
+}
 
 data class LinkedPlaylist(val user: String, val playlistId: String)
 

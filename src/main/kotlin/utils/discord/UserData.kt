@@ -1,11 +1,9 @@
 package utils.discord
 
-import commands.games.*
 import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
-import translation.Language
 import translation.tr
 import utils.functionality.*
 import utils.music.DatabaseMusicLibrary
@@ -15,7 +13,7 @@ import java.util.concurrent.TimeUnit
 
 fun User.isAdministrator(channel: TextChannel, complain: Boolean = false): Boolean {
     if (getStaffLevel(id) == StaffRole.ADMINISTRATOR)
-    if (complain) channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "You need to be an **Ardent Administrator** to use this command!".tr(channel))
+        if (complain) channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "You need to be an **Ardent Administrator** to use this command!".tr(channel))
     return false
 }
 
@@ -38,6 +36,8 @@ fun User.getData(): UserData {
     data.insert("users")
     return data
 }
+
+data class ConnectedAccounts(var spotifyId: String? = null)
 
 class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0,
                val gender: Gender, val languagesSpoken: MutableList<String>, val reminders: MutableList<Reminder> = mutableListOf(),
@@ -112,11 +112,20 @@ fun getPatronLevel(id: String): PatronLevel? {
     return asPojo(r.table("patrons").filter(r.hashMap("id", id)).run(conn), Patron::class.java)?.level
 }
 
+fun User.hasStaffLevel(role: StaffRole, channel: TextChannel? = null, complain: Boolean = true): Boolean {
+    return if (getStaffLevel(id) == role) true
+    else {
+        if (complain) channel?.send("You need the `{0}` staff role to be able to use this command!".tr(channel, role.readable))
+        false
+    }
+}
+
 enum class PatronLevel(val readable: String, val level: Int) { SUPPORTER("Supporter", 1), PREMIUM("Premium", 3), SPONSOR("Sponsor", 7) }
 
 
 data class Patron(val id: String, val level: PatronLevel)
 
+/*
 fun UserData.getBlackjackData(): BlackjackPlayerData {
     val data = BlackjackPlayerData()
     r.table("BlackjackData").run<Any>(conn).queryAsArrayList(GameDataBlackjack::class.java).forEach { game ->
@@ -201,4 +210,4 @@ fun UserData.getTriviaData(): TriviaPlayerData {
     return data
 }
 
-data class ConnectedAccounts(var spotifyId: String? = null)
+*/

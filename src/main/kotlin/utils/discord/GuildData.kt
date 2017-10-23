@@ -52,7 +52,7 @@ data class LanguageSettings(var language: String, var enabled: Boolean = true) {
     }
 }
 
-data class PrefixSettings(val prefixes: MutableList<String> = mutableListOf(), var disabledDefaultPrefix: Boolean = false)
+data class PrefixSettings(var prefix: String = "/", var disabledDefaultPrefix: Boolean = false)
 
 data class MusicSettings(var autoplay: Boolean = false, var stayInChannel: Boolean = false, var whitelistedRoles: MutableList<String>? = null,
                          var canEveryoneUseAdminCommands: Boolean = false, var whitelistedRolesForAdminCommands: MutableList<String>? = null)

@@ -41,7 +41,7 @@ fun String.load(member: Member, channel: TextChannel, consumerFoundTrack: (Audio
         this.startsWith("https://open.spotify.com/album/") -> loadSpotifyAlbum(member, channel, consumerFoundTrack)
         this.startsWith("https://open.spotify.com/track/") -> loadSpotifyTrack(member, channel, consumerFoundTrack)
         this.startsWith("https://open.spotify.com/user/") -> loadSpotifyPlaylist(member, channel, consumerFoundTrack)
-        else -> loadYoutube(member, channel)
+        else -> loadYoutube(member, channel, consumer = { consumerFoundTrack.invoke(it, null) })
     }
 }
 

@@ -6,12 +6,12 @@ import main.r
 import main.test
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.discord.getData
 import utils.discord.send
 import utils.functionality.insert
 import utils.functionality.logChannel
 import utils.functionality.queryAsArrayList
-import utils.functionality.trReplace
 import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -124,10 +124,6 @@ fun String.toLanguage(): LanguageData? {
 
 
 
-fun String.tr(languageData: LanguageData, vararg new: Any, command: Boolean = false, subcommand: Boolean = false): String {
-    return languageData.translate(this)?.trReplace(languageData, *new) ?: translationDoesntExist(languageData, *new, command, subcommand)
-}
-
 fun String.translationDoesntExist(languageData: LanguageData, vararg new: Any, command: Boolean = false, subcommand: Boolean = false): String {
     if (!test && !beta) {
         val phrase = ArdentPhraseTranslation(this, command, subcommand)
@@ -140,14 +136,56 @@ fun String.translationDoesntExist(languageData: LanguageData, vararg new: Any, c
     return this.trReplace(languageData, *new)
 }
 
+private fun String.tr(languageData: LanguageData, vararg new: Any, command: Boolean = false, subcommand: Boolean = false): String {
+    return languageData.translate(this)?.trReplace(languageData, *new) ?: translationDoesntExist(languageData, *new, command, subcommand)
+}
+
 fun String.tr(textChannel: TextChannel, vararg new: Any): String {
     return tr(textChannel.guild, *new)
 }
 
-fun String.tr(guild: Guild, vararg new: Any): String {
-    return tr(guild.getData().languageSettings.getLanguage(), *new)
+fun String.tr(e: MessageReceivedEvent, vararg new: Any): String {
+    return tr(e.guild, *new)
 }
 
+fun String.tr(guild: Guild, vararg new: Any, command: Boolean = false, subcommand: Boolean = false): String {
+    val data = guild.getData()
+    return replace("{PREFIX}", data.prefixSettings.prefix).tr(data.languageSettings.getLanguage(), *new, command, subcommand)
+}
+
+private fun String.trReplace(event: MessageReceivedEvent, vararg new: Any): String {
+    return trReplace(event.guild, *new)
+}
+
+private fun String.trReplace(guild: Guild, vararg new: Any): String {
+    return trReplace(guild.getData().languageSettings.getLanguage(), *new)
+}
+
+private fun String.trReplace(languageData: LanguageData, vararg new: Any): String {
+    var current = 0
+    var str = this
+    new.forEach {
+        str = str.trReplace(languageData, current, it as? String ?: it.toString())
+        current++
+    }
+    return str
+}
+
+private fun String.trReplace(languageData: LanguageData, param: Int, new: String): String {
+    val split = split("{$param}")
+    when (languageData) {
+        Language.FRENCH.data -> {
+            if ((split[0].endsWith(" le ", true) || split[0].endsWith(" la ", true)
+                    || split[0].endsWith(" le **", true) || split[0].endsWith(" la **", true)
+                    || split[0].endsWith(" le *", true) || split[0].endsWith(" la *", true))
+                    && (new.startsWith("a", true) || new.startsWith("e", true))) {
+                return split[0].replaceAfterLast(" le ", "l'${if (split[0].endsWith("**")) "**" else if (split[0].endsWith("*")) "*" else ""}$new${split[1]}")
+                        .replace(" le l'", " l'").replace(" la l'", " l'")
+            }
+        }
+    }
+    return replace("{$param}", new)
+}
 
 fun String.fromLangName(): LanguageData? {
     Language.values().forEach { if (it.data.readable.equals(this, true)) return it.data }

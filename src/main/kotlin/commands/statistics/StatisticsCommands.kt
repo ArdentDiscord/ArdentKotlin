@@ -2,24 +2,23 @@ package commands.statistics
 
 import com.udojava.evalex.Expression
 import commands.music.getCurrentTime
-import commands.music.musicManager
 import events.Category
 import events.Command
+import events.ExtensibleCommand
 import main.*
 import net.dv8tion.jda.core.EmbedBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import translation.LanguageData
 import translation.Language
-import utils.discord.LoggedTrack
-import utils.discord.internals
+import translation.LanguageData
+import translation.tr
+import utils.discord.*
 import utils.functionality.*
 import utils.web.paste
-import java.awt.Color
 
 class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many servers we're currently serving with music", "minfo") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val embed = event.member.embed("Ardent | Music Status".tr(event), Color.MAGENTA)
-                .setThumbnail("https://yt3.ggpht.com/-zK8v1xKkZtY/AAAAAAAAAAI/AAAAAAAAAAA/SmyGR2XCwXw/s900-c-k-no-mo-rj-c0xffffff/photo.jpg")
+        val embed = event.member.embed("Ardent | Music Status".tr(event), event.textChannel)
+        embed.setThumbnail("https://yt3.ggpht.com/-zK8v1xKkZtY/AAAAAAAAAAI/AAAAAAAAAAA/SmyGR2XCwXw/s900-c-k-no-mo-rj-c0xffffff/photo.jpg")
         var total = 0
         managers.forEachIndexed { index, id, manager ->
             val guild = getGuildById(id.toString())
@@ -36,7 +35,7 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
                                 .replace("{0}", guild.name)
                                 .replace("{1}", manager.player.playingTrack.info.title)
                                 .replace("{2}", manager.player.playingTrack.getCurrentTime())
-                                .replace("{3}", manager.scheduler.manager.queue.size.toString())
+                                .replace("{3}", manager.manager.queue.size.toString())
                                 .replace("{4}", lengthHours.toInt().format())
                                 .replace("{5}", lengthHours.toMinutes().format())
                         + "\n")
@@ -47,9 +46,6 @@ class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many server
         embed.appendDescription("\n\n" + "**" + "Total Music Played".tr(event) + ":** " + "{0} hours, {1} minutes".tr(event, internals.musicPlayed.toInt().format(), internals.musicPlayed.toMinutes()))
         embed.appendDescription("\n" + "**Total Tracks Played**: {0}".tr(event, internals.tracksPlayed.format()))
         event.channel.send(embed)
-    }
-
-    override fun registerSubcommands() {
     }
 }
 
@@ -87,14 +83,10 @@ class CalculateCommand : Command(Category.STATISTICS, "calculate", "evaluate a m
         else {
             try {
                 event.channel.send(Expression(arguments.concat()).eval().toPlainString())
-            }
-            catch(e: Exception) {
+            } catch (e: Exception) {
                 event.channel.send("The expression you entered is invalid!".tr(event))
             }
         }
-    }
-
-    override fun registerSubcommands() {
     }
 }
 
@@ -109,9 +101,6 @@ class ShardInfo : Command(Category.STATISTICS, "shards", "see specific detail ab
                     "       Ping: *${jda.ping}* ms\n\n")
         }
         event.channel.send(embed)
-    }
-
-    override fun registerSubcommands() {
     }
 }
 
@@ -150,15 +139,12 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
             it.delete().queue()
         }
     }
-
-    override fun registerSubcommands() {
-    }
 }
 
 class GetGuilds : Command(Category.STATISTICS, "guilds", "getWithIndex a hastebin paste of servers", "servers") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val builder = StringBuilder().append("Ardent Server Data, collected at ${System.currentTimeMillis().readableDate()}\n\n")
-        guilds().sortedByDescending { it.members.size }.forEach { guild -> builder.append("${guild.name} - ${guild.members.size} members & ${guild.botSize()} bots\n") }
+        getAllGuilds().sortedByDescending { it.members.size }.forEach { guild -> builder.append("${guild.name} - ${guild.members.size} members & ${guild.botSize()} bots\n") }
         event.channel.send("Click the following link to see server data:".tr(event) + " ${paste(builder.toString().removeSuffix("\n"))}")
     }
 
@@ -185,7 +171,7 @@ class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "getWithIndex 
     }
 }
 
-class AudioAnalysisCommand : Command(Category.STATISTICS, "trackanalysis", "see an audio feature analysis for tracks", "audioanalysis") {
+class AudioAnalysisCommand : ExtensibleCommand(Category.STATISTICS, "trackanalysis", "see an audio feature analysis for tracks", "audioanalysis") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         showHelp(event)
     }

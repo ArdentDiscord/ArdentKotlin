@@ -17,9 +17,7 @@ import commands.`fun`.*
 import commands.administrate.*
 import commands.games.*
 import commands.info.*
-import commands.info.Settings
 import commands.music.*
-import commands.rpg.*
 import commands.statistics.*
 import events.CommandFactory
 import events.JoinRemoveEvents
@@ -35,10 +33,16 @@ import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
 import translation.Translate
 import translation.tr
-import utils.discord.*
-import utils.functionality.*
+import utils.discord.getGuildById
+import utils.discord.getTextChannelById
+import utils.discord.getVoiceChannelById
+import utils.discord.send
+import utils.functionality.EventWaiter
+import utils.functionality.TriviaQuestion
+import utils.functionality.logChannel
+import utils.functionality.queryAsArrayList
+import utils.music.LocalTrackObj
 import utils.music.ServerQueue
-import web.Web
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
@@ -105,25 +109,9 @@ fun main(args: Array<String>) {
 
     val administrativeDaemon = AdministrativeDaemon()
     administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 15, 30, TimeUnit.SECONDS)
-    val ranksDaemon = CheckPatrons()
-    administrativeExecutor.scheduleAtFixedRate(ranksDaemon, 15, 30, TimeUnit.SECONDS)
 
     addCommands()
 
-    waiter.executor.scheduleWithFixedDelay({
-        jdas.forEach { jda ->
-            jda.presence.game = Game.of(
-                    when (random.nextInt(7)) {
-                        0 -> "Serving ${internals.guilds.format()} guilds"
-                        1 -> "Serving ${internals.users.format()} users"
-                        2 -> "${internals.loadedMusicPlayers} servers playing music"
-                        3 -> "In 3 languages"
-                        4 -> "Try out /lang"
-                        5 -> "${internals.commandCount} available commands"
-                        else -> "Adam Approved ${Emoji.COPYRIGHT_SIGN}"
-                    }, "https://twitch.tv/ ")
-        }
-    }, 20, 25, TimeUnit.SECONDS)
     waiter.executor.schedule({ checkQueueBackups() }, 45, TimeUnit.SECONDS)
 }
 
@@ -154,15 +142,22 @@ data class Config(val url: String) {
 }
 
 fun addCommands() {
-    factory.addCommands(Play(), Radio(), Stop(), Pause(), Resume(), SongUrl(), Ping(), Help(), Volume(), Playing(), Repeat(),
-            Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
+    factory.addCommands(Ping(), Help(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
             JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
-            UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Tempban(), Automessages(),
-            Mute(), Unmute(), Punishments(), Nono(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), ClearQueue(), IamCommand(),
-            IamnotCommand(), BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TopMoney(), MutualGuilds(), ProfileCommand(),
-            MarryCommand(), DivorceCommand(), Daily(), Balance(), AcceptInvitation(), TriviaStats(), RemoveAt(), SlotsCommand(), ArtistSearch(),
-            LanguageCommand(), TicTacToeCommand(), CommandDistribution(), GuessTheNumberCommand(), ServerLanguagesDistribution(), MusicInfo(), FastForward(),
-            Rewind(), AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand(), Meme())
+            UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Automessages(),
+            AdministratorCommand(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), IamCommand(), IamnotCommand(), MutualGuilds(),
+            AcceptInvitation(), LanguageCommand(), CommandDistribution(), ServerLanguagesDistribution(), MusicInfo(),
+            AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand(), Meme())
+    // Music Commands
+    /* factory.addCommands(Play(), Radio(), Stop(), Pause(), Resume(), SongUrl(), Volume(), Playing(), Repeat(),
+            Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), ClearQueue(), RemoveAt(), ArtistSearch(), FastForward(),
+            Rewind()) */
+
+    // Game Commands
+    // factory.addCommands(BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TicTacToeCommand())
+
+    // RPG Commands
+    // factory.addCommands( TopMoney(),ProfileCommand(), MarryCommand(), DivorceCommand(), Daily(), Balance(), TriviaStats())
 }
 
 fun checkQueueBackups() {
@@ -173,10 +168,16 @@ fun checkQueueBackups() {
         val textChannel = getTextChannelById(queue.channelId) ?: return
         if (channel.members.size > 1 || (channel.members.size == 1 && channel.members[0] == channel.guild.selfMember)) {
             val manager = channel.guild.getAudioManager(textChannel)
-            if (channel.guild.selfMember.voiceState.channel != channel) channel.connect(textChannel)
-            textChannel.send(("**Restarting playback...**... Check out {0} for other cool features we offer in Ardent **Premium**").tr(channel.guild, "<https://ardentbot.com/premium>"))
-            queue.tracks.forEach { trackUrl -> trackUrl.loadYoutube(channel.guild.selfMember, textChannel) }
-            logChannel?.send("Resumed playback in `${channel.guild.name}` - channel `${channel.name}`")
+            if (manager.channel != null) {
+                if (channel.guild.selfMember.voiceState.channel != channel) channel.connect(textChannel)
+                textChannel.send(("**Restarting playback...**... Check out {0} for other cool features we offer in Ardent **Premium**").tr(channel.guild, "<https://ardentbot.com/premium>"))
+                queue.tracks.forEach { trackUrl ->
+                    trackUrl.load(channel.guild.selfMember, textChannel, { audioTrack, id ->
+                        play(manager.channel, channel.guild.selfMember, LocalTrackObj(channel.guild.selfMember.user.id, channel.guild.selfMember.user.id, null, null, null, id, audioTrack))
+                    })
+                }
+                logChannel?.send("Resumed playback in `${channel.guild.name}` - channel `${channel.name}`")
+            }
         }
     }
     r.table("savedQueues").delete().runNoReply(conn)

@@ -38,13 +38,14 @@ fun MessageChannel.send(message: String) {
 }
 
 class EmbedWrapper(val channel: MessageChannel, val consumer: ((Message) -> Unit)?, vararg val reactions: String) : EmbedBuilder() {
-    fun appendDescription(string: String, final: Boolean = false) {
+    fun appendDescription(string: String, final: Boolean = false): EmbedWrapper {
         if (descriptionBuilder.length + string.length > 2048) {
             channel.send(this, *reactions)
             setDescription("")
         }
         appendDescription(string)
         if (final) channel.send(this, *reactions, consumer = consumer)
+        return this
     }
 
     fun send() {

@@ -43,7 +43,7 @@ class CommandFactory {
         messagesReceived.getAndIncrement()
         val data = event.guild.getData()
         var foundPrefix: String? = null
-        data.prefixSettings.prefixes.forEach { if (event.message.rawContent.startsWith(it)) foundPrefix = it }
+        if (event.message.rawContent.startsWith(data.prefixSettings.prefix)) foundPrefix = data.prefixSettings.prefix
         if (foundPrefix == null) {
             foundPrefix = if (!data.prefixSettings.disabledDefaultPrefix && event.message.rawContent.startsWith("/")) "/"
             else if (event.message.rawContent.startsWith("ardent")) "ardent"
@@ -120,7 +120,7 @@ abstract class Command(val category: Category, val name: String, val description
     fun executeInternal(args: MutableList<String>, event: MessageReceivedEvent): Boolean {
         if (event.channelType == ChannelType.PRIVATE) {
             event.author.openPrivateChannel().queue { channel ->
-                channel.send("Please use commands inside a Discord server!".tr(Language.ENGLISH.data))
+                channel.send("Please use commands inside a Discord server!")
             }
             return false
         } else {
@@ -157,19 +157,18 @@ abstract class Command(val category: Category, val name: String, val description
         val channel = event.textChannel
         val data = event.guild.getData()
         val prefixSettings = data.prefixSettings
-        val prefix = if (prefixSettings.disabledDefaultPrefix) prefixSettings.prefixes.getOrNull(0) ?: "/" else "/"
-        val embed = member.embed("How can I use {0}?".tr(data.languageSettings.getLanguage(), "$prefix$name", command = true), channel)
+        val embed = member.embed("How can I use {0}?".tr(event.guild, "${prefixSettings.prefix}$name", command = true), channel)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
                 .setFooter("This can also be used with: {0}".tr(channel.guild, channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
                 .appendDescription("*${description.tr(channel.guild)}*\n")
         if (this is ExtensibleCommand) {
             subcommands.forEach {
-                embed.appendDescription("\n" + Emoji.SMALL_BLUE_DIAMOND + "**" + it.syntax.tr(data.languageSettings.getLanguage(), subcommand = true)
+                embed.appendDescription("\n" + Emoji.SMALL_BLUE_DIAMOND + "**" + it.syntax.tr(event.guild, subcommand = true)
                         + "**: " + (it.description?.tr(channel) ?: "No description is available for this subcommand".tr(channel)))
             }
-            if (subcommands.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild, "$prefix$name ${subcommands[0].syntax.tr(channel)}"))
+            if (subcommands.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild, "${prefixSettings.prefix}$name ${subcommands[0].syntax.tr(channel)}"))
         }
-        embed.appendDescription("\n\nType {0}help to view a full list of commands".tr(channel.guild, prefix))
+        embed.appendDescription("\n\nType {PREFIX}help to view a full list of commands".tr(channel.guild))
         channel.send(embed)
     }
 
@@ -207,7 +206,8 @@ enum class Category(val fancyName: String, val description: String) {
     FUN("Fun", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
     RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!"),
     LANGUAGE("Language", "Want to change your server's data or translate a phrase?"),
-    STATISTICS("Statistics", "Interested in Ardent or how our system's been running?")
+    STATISTICS("Statistics", "Interested in Ardent or how our system's been running?"),
+    SETTINGS("Settings", "Change Ardent settings like the prefix to customize it to your server!")
     ;
 
     override fun toString(): String {
