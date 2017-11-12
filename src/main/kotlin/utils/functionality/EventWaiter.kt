@@ -7,7 +7,10 @@ import net.dv8tion.jda.core.events.Event
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
-import utils.embed
+import translation.tr
+import utils.discord.embed
+import utils.discord.getTextChannelById
+import utils.discord.send
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
@@ -80,7 +83,7 @@ class EventWaiter : EventListener {
                 if (expirationConsumer != null) expirationConsumer.invoke()
                 else {
                     if (!silentExpiration) {
-                        val channel: TextChannel? = settings.channel?.toChannel()
+                        val channel: TextChannel? = getTextChannelById(settings.channel)
                         channel?.send("You took too long to add a reaction!".tr(channel.guild))
                     }
                 }
@@ -112,7 +115,7 @@ class EventWaiter : EventListener {
         executor.schedule({
             if (messageEvents.contains(pair)) {
                 messageEvents.remove(pair)
-                val channel: TextChannel? = settings.channel?.toChannel()
+                val channel: TextChannel? = getTextChannelById(settings.channel)
                 if (expiration == null && !silentExpiration) channel?.send("You took too long to respond!".tr(channel.guild))
                 expiration?.invoke()
             }
@@ -131,7 +134,7 @@ data class Settings(val id: String? = null, val channel: String? = null, val gui
  * Message in the consumer is the list selection message
  */
 fun MessageChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
-    val embed = member.embed(title.tr(member.guild))
+    val embed = member.embed(title.tr(member.guild), this)
     val builder = StringBuilder()
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")
@@ -161,7 +164,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 invoked = true
                 val responseInt = response.rawContent.toIntOrNull()?.minus(1)
                 if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) {
-                    failure?.invoke() ?: send("You specified an invalid response!".tr(id.toChannel()!!.guild))
+                    failure?.invoke() ?: send("You specified an invalid response!".tr(getTextChannelById(id)!!.guild))
                 } else {
                     if (options.contains(response.rawContent)) {
                         consumer.invoke(options.getWithIndex(response.rawContent)!!.first, message)
@@ -188,13 +191,13 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 } - 1
                 when {
                     chosen in 0..(options.size - 1) -> consumer.invoke(chosen, message)
-                    chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
+                    chosen != 68 -> send("You specified an invalid reaction or response, cancelling selection".tr(getTextChannelById(id)!!.guild))
                     else -> failure?.invoke()
                 }
                 waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
                 invoked = true
             }, {
-                if (!invoked) send("You didn't specify a reaction or response, cancelling selection".tr(id.toChannel()!!.guild))
+                if (!invoked) send("You didn't specify a reaction or response, cancelling selection".tr(getTextChannelById(id)!!.guild))
                 message.delete().queue()
             }, time = 25, silentExpiration = true)
         }

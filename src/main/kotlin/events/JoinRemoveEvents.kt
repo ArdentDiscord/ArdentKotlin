@@ -66,7 +66,7 @@ fun onMemberLeave(e: GuildMemberLeaveEvent) {
 fun onGuildLeave(e: GuildLeaveEvent) {
     val guild = e.guild
     guild.owner.user.openPrivateChannel().queue {
-        it.send("We're sorry to see you leave. If you had any issues that caused you to remove Ardent, you can always join https://discord.gg/sVkfYbX " +
+        it.send("We're very sad to see you leave ${Emoji.SLIGHTLY_FROWNING_FACE.symbol} If you had any issues that caused you to remove Ardent, you can always join https://discord.gg/sVkfYbX " +
                 "and we'd be happy to work with you")
     }
     logChannel?.send("\uD83D\uDC4E Left guild ${guild.name} - ${guild.members.size} members and ${guild.members.filter { it.user.isBot }.size} bots")

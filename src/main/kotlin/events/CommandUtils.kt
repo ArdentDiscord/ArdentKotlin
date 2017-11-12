@@ -9,7 +9,6 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
-import translation.Language
 import translation.tr
 import utils.discord.*
 import utils.functionality.*
@@ -47,11 +46,11 @@ class CommandFactory {
         if (foundPrefix == null) {
             foundPrefix = if (!data.prefixSettings.disabledDefaultPrefix && event.message.rawContent.startsWith("/")) "/"
             else if (event.message.rawContent.startsWith("ardent")) "ardent"
-            else if (event.message.rawContent.startsWith("<@339101087569281045>")) "<@339101087569281045>"
-            else if (event.message.rawContent.startsWith("<@!339101087569281045>")) "<@!339101087569281045>"
+            else if (event.message.rawContent.startsWith("<@${event.guild.selfMember.user.id}> ")) "<@${event.guild.selfMember.user.id}> "
+            else if (event.message.rawContent.startsWith("<@!${event.guild.selfMember.user.id}> ")) "<@!${event.guild.selfMember.user.id}> "
             else return
         }
-        val content = event.message.rawContent.removePrefix(foundPrefix!!)
+        val content = event.message.rawContent.removePrefix(foundPrefix)
         if (content.isEmpty()) return
         commands.forEach { cmd ->
             if (cmd.containsAlias(content.split(" ")[0], event.guild)) {
@@ -59,7 +58,7 @@ class CommandFactory {
                     content.startsWith(cmd.name) -> content.removePrefix(cmd.name)
                     content.startsWith(cmd.name.tr(event.guild)) -> content.removePrefix(cmd.name.tr(event.guild))
                     else -> content.removePrefix(cmd.aliases.filter { content.startsWith(it) }[0])
-                }.split(" ").toMutableList()
+                }.removePrefix(" ").split(" ").toMutableList()
                 commandsById.increment(cmd.name)
                 commandsByShard.increment(event.guild.getShard())
                 if (derogatoryTerms.filter { event.author.name.contains(it, true) }.count() > 0) {
@@ -85,15 +84,16 @@ class CommandFactory {
                             }
                         }
                     }
-                    executor.execute {
-                        try {
+                    try {
+                        executor.execute {
                             cmd.executeInternal(args, event)
                             r.table("commands").insert(r.json(LoggedCommand(cmd.name, event.author.id, System.currentTimeMillis(), System.currentTimeMillis().readableDate()).toJson())).runNoReply(conn)
-                        } catch (e: Throwable) {
-                            e.log()
-                            logChannel!!.send("^ Exception thrown in **${event.guild.name}** with command ${cmd.name}")
-                            event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support>") + "\n${ExceptionUtils.getStackTrace(e)}")
                         }
+                    } catch (e: Throwable) {
+                        e.log()
+                        logChannel!!.send("^ Exception thrown in **${event.guild.name}** with command ${cmd.name}")
+                        event.channel.send("There was an exception while trying to run this command. Please join {0} and share the following stacktrace:".tr(event.guild, "<https://ardentbot.com/support>") + "\n${ExceptionUtils.getStackTrace(e)}")
+
                     }
                 }
                 return
@@ -140,7 +140,7 @@ abstract class Command(val category: Category, val name: String, val description
                     if (args.concat().startsWith(identifier)) {
                         var temp = args.concat().removePrefix(identifier)
                         while (temp.startsWith(" ")) temp = temp.removePrefix(" ")
-                        it.consumer.invoke(temp.split(" ").toMutableList(), event)
+                        it.consumer.invoke(temp.split(" ").toMutableList().without(""), event)
                         return true
                     }
                 }
@@ -164,7 +164,7 @@ abstract class Command(val category: Category, val name: String, val description
         if (this is ExtensibleCommand) {
             subcommands.forEach {
                 embed.appendDescription("\n" + Emoji.SMALL_BLUE_DIAMOND + "**" + it.syntax.tr(event.guild, subcommand = true)
-                        + "**: " + (it.description?.tr(channel) ?: "No description is available for this subcommand".tr(channel)))
+                        + "**: " + (it.description?.tr(channel) ?: "No selfDescription is available for this subcommand".tr(channel)))
             }
             if (subcommands.size > 0) embed.appendDescription("\n\n**Example**: {0}".tr(channel.guild, "${prefixSettings.prefix}$name ${subcommands[0].syntax.tr(channel)}"))
         }

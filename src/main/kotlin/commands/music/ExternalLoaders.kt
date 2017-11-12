@@ -55,6 +55,10 @@ fun String.loadYoutube(member: Member, channel: TextChannel, musicPlaylist: Data
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
             if (playlist.isSearchResult) {
+                if (consumer != null) {
+                    consumer.invoke(playlist.tracks[0])
+                    return
+                }
                 if (autoplay) {
                     val track = playlist.tracks[0]
                     channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "[**Ardent Autoplay**]".tr(channel) + " " + "Adding **{0}** by **{1}** to the queue *{2}*...".tr(member.guild, track.info.title, track.info.author, track.getDurationString()))
@@ -94,7 +98,7 @@ fun String.loadYoutube(member: Member, channel: TextChannel, musicPlaylist: Data
         override fun noMatches() {
             if (search) {
                 if (!autoplay) channel.send("I was unable to find a track with that name. Please try again with a different query")
-            } else "ytsearch:${this@loadYoutube}".loadYoutube(member, channel, musicPlaylist, true)
+            } else "ytsearch:${this@loadYoutube}".loadYoutube(member, channel, musicPlaylist, true, consumer = consumer)
         }
     })
 }

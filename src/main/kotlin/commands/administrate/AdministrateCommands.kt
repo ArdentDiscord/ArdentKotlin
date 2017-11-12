@@ -1,8 +1,6 @@
 package commands.administrate
 
 import com.ardentbot.Eval
-import commands.games.activeGames
-import commands.games.gamesInLobby
 import commands.music.getAudioManager
 import events.Category
 import events.Command
@@ -13,12 +11,10 @@ import main.managers
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
-import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.requests.RestAction
 import translation.tr
 import utils.discord.*
-import utils.functionality.Emoji
 import utils.functionality.concat
 import utils.music.ServerQueue
 import java.util.concurrent.TimeUnit
@@ -119,8 +115,8 @@ class AdministratorCommand : ExtensibleCommand(Category.ADMINISTRATE, "admin", "
                     } catch (ignored: Exception) {
                     }
                 }
-                gamesInLobby.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
-                activeGames.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
+                //gamesInLobby.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
+               // activeGames.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
                 event.channel.sendMessage("Shutting down").queue {
                     jdas.forEach { it.shutdown() }
                     System.exit(0)

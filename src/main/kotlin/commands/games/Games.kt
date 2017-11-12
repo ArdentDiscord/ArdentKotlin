@@ -16,5 +16,5 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 
-val invites = ConcurrentHashMap<String, Game>()
+//val invites = ConcurrentHashMap<String, Game>()
 val questions = mutableListOf<TriviaQuestion>()

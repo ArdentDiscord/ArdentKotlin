@@ -1,13 +1,12 @@
 <h1><a href="/">Ardent</a> | Discord Bot</h1>
 <nav id="nav">
     <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/status">Status</a></li>
+        <li><a href="/invite">Invite</a></li>
         <li><a href="/commands">Commands</a></li>
-        <li><a href="/games/recent">Game Results</a></li>
         <li>
             <a href="#" class="icon fa-angle-down">Info</a>
             <ul>
+                <li><a href="/status">Status</a></li>
                 <li><a href="/staff">Staff</a></li>
                 <li><a href="/patrons">Supporters</a></li>
                 <li><a href="/patreon">Patreon</a></li>
@@ -20,11 +19,9 @@
                 </li>
             </ul>
         </li>
-        <li><a href="/invite">Invite</a></li>
         {{# if validSession}}
             <li><a href="/manage" class="button">Manage</a></li>
-            <li><a href="/tickets/" class="button">Support</a></li>
-            <li><a href="/translation/" class="button">Translate</a></li>
+            <li><a href="/profile" class="button">My Profile</a></li>
             <li><a href="/logout" class="button">Log Out</a></li>
         {{else}}
             <li><a href="/login" class="button">Login</a></li>

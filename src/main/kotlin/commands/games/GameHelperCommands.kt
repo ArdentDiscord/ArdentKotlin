@@ -8,7 +8,7 @@ import utils.*
 import utils.functionality.Emoji
 import utils.functionality.Settings
 import java.util.concurrent.TimeUnit
-
+/*
 class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running game") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         var found = false
@@ -199,3 +199,4 @@ fun checkInvite(event: MessageReceivedEvent, game: Game): Boolean {
         true
     } else false
 }
+        */

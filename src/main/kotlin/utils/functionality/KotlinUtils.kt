@@ -2,13 +2,17 @@ package utils.functionality
 
 import com.google.gson.GsonBuilder
 import com.rethinkdb.net.Cursor
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import commands.info.formatter
+import commands.music.load
 import main.conn
 import main.r
 import main.waiter
 import net.dv8tion.jda.core.entities.TextChannel
+import org.apache.commons.lang3.RandomStringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject
+import utils.discord.getGuildById
 import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.time.Instant
@@ -51,6 +55,11 @@ fun <T> List<T>.stringify(): String {
     return if (size == 0) "none" else map { it.toString() }.stream().collect(Collectors.joining(", "))
 }
 
+fun String.loadExternally(consumerFoundTrack: (AudioTrack, String?) -> Unit) {
+    val guild = getGuildById("351220166018727936")!!
+    load(guild.selfMember, guild.textChannels[0], consumerFoundTrack)
+}
+
 /**
  * Creates an equivalent string out of the constituent strings
  */
@@ -71,13 +80,26 @@ fun Any.insert(table: String) {
     r.table(table).insert(r.json(gson.toJson(this))).runNoReply(conn)
 }
 
+fun Any.update(table: String, key: String) {
+    r.table(table).get(key).update(r.json(gson.toJson(this))).run<Any>(conn)
+}
+
+fun genId(length: Int, table: String?): String {
+    val gen = RandomStringUtils.randomAlphanumeric(length)
+    return if (table == null) gen
+    else {
+        if (r.table(table).get(gen).run<Any?>(conn) != null) genId(length, table)
+        else gen
+    }
+}
+
 fun <T> asPojo(map: HashMap<*, *>?, tClass: Class<T>): T? {
     return gson.fromJson(JSONObject.toJSONString(map), tClass)
 }
 
 fun <T> Any.queryAsArrayList(t: Class<T>): MutableList<T?> {
-    val cursor = this as Cursor<HashMap<*, *>>
     val tS = mutableListOf<T?>()
+    val cursor = this as Cursor<HashMap<*, *>>
     cursor.forEach { hashMap -> tS.add(asPojo(hashMap, t)) }
     cursor.close()
     return tS

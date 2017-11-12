@@ -27,6 +27,7 @@
         ga('send', 'pageview');
 
     </script>
+    <link rel="stylesheet" href="/assets/css/ardent.css"/>
     <link rel="stylesheet" href="/assets/css/main.css"/>
     <!--[if lte IE 8]>
     <link rel="stylesheet" href="/assets/css/ie8.css"/><![endif]-->
@@ -36,3 +37,7 @@
     <!-- Header -->
     <header id="header">
 {{> menu.hbs}}
+{{#if hasError}}
+        <a href="#" style="margin: 50px auto 0 auto; width: 75%; display: block;"
+           class="button special small">{{errorMessage}}</a>
+{{/if}}

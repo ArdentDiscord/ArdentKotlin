@@ -6,9 +6,9 @@
 <!-- Main -->
 <section id="main" class="container 75%" xmlns="http://www.w3.org/1999/html">
     <header>
-        <h2>{{languageData.readable}} Translation</h2>
+        <h2>{{language.readable}} Translation</h2>
     </header>
-    <form action="/translation/ar/{{languageData.code}}/update/{{encoded}}">
+    <form action="/translation/ar/{{language.code}}/update/{{encoded}}">
         <div class="row uniform 50%">
             <div class="8u">
                 <h3>English</h3>
@@ -42,7 +42,7 @@
             </div>
         </form>
     {{/if}}
-    <p><a href="/translation/ar/{{languageData.code}}/hi/guys">Click here to go back to your languageData page</a></p>
+    <p><a href="/translation/ar/{{language.code}}/hi/guys">Click here to go back to your language page</a></p>
 </section>
 
 {{> footer.hbs }}

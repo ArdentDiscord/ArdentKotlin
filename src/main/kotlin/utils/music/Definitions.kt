@@ -9,6 +9,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import translation.tr
 import utils.discord.send
 import utils.functionality.asPojo
+import utils.functionality.update
 
 data class DatabaseMusicLibrary(val id: String, var tracks: MutableList<DatabaseTrackObj>, var lastModified: Long = System.currentTimeMillis())
 
@@ -52,7 +53,7 @@ data class LocalPlaylist(val member: Member, val playlist: DatabaseMusicPlaylist
                     play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, null, playlist.spotifyAlbumId, id, audioTrack))
                 })
                 playlist.spotifyPlaylistId != null -> playlist.spotifyPlaylistId.loadSpotifyPlaylist(this.member, channel, { audioTrack, id ->
-                    play(channel, member, LocalTrackObj(member.user.id, member.user.id,this,playlist.spotifyPlaylistId, null, id, audioTrack))
+                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, playlist.spotifyPlaylistId, null, id, audioTrack))
                 })
                 playlist.youtubePlaylistUrl != null -> {
                     playlist.youtubePlaylistUrl.loadYoutube(member, channel, playlist)
@@ -60,9 +61,15 @@ data class LocalPlaylist(val member: Member, val playlist: DatabaseMusicPlaylist
                 else -> {
                     channel.send("Now loading local playlist **{0}** with **{1}** tracks".tr(channel, playlist.name, playlist.tracks.size))
                     playlist.tracks.forEach { track ->
-                        track.url.loadYoutube(member, channel, playlist, false, { found ->
-                            DEFAULT_TRACK_LOAD_HANDLER(member, channel, found, true, playlist)
-                        })
+                        when {
+                            track.url.startsWith("https://open.spotify.com/track/") -> track.url.loadSpotifyTrack(member, channel, { audioTrack, id ->
+                                play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, null, null, id, audioTrack))
+                            })
+                            else -> track.url.loadYoutube(member, channel, playlist, false, { found ->
+                                DEFAULT_TRACK_LOAD_HANDLER(member, channel, found, true, playlist)
+                            })
+                        }
+
                     }
                 }
             }
@@ -84,6 +91,11 @@ fun getPlaylistById(id: String): DatabaseMusicPlaylist? {
     return asPojo(r.table("musicPlaylists").filter(r.hashMap("id", id)).run(conn), DatabaseMusicPlaylist::class.java)
 }
 
-fun getMusicLibrary(id: String): DatabaseMusicLibrary? {
-    return asPojo(r.table("musicLibraries").filter(r.hashMap("id", id)).run(conn), DatabaseMusicLibrary::class.java)
+fun getMusicLibrary(id: String): DatabaseMusicLibrary {
+    var library = asPojo(r.table("musicLibraries").get(id).run(conn), DatabaseMusicLibrary::class.java)
+    if (library == null) {
+        library = DatabaseMusicLibrary(id, mutableListOf())
+        library.update("musicLibraries", id)
+    }
+    return library
 }

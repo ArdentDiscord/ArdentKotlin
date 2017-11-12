@@ -50,12 +50,13 @@ fun retrieveToken(code: String): Token? {
             .data("redirect_uri", loginRedirect)
             .data("code", code)
             .post()
+    println(response.body().text())
     return try {
         val data = gson.fromJson(response.text(), Token::class.java)
         if (data.access_token == null) null // this is a possibility due to issues with the kotlin compiler
         else data /* verified non null object */
     } catch (e: JsonSyntaxException) {
-        e.log()
+        e.printStackTrace()
         null
     }
 }

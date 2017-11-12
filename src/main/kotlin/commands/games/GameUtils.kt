@@ -1,4 +1,4 @@
-package commands.games
+/*package commands.games
 
 import main.conn
 import main.r
@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit
 
 val gamesInLobby = ConcurrentLinkedQueue<Game>()
 val activeGames = ConcurrentLinkedQueue<Game>()
+
 
 /**
  * Abstracted Game features, providing standardized methods for cleanup, startup, and lobbies.
@@ -39,7 +40,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
             displayLobby()
             scheduledExecutor.scheduleAtFixedRate({ displayLobby() }, 60, 47, TimeUnit.SECONDS)
         } else if (type != GameType.BLACKJACK && type != GameType.BETTING && playerCount > 1) {
-            channel.send("{0}, use **/gameinvite @User** to invite someone to your game"
+            channel.send("{0}, use *gameinvite @User** to invite someone to your game"
                     .tr(channel.guild, creator.toUser()?.asMention ?: "unable to determine creator"))
         }
         scheduledExecutor.scheduleWithFixedDelay({
@@ -232,3 +233,4 @@ class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner:
 }
 
 abstract class GameData(var id: Long? = null, val creator: String, val startTime: Long, val endTime: Long = System.currentTimeMillis())
+*/

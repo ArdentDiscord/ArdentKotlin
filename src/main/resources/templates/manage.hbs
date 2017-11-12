@@ -15,12 +15,12 @@
             <p>Cool, you're an administrator. Go <a href="/administrators">here</a> to do administrator shit</p>
         </div>
     {{/if}}
-    {{#each availableGuilds}}
+    {{#each guilds}}
         <div class="box">
             <h3 style="display: inline-block;">{{name}}</h3>
             <br/>
-            <p>Manage it by clicking <b><a href="/manage/{{id}}">here</a></b><br/>
-                Owner: <b>{{owner.user.name}}#{{owner.user.discriminator}}</b></p>
+            <p>Manage by clicking <b><a href="/manage/{{id}}">here</a></b><br/>
+                Owner: <b>{{owner.user.name}}#{{owner.user.discriminator}}</b> | Members: <b>{{members.size}}</b></p>
         </div>
     {{/each}}
 </section>

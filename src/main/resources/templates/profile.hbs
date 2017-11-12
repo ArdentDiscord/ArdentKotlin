@@ -1,0 +1,84 @@
+{{> header.hbs }}
+
+<figure style="margin-top: 40px">
+    <img style="display: block; margin: 0 auto 0 auto;" src="{{user.effectiveAvatarUrl}}">
+    <h3 style="text-align: center">{{user.name}}#{{user.discriminator}}</h3>
+</figure>
+
+<section id="main" class="container 75%">
+    <div class="box">
+        <h3>Info</h3>
+        <p class="list"><b>About:</b>
+            {{#if description}}<i>{{description}}</i>{{else}}This user hasn't set a description for themselves :({{/if}}
+        </p>
+        <p class="list"><b>Speaks:</b> {{languages}}</p>
+        <p class="list"><b>Ardent Gold:</b> {{gold}}</p>
+        <p class="list"><b>Gender:</b> {{gender}}</p>
+        <br/>
+        <p><i>You can change this information by messaging Ardent with /profile</i></p>
+    </div>
+    <div class="box">
+        <h3>Music Library</h3>
+        {{#if hasLocalMusic}}
+            {{#with musicLibrary}}
+                <p class="list"><b>Last Modified:</b> {{date lastModified}}</p>
+                <div class="table-wrapper">
+                    <table class="alt">
+                        <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            {{#if isUser}}
+                                <th>Remove</th>{{/if}}
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#each tracks}}
+                            <tr>
+                                <td>{{title}}</td>
+                                <td>{{author}}</td>
+                                {{#if isUser}}
+                                <td><a class="a-form" href="/accept?name=removesong&redirect=/profile&song={{url}}">
+                                    <img height="16" width="16" src="/images/x_button.png"></a>{{/if}}
+                            </td>
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+            {{/with}}
+        {{else}}
+            <p>{{#if isUser}}Oh no! You don't have any tracks. Add one below!
+            {{else}}Uh oh, {{user.name}} doesn't have any local music.{{/if}}</p>
+        {{/if}}
+        {{#if isUser}}
+            <form method="get" name="add-song" action="/accept">
+            <input name="name" value="addsong" hidden/>
+            <input name="redirect" value="/profile" hidden/>
+            <div class="row uniform 50%">
+                <div class="5u">
+                    <input type="text" name="song" id="song" value=""
+                           placeholder="Type song url (or name) here..."/>
+                </div>
+                <div class="3u 12u(mobilep)">
+                    <input type="submit" value="Add Song" class="alt"/>
+                </div>
+            </div>
+            </form>
+        {{/if}}
+    </div>
+    <div class="box">
+        <h3>Music Playlists</h3>
+        {{#if hasPlaylists}}
+                {{#each playlists}}
+                    <h2>{{@index_1}}: <a href="/music/playlist/{{id}}"><b>{{name}}</b></a></h2>
+                {{/each}}
+        {{else}}
+            <p>{{#if isUser}}You don't have any playlists.
+            {{else}}{{user.name}} hasn't created any playlists.{{/if}}</p>
+            <br/>
+            <p><i>Create playlists by typing <b>/playlist create [name]</b> inside Discord</i></p>
+        {{/if}}
+    </div>
+</section>
+{{> footer.hbs }}

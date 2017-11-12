@@ -77,5 +77,7 @@ fun Message.getFirstRole(arguments: List<String>): Role? {
 }
 
 fun getDerogatoryTerms(): MutableList<String> {
-    return r.table("derogatoryTerms").run<Any>(conn).queryAsArrayList(String::class.java).filterNotNull().toMutableList()
+    return r.table("derogatoryTerms").run<Any>(conn).queryAsArrayList(DerogatoryTerm::class.java).map { it!!.term }.toMutableList()
 }
+
+data class DerogatoryTerm(var term: String)

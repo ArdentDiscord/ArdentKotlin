@@ -1,5 +1,6 @@
 package main
 
+import Web
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.HttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
@@ -15,10 +16,9 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import commands.`fun`.*
 import commands.administrate.*
-import commands.games.*
+import commands.games.questions
 import commands.info.*
 import commands.music.*
-import commands.statistics.*
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
@@ -49,7 +49,7 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-val test = false
+val test = true
 var beta = true
 
 var hangout: Guild? = null
@@ -57,11 +57,11 @@ var hangout: Guild? = null
 var r: RethinkDB = RethinkDB.r
 var conn: Connection? = null
 
+var config: Config = if (test) Config("C:\\Users\\Adam\\Desktop\\config.txt") else Config("/root/Ardent/config.txt")
+
 var jdas = mutableListOf<JDA>()
 val waiter = EventWaiter()
 val factory = CommandFactory()
-
-var config: Config = if (test) Config("C:\\Users\\Adam\\Desktop\\config.txt") else Config("/root/Ardent/config.txt")
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = ConcurrentHashMap<Long, GuildMusicManager>()
@@ -128,12 +128,12 @@ data class Config(val url: String) {
                 val keyPair = pair.split(" :: ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
                 if (keyPair.size == 2) keys.put(keyPair[0], keyPair[1])
             }
+            conn = r.connection().timeout(3000).db("ardent_v2").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
         } catch (e: IOException) {
             println("Unable to load Config, exiting now")
             e.printStackTrace()
             System.exit(1)
         }
-        conn = r.connection().timeout(5000).db("ardent_v2").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
     }
 
     fun getValue(keyName: String): String {
@@ -142,13 +142,21 @@ data class Config(val url: String) {
 }
 
 fun addCommands() {
-    factory.addCommands(Ping(), Help(), Decline(), InviteToGame(), Gamelist(), LeaveGame(),
-            JoinGame(), Cancel(), Forcestart(), Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(), Roll(),
+    factory.addCommands(Ping(), /* Help(), */
+            Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Automessages(),
-            AdministratorCommand(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), IamCommand(), IamnotCommand(), MutualGuilds(),
-            AcceptInvitation(), LanguageCommand(), CommandDistribution(), ServerLanguagesDistribution(), MusicInfo(),
-            AudioAnalysisCommand(), GetGuilds(), Blacklist(), ShardInfo(), CalculateCommand(), Meme())
+            AdministratorCommand(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), /* IamCommand(), IamnotCommand(), */
+            LanguageCommand(), Blacklist(), Meme())
+
+    // Game Helper Commands
+    // factory.addCommands(Decline(), InviteToGame(), Gamelist(), LeaveGame(), JoinGame(), Cancel(), Forcestart(), AcceptInvitation())
+
+    // Statistics Commands
+    /*factory.addCommands(CommandDistribution(), ServerLanguagesDistribution(), MusicInfo(), AudioAnalysisCommand(), GetGuilds(),  ShardInfo(), CalculateCommand(),
+            MutualGuilds())*/
+
     // Music Commands
+    factory.addCommands(Playlist())
     /* factory.addCommands(Play(), Radio(), Stop(), Pause(), Resume(), SongUrl(), Volume(), Playing(), Repeat(),
             Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), ClearQueue(), RemoveAt(), ArtistSearch(), FastForward(),
             Rewind()) */

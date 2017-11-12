@@ -32,14 +32,14 @@ fun User.hasPatronPermission(channel: TextChannel, donationLevel: PatronLevel, f
 fun User.getData(): UserData {
     var data = asPojo(r.table("users").get(id).run(conn), UserData::class.java)
     if (data != null) return data
-    data = UserData(id, 25.0, 0L, UserData.Gender.UNDEFINED, mutableListOf(), connectedAccounts = ConnectedAccounts())
+    data = UserData(id, 25.0, 0L, null, UserData.Gender.UNDEFINED, mutableListOf("English"), connectedAccounts = ConnectedAccounts())
     data.insert("users")
     return data
 }
 
 data class ConnectedAccounts(var spotifyId: String? = null)
 
-class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0,
+class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0, val selfDescription: String?,
                val gender: Gender, val languagesSpoken: MutableList<String>, val reminders: MutableList<Reminder> = mutableListOf(),
                val connectedAccounts: ConnectedAccounts) {
     fun canCollect(): Boolean {

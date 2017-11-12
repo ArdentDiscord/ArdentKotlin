@@ -3,6 +3,7 @@ package utils.discord
 import commands.music.getAudioManager
 import main.*
 import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.entities.User
 import translation.Language
@@ -24,6 +25,10 @@ enum class EventType { LEFT_GUILD, JOINED_GUILD }
 data class LoggedTrack(val guildId: String, val position: Double)
 
 data class LoggedCommand(val commandId: String, val userId: String, val executionTime: Long, val readableExecutionTime: String, val id: String = r.uuid().run(conn))
+
+fun getSelfMember(): Member {
+    return getGuildById("351220166018727936")!!.selfMember
+}
 
 fun Guild.currentTrack(): LocalTrackObj? {
     return getAudioManager(null).manager.current

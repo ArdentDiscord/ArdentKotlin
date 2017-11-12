@@ -1,6 +1,7 @@
 package commands.statistics
 
 import com.udojava.evalex.Expression
+import commands.music.getAudioManager
 import commands.music.getCurrentTime
 import events.Category
 import events.Command
@@ -14,7 +15,7 @@ import translation.tr
 import utils.discord.*
 import utils.functionality.*
 import utils.web.paste
-
+/*
 class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many servers we're currently serving with music", "minfo") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = event.member.embed("Ardent | Music Status".tr(event), event.textChannel)
@@ -157,7 +158,7 @@ class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "getWithIndex 
         val user = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         if (user.id == "339101087569281045") event.channel.send("Nice try :-)".tr(event))
         val embed = event.member.embed("Ardent | Mutual Servers with ${user.name}")
-        getMutualGuildsWith(user).forEachIndexed { index, guild ->
+        mutualGuildsWith(user).forEachIndexed { index, guild ->
             if (embed.descriptionBuilder.length < 1900) embed.appendDescription("${(if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol} " +
                     "**${guild.name}** - *${guild.members.size}* members, *${guild.members.filter { it.user.isBot }.count() * 100 / guild.members.size}*% bots\n")
             else {
@@ -165,9 +166,6 @@ class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "getWithIndex 
             }
         }
         event.channel.send(embed)
-    }
-
-    override fun registerSubcommands() {
     }
 }
 
@@ -178,7 +176,7 @@ class AudioAnalysisCommand : ExtensibleCommand(Category.STATISTICS, "trackanalys
 
     override fun registerSubcommands() {
         with("current", null, "see an analysis for the currently playing track", { arguments, event ->
-            val playing = event.guild.musicManager(event.textChannel).player.playingTrack
+            val playing = event.guild.getAudioManager(event.textChannel).player.playingTrack
             if (playing == null) event.channel.send("There isn't a currently playing track..".tr(event))
             else {
                 val embed = getAnalysis(playing.info.title, event)
@@ -198,7 +196,7 @@ class AudioAnalysisCommand : ExtensibleCommand(Category.STATISTICS, "trackanalys
         try {
             val track = spotifyApi.search.searchTrack(trackName, 1).items[0]
             val features = spotifyApi.tracks.getAudioFeatures(track.id)
-            return event.member.embed("Audio Analysis | {0}".tr(event, track.name))
+            return event.member.embed("Audio Analysis | {0}".tr(event, track.name), event.textChannel)
                     .addField("Acousticness", features.acousticness.times(100).format() + "%", true)
                     .addField("Energy", features.energy.times(100).format() + "%", true)
                     .addField("Liveness", features.liveness.times(100).format() + "%", true)
@@ -218,3 +216,4 @@ class AudioAnalysisCommand : ExtensibleCommand(Category.STATISTICS, "trackanalys
         return null
     }
 }
+*/
