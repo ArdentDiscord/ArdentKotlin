@@ -42,7 +42,7 @@ class GuildData(val id: String, val prefixSettings: PrefixSettings, val language
 
 }
 
-data class LanguageSettings(var language: String, var enabled: Boolean = true) {
+data class LanguageSettings(var language: String) {
     fun getLanguage(): LanguageData {
         var lang = language.toLanguage()
         if (lang != null) return lang
@@ -54,20 +54,18 @@ data class LanguageSettings(var language: String, var enabled: Boolean = true) {
 
 data class PrefixSettings(var prefix: String = "/", var disabledDefaultPrefix: Boolean = false)
 
-data class MusicSettings(var autoplay: Boolean = false, var stayInChannel: Boolean = false, var whitelistedRoles: MutableList<String>? = null,
-                         var canEveryoneUseAdminCommands: Boolean = false, var whitelistedRolesForAdminCommands: MutableList<String>? = null)
+data class MusicSettings(var autoplay: Boolean = false, var stayInChannel: Boolean = false, var whitelistedRoles: MutableList<String> = mutableListOf() /* IMPLEMENT LATER */,
+                         var canEveryoneUseAdminCommands: Boolean = false, var whitelistedRolesForAdminCommands: MutableList<String> = mutableListOf())
 
 data class MessageSettings(var joinMessage: JoinMessage? = null, var leaveMessage: LeaveMessage? = null,
                            var messageUsersOnJoin: Boolean = false)
 
-data class JoinMessage(var message: String, var lastEditedBy: String, var lastEditedAt: Long,
-                       var creator: String, var channel: String, var enabled: Boolean = true)
+data class JoinMessage(var message: String?, var lastEditedBy: String, var lastEditedAt: Long, var channel: String?, var enabled: Boolean = true)
 
-data class LeaveMessage(var message: String, var lastEditedBy: String, var lastEditedAt: Long,
-                        var creator: String, var channel: String, var enabled: Boolean = true)
+data class LeaveMessage(var message: String?, var lastEditedBy: String, var lastEditedAt: Long, var channel: String?, var enabled: Boolean = true)
 
 data class BlacklistSettings(val blacklistedChannels: MutableList<String> = mutableListOf(), val blacklistedUsers: MutableList<String> = mutableListOf(),
-                             val blacklistedVoiceChannels: MutableList<String> = mutableListOf(), val blacklistedRoles: MutableList<String> = mutableListOf() )
+                             val blacklistedVoiceChannels: MutableList<String> = mutableListOf(), val blacklistedRoles: MutableList<String> = mutableListOf())
 
 data class RoleSettings(var defaultRole: String? = null, var autoroles: MutableList<Autorole> = mutableListOf())
 

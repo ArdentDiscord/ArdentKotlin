@@ -185,6 +185,22 @@ fun <T> MutableList<T>.without(t: T): MutableList<T> {
     return this
 }
 
+fun String.removeStarting(t: String): String {
+    return if (startsWith(t)) removePrefix(t).removeStarting(t)
+    else this
+}
+
+fun Int.getListEmoji(): String {
+    return (if (this % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND
+    else Emoji.SMALL_BLUE_DIAMOND).symbol
+}
+
+fun String.commandSplit(): MutableList<String> {
+    val split = split(" ").toMutableList()
+    return if (split.size == 1 && split[0] == "") mutableListOf()
+    else split
+}
+
 fun List<String>.containsEqualsIgnoreCase(string: String): Boolean {
     forEach { if (string.toLowerCase().equals(it, true)) return true }
     return false

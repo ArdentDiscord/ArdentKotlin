@@ -8,6 +8,12 @@ import utils.discord.getData
 import utils.discord.send
 import utils.functionality.Emoji
 
+class Settings : Command(Category.SETTINGS, "settings", "administrate the settings for your server", "manage", "webpanel") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        event.channel.send("Visit our redesigned web panel for an easy way to manage your settings - {0}".tr(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
+    }
+}
+
 class Prefix : Command(Category.SETTINGS, "prefix", "view or change your server's prefix for Ardent") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val data = event.guild.getData()

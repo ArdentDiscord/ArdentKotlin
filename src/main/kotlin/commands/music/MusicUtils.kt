@@ -18,13 +18,12 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.VoiceChannel
 import obj.SimpleTrack
 import translation.tr
-import utils.discord.LoggedTrack
-import utils.discord.getData
-import utils.discord.send
+import utils.discord.*
 import utils.functionality.Emoji
 import utils.functionality.insert
 import utils.functionality.limit
 import utils.music.LocalTrackObj
+import utils.music.TrackDisplay
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 
@@ -117,7 +116,6 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
         if (guild.audioManager.isConnected) {
-            if (track.position > 0L) {
                 LoggedTrack(guild.id, track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
                 if (player.playingTrack == null && guildMusicManager.manager.queue.size == 0 && autoplay
                         && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState.channel != null) {
@@ -146,7 +144,7 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
                         }.tracks[0]
                         val channel = guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0]
                         "https://open.spotify.com/track/${recommendation.id}"
-                                .loadSpotifyTrack(guild.selfMember, channel, { audioTrack, trackId ->
+                                .loadSpotifyTrack(guild.selfMember, channel, consumerFoundTrack = { audioTrack, trackId ->
                                     play(channel, guild.selfMember, LocalTrackObj(guild.selfMember.user.id, guild.selfMember.user.id, current.playlist,
                                             current.spotifyPlaylistId, current.spotifyAlbumId, recommendation.id, audioTrack))
                                 })
@@ -156,9 +154,7 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
                         guildMusicManager.channel?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(guildMusicManager.channel!!.guild))
                     }
                     return
-                }
             }
-            guildMusicManager.manager.skipToNextTrack()
         }
     }
 
@@ -179,8 +175,11 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
 }
 
 fun AudioTrack.getDurationString(): String {
-    val length = info.length
-    val seconds = (length / 1000).toInt()
+    return info.length.getDurationString()
+}
+
+fun Long.getDurationString(): String {
+    val seconds = (this / 1000).toInt()
     val minutes = seconds / 60
     val hours = minutes / 60
     return "[${String.format("%02d", hours % 60)}:${String.format("%02d", minutes % 60)}:${String.format("%02d", seconds % 60)}]"
@@ -228,7 +227,22 @@ fun VoiceChannel.connect(textChannel: TextChannel?, complain: Boolean = true): B
 fun play(channel: TextChannel?, member: Member, track: LocalTrackObj) {
     if (!member.guild.audioManager.isConnected) {
         if (member.voiceState.channel != null) member.guild.audioManager.openAudioConnection(member.voiceState.channel)
-        else return
+        else {
+            channel?.send("Unable to join voice channel.. Are you sure you're in one?".tr(member.guild))
+            return
+        }
     }
     member.guild.getAudioManager(channel).manager.queue(track)
+}
+
+
+fun List<LocalTrackObj>.toTrackDisplay(): List<TrackDisplay> {
+    val display = mutableListOf<TrackDisplay>()
+    forEach { if (it.track != null) display.add(TrackDisplay(it.track!!.info.title, it.track!!.info.author)) }
+    return display
+}
+
+fun LocalTrackObj.getInfo(guild: Guild): String {
+    return "**{0}** by *{1}* {2} - added by **{3}**"
+            .tr(guild, track!!.info.title, track!!.info.author, track!!.getCurrentTime(), getUserById(user)?.toFancyString() ?: "Unknown")
 }

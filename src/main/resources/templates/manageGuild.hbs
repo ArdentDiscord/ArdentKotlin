@@ -7,232 +7,47 @@
 <section id="main" class="container 75%">
     <header>
         <h2>Manage the Settings of {{guild.name}}</h2>
-        <p><em>Pro Tip: Pledge just a few dollars a month on <a href="/patreon">our Patreon</a> to get access to
-            expanded music features</em></p>
+        <p><em>Pledge just a few dollars a month on <a href="/patreon">our Patreon</a> to get access to
+            expanded music features <b>AND</b> help support the continuation of Ardent</em></p>
     </header>
-    <div class="box">
-        <h3>Music</h3>
-        <h5>Should I send some track info when new songs start? <br/><em>TIP: this is sent to the channel where you
-            queued
-            the track</em></h5>
-        <form action="/api/internal/data/{{guild.id}}/announcemusic">
-            <div class="row uniform 50%">
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="disabled" name="state" value="off"
-                           {{#unless announceMusic}}checked{{/unless}}>
-                    <label for="disabled">Disabled</label>
-                </div>
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="enabled" name="state" value="on" {{#if announceMusic}}checked{{/if}}>
-                    <label for="enabled">Enabled</label>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-        <br/>
-        <h5>When the queue ends, should I automatically play related songs (similar to Youtube's autoplay)</h5>
-        <form action="/api/internal/data/{{guild.id}}/autoplaymusic">
-            <div class="row uniform 50%">
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="autoplayOff" name="state" value="off"
-                           {{#unless autoplayMusic}}checked{{/unless}}>
-                    <label for="autoplayOff">Disabled</label>
-                </div>
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="autoplayOn" name="state" value="on" {{#if autoplayMusic}}checked{{/if}}>
-                    <label for="autoplayOn">Enabled</label>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-        <br/>
-        <h5>Should I stay in a voice channel even when everyone else leaves?</h5>
-        <form action="/api/internal/data/{{guild.id}}/stayinvc">
-            <div class="row uniform 50%">
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="stayInVcOff" name="state" value="off"
-                           {{#unless stayInVc}}checked{{/unless}}>
-                    <label for="stayInVcOff">Disabled</label>
-                </div>
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="stayInVcOn" name="state" value="on" {{#if stayInVc}}checked{{/if}}>
-                    <label for="stayInVcOn">Enabled</label>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-        <br/>
-        <h5>Do you want to allow everyone in your server to use music commands such as /stop and /skip? </h5>
-        <form action="/api/internal/data/{{guild.id}}/trusteveryone">
-            <div class="row uniform 50%">
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="no" name="state" value="off" {{#unless trustEveryone}}checked{{/unless}}>
-                    <label for="no">No</label>
-                </div>
-                <div style="margin-top: 10px;" class="3u 6u(narrower)">
-                    <input type="radio" id="yes" name="state" value="on" {{#if trustEveryone}}checked{{/if}}>
-                    <label for="yes">Yes</label>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-    </div>
-    <div class="box">
-        <h3>Default Role</h3>
-        <h5>Set the default role that I should give new members, or select none to disable it</h5>
-        <form action="/api/internal/data/{{guild.id}}/defaultrole">
-            <div class="row uniform 50%">
-                <div class="5u">
-                    <div class="select-wrapper">
-                        <select name="defaultRole" id="defaultRole">
-                            {{#each roles}}
-                                <option value="{{id}}">{{name}}</option>
-                            {{/each}}
-                            {{#if hasDefaultRole}}
-                                <option value="{{defaultRole.id}}" selected>{{defaultRole.name}}</option>
-                                <option value="none">None</option>
-                            {{else}}
-                                <option value="none" selected>None</option>
-                            {{/if}}
-                        </select>
+    {{#with guildData}}
+        <!-- Prefixes -->
+        <div class="box">
+            <h2>Prefix Settings</h2>
+            <p>Current Prefix: <b>{{prefixSettings.prefix}}</b></p>
+            <h4>Change Prefix</h4>
+            <div class="12u">
+                <form action="/accept">
+                    <input name="name" value="changeprefix" hidden>
+                    <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                    <input name="guild" value="{{id}}" hidden/>
+                    <div class="row uniform 50%">
+                        <div class="4u 12u(mobilep)">
+                            <input type="text" name="newprefix" id="newprefix" value=""
+                                   placeholder="Enter new prefix here.."/>
+                        </div>
+                        <div class="3u 12u(mobilep)">
+                            <input type="submit" value="Change" class="alt"/>
+                        </div>
                     </div>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
+                </form>
             </div>
-        </form>
-    </div>
-    <div class="box">
-        <h3>Iam (Automatic Role Distribution)</h3>
-        <p>Users can use <b>/iam</b> or <b>/iamnot</b> to give themselves or take away an autorole you set, respectively
-        </p>
-        <h5>Add an autorole</h5>
-        <form action="/api/internal/data/{{guild.id}}/addautorole">
-            <div class="row uniform 50%">
-                <p style="width: 50%;">Name of autorole
-                    <input type="text" name="name" id="name" value="" placeholder="Type name here..."/>
-                </p>
-                <div class="5u">
-                    <div class="select-wrapper">
-                        <p>Role to give
-                            <select name="role" id="role">
-                                {{#each roles}}
-                                    <option value="{{id}}">{{name}}</option>
-                                {{/each}}
-                            </select>
-                        </p>
-                    </div>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-        {{#if hasIams}}
-            <h5>Remove Autoroles</h5>
-            <div class="table-wrapper">
-                <div class="6u">
-                    <table class="alt">
-                        <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Role Given</th>
-                            <th>Remove</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {{#each iams}}
-                            <tr>
-                                <td>{{first}}</td>
-                                <td>{{second.name}}</td>
-                                <td><a href="/api/internal/data/{{guild.id}}/removeautorole?role={{second.id}}"><img
-                                        height="16" width="16"
-                                        src="/images/x_button.png"></a>
-                                </td>
-                            </tr>
-                        {{/each}}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        {{/if}}
-
-    </div>
-    <div class="box">
-        <h3>Join/Leave Messages</h3>
-        <h5>Set a channel to send these messages to</h5>
-        <form action="/api/internal/data/{{guild.id}}/receiverchannel">
-            <div class="row uniform 50%">
-                <div class="5u">
-                    <div class="select-wrapper">
-                        <select name="channelid" id="channelid">
-                            {{#if hasReceiverChannel}}
-                                <option value="{{receiverChannel.id}}" selected>{{receiverChannel.name}}</option>
-                            {{else}}
-                                <option value="none" selected>None</option>
-                            {{/if}}
-                            {{#each channels}}
-                                <option value="{{id}}">{{name}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-        <br/>
-        <h5><b>Information:</b></h5>
-        <p>You can use the following parameters that will be replaced: $usermention (mentions the member involved),
-            $username (writes the username +
-            discriminator of the involved member), $servername (that's pretty obvious), or $membercount (replaced
-            with the amount of members in this server). <b>You can also mention text channels by doing <em>#channelNameHere</em></b>
-        </p>
-        <h5>Set the Join Message</h5>
-        <form action="/api/internal/data/{{guild.id}}/joinmessage">
-            <div class="row uniform 50%">
-                <div class="8u">
-                    <textarea name="joinMessage" id="joinMessage" rows="2">{{joinMessage}}</textarea>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-        <h5>Set the Leave Message</h5>
-        <form action="/api/internal/data/{{guild.id}}/leavemessage">
-            <div class="row uniform 50%">
-                <div class="8u">
-                    <textarea name="leaveMessage" id="leaveMessage" rows="2">{{leaveMessage}}</textarea>
-                </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
-                </div>
-            </div>
-        </form>
-    </div>
-    <div class="box">
-        <h3>Manage Advanced Permissions</h3>
-        <h5><b>Give permissions by Discord ID</b><br/>
-            Don't know how to get someone's Discord ID? Click <a href="/guides/identifier">here</a> for help</h5>
-        <div class="12u">
-            <form action="/api/internal/useraction/{{guild.id}}">
-                <input name="action" value="advancedPermissions" hidden>
-                <input name="type" value="add" hidden>
-                <input name="redirect" value="manage/{{guild.id}}" hidden>
+            <h4>Do you want to disable the default prefix <b>/</b> ?<br/><em>If enabled, you will only be able to use
+                commands with the set prefix above</em></h4>
+            <form action="/accept">
+                <input name="name" value="defaultprefix" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
                 <div class="row uniform 50%">
-                    <div class="4u 12u(mobilep)">
-                        <input type="text" name="id" id="id" value="" placeholder="Enter Discord ID.."/>
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="disable" name="state" value="on"
+                               {{#if prefixSettings.disabledDefaultPrefix}}checked{{/if}}>
+                        <label for="disable">Disable</label>
+                    </div>
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="enable" name="state" value="off"
+                               {{#unless prefixSettings.disabledDefaultPrefix}}checked{{/unless}}>
+                        <label for="enable">Enable</label>
                     </div>
                     <div class="3u 12u(mobilep)">
                         <input type="submit" value="Update" class="alt"/>
@@ -240,27 +55,224 @@
                 </div>
             </form>
         </div>
-        <h5>Remove people who have access to advanced permissions</h5>
-        <form action="/api/internal/useraction/{{guild.id}}">
-            <input name="action" value="advancedPermissions" hidden>
-            <input name="type" value="remove" hidden>
-            <input name="redirect" value="manage/{{guild.id}}" hidden>
-            <div class="row uniform 50%">
-                <div class="5u">
-                    <div class="select-wrapper">
-                        <select name="id" id="id">
-                            {{#each advancedPermissions}}
-                                <option id="id" value="{{id}}">{{name}}</option>
-                            {{/each}}
-                        </select>
+        <!-- Language settings -->
+        <div class="box">
+            <h2>Language Settings</h2>
+            <p>Current Language: <b>{{langname languageSettings.language}}</b></p>
+            <form action="/accept">
+                <input name="name" value="changelang" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
+                <div class="row uniform 50%">
+                    <div class="5u">
+                        <div class="select-wrapper">
+                            <select name="lang" id="lang">
+                                {{#each langs}}
+                                    <option id="lang" value="{{data.code}}">{{data.readable}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Change" class="alt"/>
                     </div>
                 </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Update" class="alt"/>
+            </form>
+        </div>
+        <div class="box">
+            <h2>Music Settings</h2>
+            <h4>Do you want to enable autoplay?<br/><em>If enabled, related songs will automatically play at
+                the end of the music queue</em></h4>
+            <form action="/accept">
+                <input name="name" value="changeautoplay" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
+                <div class="row uniform 50%">
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="disabler" name="state" value="off"
+                               {{#unless musicSettings.autoplay}}checked{{/unless}}>
+                        <label for="disabler">Disable</label>
+                    </div>
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="enabler" name="state" value="on"
+                               {{#if musicSettings.autoplay}}checked{{/if}}>
+                        <label for="enabler">Enable</label>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Update" class="alt"/>
+                    </div>
                 </div>
-            </div>
-        </form>
-    </div>
-</section>
+            </form>
 
+            <h4>Do you want me to stay in the voice channel when I'm the only one there?</h4>
+            <form action="/accept">
+                <input name="name" value="stayinvoice" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
+                <div class="row uniform 50%">
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="disables" name="state" value="off"
+                               {{#unless musicSettings.stayInChannel}}checked{{/unless}}>
+                        <label for="disables">Disable</label>
+                    </div>
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="enables" name="state" value="on"
+                               {{#if musicSettings.stayInChannel}}checked{{/if}}>
+                        <label for="enables">Enable</label>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Update" class="alt"/>
+                    </div>
+                </div>
+            </form>
+
+            <h4>Do you want to allow everyone to use commands like <b>/skip</b>?</h4>
+            <form action="/accept">
+                <input name="name" value="changemusicadmin" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
+                <div class="row uniform 50%">
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="disablea" name="state" value="off"
+                               {{#unless musicSettings.canEveryoneUseAdminCommands}}checked{{/unless}}>
+                        <label for="disablea">Disable</label>
+                    </div>
+                    <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                        <input type="radio" id="enablea" name="state" value="on"
+                               {{#if musicSettings.canEveryoneUseAdminCommands}}checked{{/if}}>
+                        <label for="enablea">Enable</label>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Update" class="alt"/>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- Join & Leave messages -->
+        <div class="box">
+            <h2>Automessage Settings</h2>
+
+            <h3>Set a channel to send automessages to</h3>
+            <form action="/accept">
+                <input name="name" value="automessagechannel" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
+
+                <div class="row uniform 50%">
+                    <div class="5u">
+                        <div class="select-wrapper">
+                            <select name="messagechannelid" id="messagechannelid">
+                                {{#if hasReceiverChannel}}
+                                    <option value="{{receiverChannel.id}}" selected>{{receiverChannel.name}}</option>
+                                {{else}}
+                                    <option value="none" selected>None</option>
+                                {{/if}}
+                                {{#each guild.textChannels}}
+                                    <option value="{{id}}">{{name}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Update" class="alt"/>
+                    </div>
+                </div>
+            </form>
+
+            <h5><b>Important Information:</b></h5>
+            <p>You can use the following parameters in your messages: {usermention}} (mentions the member who joined or
+                left), {username} (adds the username of the member), {servername} (adds the server name), or {joinplace}
+                (adds join place - ex. 55 for the 55th member).<br/><b>You can mention text channels by doing <em>#channelNameHere</em>
+                    and mention users by doing <em>@userid</em> - Get someone's ID by using <em>/getid @User inside Discord</em></b>
+            </p>
+
+            <h3>Join Message</h3>
+            {{#if messageSettings.joinMessage}}
+                <p><em>Last edited by <b>{{getfancyuser messageSettings.joinMessage.lastEditedBy}}</b> at <b>{{date
+                        messageSettings.joinMessage.lastEditedAt}}</b></em></p>
+                <h4>Set the Join Message</h4>
+                <form action="/accept">
+                    <input name="name" value="changemessage" hidden/>
+                    <input name="type" value="join" hidden/>
+                    <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                    <input name="guild" value="{{id}}" hidden/>
+                    <div class="row uniform 50%">
+                        <div class="8u">
+                            <textarea name="joinmessage" id="joinmessage" rows="2">{{messageSettings.joinMessage.message}}</textarea>
+                        </div>
+                        <div class="3u 12u(mobilep)">
+                            <input type="submit" value="Update" class="alt"/>
+                        </div>
+                    </div>
+                </form>
+
+                <h4>Do you want to temporarily disable the join message?</h4>
+                <form action="/accept">
+                    <input name="name" value="disablejoin" hidden/>
+                    <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                    <input name="guild" value="{{id}}" hidden/>
+                    <div class="row uniform 50%">
+                        <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                            <input type="radio" id="disablejm" name="state" value="off"
+                                   {{#unless messageSettings.joinMessage.enabled}}checked{{/unless}}>
+                            <label for="disablejm">Disable</label>
+                        </div>
+                        <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                            <input type="radio" id="enablejm" name="state" value="on"
+                                   {{#if messageSettings.joinMessage.enabled}}checked{{/if}}>
+                            <label for="enablejm">Enable</label>
+                        </div>
+                        <div class="3u 12u(mobilep)">
+                            <input type="submit" value="Update" class="alt"/>
+                        </div>
+                    </div>
+                </form>
+            {{/if}}
+
+
+            <h3>Leave Message</h3>
+            {{#if messageSettings.leaveMessage}}
+                <p><em>Last edited by <b>{{getfancyuser messageSettings.leaveMessage.lastEditedBy}}</b> at <b>{{date
+                        messageSettings.leaveMessage.lastEditedAt}}</b></em></p>
+                <h4>Set the Leave Message</h4>
+                <form action="/accept">
+                    <input name="name" value="changemessage" hidden/>
+                    <input name="type" value="leave" hidden/>
+                    <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                    <input name="guild" value="{{id}}" hidden/>
+                    <div class="row uniform 50%">
+                        <div class="8u">
+                            <textarea name="leavemessage" id="leavemessage" rows="2">{{messageSettings.leaveMessage.message}}</textarea>
+                        </div>
+                        <div class="3u 12u(mobilep)">
+                            <input type="submit" value="Update" class="alt"/>
+                        </div>
+                    </div>
+                </form>
+
+                <h4>Do you want to temporarily disable the leave message?</h4>
+                <form action="/accept">
+                    <input name="name" value="disableleave" hidden/>
+                    <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                    <input name="guild" value="{{id}}" hidden/>
+                    <div class="row uniform 50%">
+                        <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                            <input type="radio" id="disablen" name="state" value="off"
+                                   {{#unless messageSettings.leaveMessage.enabled}}checked{{/unless}}>
+                            <label for="disablen">Disable</label>
+                        </div>
+                        <div style="margin-top: 10px;" class="3u 6u(narrower)">
+                            <input type="radio" id="enablenn" name="state" value="on"
+                                   {{#if messageSettings.leaveMessage.enabled}}checked{{/if}}>
+                            <label for="enablenn">Enable</label>
+                        </div>
+                        <div class="3u 12u(mobilep)">
+                            <input type="submit" value="Update" class="alt"/>
+                        </div>
+                    </div>
+                </form>
+            {{/if}}
+        </div>
+    {{/with}}
+</section>
 {{> footer.hbs }}

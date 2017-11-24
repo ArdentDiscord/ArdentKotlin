@@ -6,15 +6,20 @@ import main.conn
 import main.r
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
-import translation.tr
-import utils.discord.send
 import utils.functionality.asPojo
-import utils.functionality.update
 
-data class DatabaseMusicLibrary(val id: String, var tracks: MutableList<DatabaseTrackObj>, var lastModified: Long = System.currentTimeMillis())
+data class DatabaseMusicLibrary(val id: String, var tracks: MutableList<DatabaseTrackObj>, var lastModified: Long = System.currentTimeMillis()) {
+    fun load(member: Member, channel: TextChannel) {
+        tracks.forEach { track ->
+            track.url.load(member, channel, { loaded, _ ->
+                play(channel, member, LocalTrackObj(id, id, null, null, null, null, loaded))
+            })
+        }
+    }
+}
 
 data class DatabaseMusicPlaylist(val id: String, val owner: String, var name: String, var lastModified: Long, var spotifyAlbumId: String?,
-                                 val spotifyPlaylistId: String?, val youtubePlaylistUrl: String?, val tracks: MutableList<DatabaseTrackObj>? = null) {
+                                 val spotifyPlaylistId: String?, val youtubePlaylistUrl: String?, val tracks: MutableList<DatabaseTrackObj> = mutableListOf()) {
     fun toLocalPlaylist(member: Member): LocalPlaylist {
         return LocalPlaylist(member, this)
     }
@@ -41,37 +46,30 @@ data class LocalTrackObj(val user: String, val owner: String, val playlist: Loca
     }
 }
 
-data class LinkedPlaylist(val user: String, val playlistId: String)
 
 data class LocalPlaylist(val member: Member, val playlist: DatabaseMusicPlaylist) {
     fun isSpotify(): Boolean = playlist.spotifyAlbumId != null || playlist.spotifyPlaylistId != null
     fun loadTracks(channel: TextChannel, member: Member) {
-        if (playlist.tracks == null) return
-        else {
-            when {
-                playlist.spotifyAlbumId != null -> playlist.spotifyAlbumId!!.loadSpotifyAlbum(this.member, channel, { audioTrack, id ->
-                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, null, playlist.spotifyAlbumId, id, audioTrack))
-                })
-                playlist.spotifyPlaylistId != null -> playlist.spotifyPlaylistId.loadSpotifyPlaylist(this.member, channel, { audioTrack, id ->
-                    play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, playlist.spotifyPlaylistId, null, id, audioTrack))
-                })
-                playlist.youtubePlaylistUrl != null -> {
-                    playlist.youtubePlaylistUrl.loadYoutube(member, channel, playlist)
+        if (playlist.spotifyAlbumId != null) playlist.spotifyAlbumId!!.toSpotifyAlbumUrl().loadSpotifyAlbum(this.member, channel, playlist, { audioTrack, id ->
+            play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, null, playlist.spotifyAlbumId, id, audioTrack))
+        })
+        if (playlist.spotifyPlaylistId != null) playlist.spotifyPlaylistId.toSpotifyPlaylistUrl().loadSpotifyPlaylist(this.member, channel, playlist, { audioTrack, id ->
+            play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, playlist.spotifyPlaylistId, null, id, audioTrack))
+        })
+        if (playlist.youtubePlaylistUrl != null) {
+            playlist.youtubePlaylistUrl.loadYoutube(member, channel, playlist)
+        }
+        if (playlist.tracks.size > 0) {
+            playlist.tracks.forEach { track ->
+                when {
+                    track.url.startsWith("https://open.spotify.com/track/") -> track.url.loadSpotifyTrack(member, channel, playlist, { audioTrack, id ->
+                        play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, null, null, id, audioTrack))
+                    })
+                    else -> track.url.loadYoutube(member, channel, playlist, false, { found ->
+                        DEFAULT_TRACK_LOAD_HANDLER(member, channel, found, true, playlist, null, null, null)
+                    })
                 }
-                else -> {
-                    channel.send("Now loading local playlist **{0}** with **{1}** tracks".tr(channel, playlist.name, playlist.tracks.size))
-                    playlist.tracks.forEach { track ->
-                        when {
-                            track.url.startsWith("https://open.spotify.com/track/") -> track.url.loadSpotifyTrack(member, channel, { audioTrack, id ->
-                                play(channel, member, LocalTrackObj(member.user.id, member.user.id, this, null, null, id, audioTrack))
-                            })
-                            else -> track.url.loadYoutube(member, channel, playlist, false, { found ->
-                                DEFAULT_TRACK_LOAD_HANDLER(member, channel, found, true, playlist)
-                            })
-                        }
 
-                    }
-                }
             }
         }
     }
@@ -87,15 +85,17 @@ data class DisplayLibrary(val owner: String, val lastModified: Long, val tracks:
 
 data class ServerQueue(val voiceId: String, val channelId: String?, val tracks: List<String>)
 
+data class TrackDisplay(val title: String, val author: String)
+
 fun getPlaylistById(id: String): DatabaseMusicPlaylist? {
-    return asPojo(r.table("musicPlaylists").filter(r.hashMap("id", id)).run(conn), DatabaseMusicPlaylist::class.java)
+    return asPojo(r.table("musicPlaylists").get(id).run(conn), DatabaseMusicPlaylist::class.java)
 }
 
-fun getMusicLibrary(id: String): DatabaseMusicLibrary {
-    var library = asPojo(r.table("musicLibraries").get(id).run(conn), DatabaseMusicLibrary::class.java)
-    if (library == null) {
-        library = DatabaseMusicLibrary(id, mutableListOf())
-        library.update("musicLibraries", id)
-    }
-    return library
+fun String.toSpotifyPlaylistUrl(): String {
+    val split = split("||")
+    return "https://open.spotify.com/user/${split[0]}/playlist/${split[1]}"
+}
+
+fun String.toSpotifyAlbumUrl(): String {
+    return "https://open.spotify.com/album/$this"
 }

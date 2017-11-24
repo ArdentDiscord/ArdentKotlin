@@ -43,7 +43,7 @@ class EmbedWrapper(val channel: MessageChannel, val consumer: ((Message) -> Unit
             channel.send(this, *reactions)
             setDescription("")
         }
-        appendDescription(string)
+        super.appendDescription(string)
         if (final) channel.send(this, *reactions, consumer = consumer)
         return this
     }

@@ -15,6 +15,7 @@ class VoiceUtils {
     @SubscribeEvent
     fun onVoiceDisconnect(e: GuildVoiceLeaveEvent) {
         val member = e.guild.selfMember
+        if (e.channelLeft.members.size == 1) e.guild.getAudioManager(null).player.isPaused = true
         waiter.executor.schedule({
             if (member.voiceState.channel != null && member.voiceState.channel != null && member.voiceState.channel == e.channelLeft && e.channelLeft.members.size == 1) {
                 if (!e.guild.getData().musicSettings.stayInChannel) {
@@ -22,7 +23,7 @@ class VoiceUtils {
                     e.guild.getAudioManager(null).channel?.send("Disconnected from **{0}** because I was left all alone :(".tr(e.guild, e.channelLeft.name))
                     e.guild.getAudioManager(null).channel?.send("Do you need me to stay in this voice channel? You can enable it at {0}".tr(e.guild, "<https://ardentbot.com/manage/${e.guild.id}>"))
                     managers.remove(e.guild.idLong)
-                } else e.guild.getAudioManager(null).player.isPaused = true
+                }
             }
         }, 15, TimeUnit.SECONDS)
     }
@@ -30,9 +31,7 @@ class VoiceUtils {
     @SubscribeEvent
     fun onVoiceConnect(e: GuildVoiceJoinEvent) {
         if (e.member != e.guild.selfMember) {
-            if (e.channelJoined.members.size == 2 && e.guild.getData().musicSettings.stayInChannel) {
-                e.guild.getAudioManager(null).player.isPaused = false
-            }
+            if (e.guild.getAudioManager(null).player.isPaused) e.guild.getAudioManager(null).player.isPaused = false
         }
     }
 }

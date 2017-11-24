@@ -20,14 +20,15 @@ import utils.music.LocalTrackObj
 
 
 // Loading music directly (for use in playing)
-val DEFAULT_TRACK_LOAD_HANDLER: (Member, TextChannel, AudioTrack, Boolean, DatabaseMusicPlaylist?) -> Unit =
-        { member, channel, track, isQuiet, musicPlaylist ->
-            if (!isQuiet) channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "Adding **{0}** by **{1}** to the queue *{2}*...".tr(member.guild, track.info.title, track.info.author, track.getDurationString()))
+val DEFAULT_TRACK_LOAD_HANDLER: (Member, TextChannel, AudioTrack, Boolean, DatabaseMusicPlaylist?, String?
+        /* Spotify Playlist Id */, String? /* Spotify Album Id */, String? /* Spotify track id */) -> Unit =
+        { member, channel, track, isQuiet, musicPlaylist, spotifyPlaylist, spotifyAlbum, spotifyTrack ->
+            if (!isQuiet) channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + if (member.user.id == member.guild.selfMember.user.id) "**[Autoplay]**" else "" + "Adding **{0}** by **{1}** to the queue *{2}*...".tr(member.guild, track.info.title, track.info.author, track.getDurationString()))
             play(channel, member, LocalTrackObj(member.user.id, musicPlaylist?.owner ?: member.user.id, musicPlaylist?.toLocalPlaylist(member),
-                    musicPlaylist?.spotifyPlaylistId, musicPlaylist?.spotifyAlbumId, null, track))
+                    spotifyPlaylist ?: musicPlaylist?.spotifyPlaylistId, spotifyAlbum ?: musicPlaylist?.spotifyAlbumId, spotifyTrack, track))
         }
 
-val DEFAULT_PLAYLIST_LOAD_HANDLER: (Member, TextChannel, AudioPlaylist, Boolean, DatabaseMusicPlaylist?) -> Unit =
+val DEFAULT_YOUTUBE_PLAYLIST_LOAD_HANDLER: (Member, TextChannel, AudioPlaylist, Boolean, DatabaseMusicPlaylist?) -> Unit =
         { member, channel, tracksPlaylist, isQuiet, musicPlaylist ->
             if (!isQuiet) channel.send("Loading YouTube playlist **{0}** *{1} tracks*".tr(channel, tracksPlaylist.name, tracksPlaylist.tracks.size))
             tracksPlaylist.tracks.forEach { track ->
@@ -36,12 +37,15 @@ val DEFAULT_PLAYLIST_LOAD_HANDLER: (Member, TextChannel, AudioPlaylist, Boolean,
             }
         }
 
-fun String.load(member: Member, channel: TextChannel, consumerFoundTrack: (AudioTrack, String?) -> Unit) {
+fun String.load(member: Member, channel: TextChannel, consumerFoundTrack: ((AudioTrack, String?) -> Unit)? = null) {
     when {
-        this.startsWith("https://open.spotify.com/album/") -> loadSpotifyAlbum(member, channel, consumerFoundTrack)
-        this.startsWith("https://open.spotify.com/track/") -> loadSpotifyTrack(member, channel, consumerFoundTrack)
-        this.startsWith("https://open.spotify.com/user/") -> loadSpotifyPlaylist(member, channel, consumerFoundTrack)
-        else -> loadYoutube(member, channel, consumer = { consumerFoundTrack.invoke(it, null) })
+        this.startsWith("https://open.spotify.com/album/") -> loadSpotifyAlbum(member, channel, consumerFoundTrack = consumerFoundTrack)
+        this.startsWith("https://open.spotify.com/track/") -> loadSpotifyTrack(member, channel, consumerFoundTrack = consumerFoundTrack)
+        this.startsWith("https://open.spotify.com/user/") -> loadSpotifyPlaylist(member, channel, consumerFoundTrack = consumerFoundTrack)
+        else -> {
+            if (consumerFoundTrack == null) loadYoutube(member, channel)
+            else loadYoutube(member, channel, consumer = { consumerFoundTrack?.invoke(it, null) })
+        }
     }
 }
 
@@ -50,33 +54,36 @@ fun String.loadYoutube(member: Member, channel: TextChannel, musicPlaylist: Data
     playerManager.loadItemOrdered(member.guild.getAudioManager(channel), this, object : AudioLoadResultHandler {
         override fun trackLoaded(track: AudioTrack) {
             if (consumer != null) consumer.invoke(track)
-            else DEFAULT_TRACK_LOAD_HANDLER(member, channel, track, false, musicPlaylist)
+            else DEFAULT_TRACK_LOAD_HANDLER(member, channel, track, false, musicPlaylist, null, null, null)
         }
 
         override fun playlistLoaded(playlist: AudioPlaylist) {
             if (playlist.isSearchResult) {
-                if (consumer != null) {
-                    consumer.invoke(playlist.tracks[0])
-                    return
-                }
-                if (autoplay) {
-                    val track = playlist.tracks[0]
-                    channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "[**Ardent Autoplay**]".tr(channel) + " " + "Adding **{0}** by **{1}** to the queue *{2}*...".tr(member.guild, track.info.title, track.info.author, track.getDurationString()))
-                    DEFAULT_TRACK_LOAD_HANDLER(member, channel, track, true, musicPlaylist)
-                } else {
-                    val selectFrom = mutableListOf<String>()
-                    val num: Int = if (playlist.tracks.size >= 7) 7 else playlist.tracks.size
-                    (1..num)
-                            .map { playlist.tracks[it - 1] }
-                            .map { it.info }
-                            .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
-                    channel.selectFromList(member, "Select Song", selectFrom, { response, selectionMessage ->
-                        val track = playlist.tracks[response]
-                        DEFAULT_TRACK_LOAD_HANDLER(member, channel, track, false, musicPlaylist)
-                    })
+                when {
+                    consumer != null -> {
+                        consumer.invoke(playlist.tracks[0])
+                        return
+                    }
+                    autoplay -> {
+                        val track = playlist.tracks[0]
+                        channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "[**Ardent Autoplay**]".tr(channel) + " " + "Adding **{0}** by **{1}** to the queue *{2}*...".tr(member.guild, track.info.title, track.info.author, track.getDurationString()))
+                        DEFAULT_TRACK_LOAD_HANDLER(member, channel, track, true, musicPlaylist, null, null, null)
+                    }
+                    else -> {
+                        val selectFrom = mutableListOf<String>()
+                        val num: Int = if (playlist.tracks.size >= 7) 7 else playlist.tracks.size
+                        (1..num)
+                                .map { playlist.tracks[it - 1] }
+                                .map { it.info }
+                                .mapTo(selectFrom) { "${it.title} by *${it.author}*" }
+                        channel.selectFromList(member, "Select Song", selectFrom, { response, selectionMessage ->
+                            val track = playlist.tracks[response]
+                            DEFAULT_TRACK_LOAD_HANDLER(member, channel, track, false, musicPlaylist, null, null, null)
+                        })
+                    }
                 }
             } else {
-                DEFAULT_PLAYLIST_LOAD_HANDLER(member, channel, playlist, false, musicPlaylist)
+                DEFAULT_YOUTUBE_PLAYLIST_LOAD_HANDLER(member, channel, playlist, false, musicPlaylist)
             }
         }
 
@@ -104,24 +111,30 @@ fun String.loadYoutube(member: Member, channel: TextChannel, musicPlaylist: Data
 }
 
 
-fun String.loadSpotifyTrack(member: Member, channel: TextChannel, consumerFoundTrack: (AudioTrack, String) -> Unit) {
+fun String.loadSpotifyTrack(member: Member, channel: TextChannel, musicPlaylist: DatabaseMusicPlaylist? = null, consumerFoundTrack: ((AudioTrack, String) -> Unit)? = null) {
     try {
         val track = spotifyApi.tracks.getTrack(this.removePrefix("https://open.spotify.com/track/"))
-        track?.name?.getSingleTrack(member, channel, { _, _, audioTrack -> consumerFoundTrack.invoke(audioTrack, track.id) },
+        track?.name?.getSingleTrack(member, channel, { _, _, loaded ->
+            consumerFoundTrack?.invoke(loaded, track.id) ?: DEFAULT_TRACK_LOAD_HANDLER(member, channel, loaded, false,
+                    musicPlaylist, null, null, track.id)
+        },
                 false, false)
     } catch (e: Exception) {
         channel.send("You need to specify a valid Spotify track id!".tr(channel.guild))
     }
 }
 
-fun String.loadSpotifyAlbum(member: Member, channel: TextChannel, consumerFoundTrack: (AudioTrack, String) -> Unit) {
+fun String.loadSpotifyAlbum(member: Member, channel: TextChannel, musicPlaylist: DatabaseMusicPlaylist? = null, consumerFoundTrack: ((AudioTrack, String) -> Unit)? = null) {
     val albumId = removePrefix("https://open.spotify.com/album/")
     try {
         val album = spotifyApi.albums.getAlbum(albumId)!!
-        channel.sendMessage("Beginning track loading from Spotify album **{0}**... This could take a few minutes!".tr(channel.guild, album.name))
+        channel.send("Beginning track loading from Spotify album **{0}**... This could take a few minutes!".tr(channel.guild, album.name))
         album.tracks.items.forEach { track ->
             "${track.name} ${track.artists[0].name}"
-                    .getSingleTrack(member, channel, { _, _, loaded -> consumerFoundTrack.invoke(loaded, track.id) }, true)
+                    .getSingleTrack(member, channel, { _, _, loaded ->
+                        consumerFoundTrack?.invoke(loaded, track.id) ?: DEFAULT_TRACK_LOAD_HANDLER(member, channel, loaded, false,
+                                musicPlaylist, null, album.id, track.id)
+                    }, true)
 
         }
     } catch (e: Exception) {
@@ -130,22 +143,25 @@ fun String.loadSpotifyAlbum(member: Member, channel: TextChannel, consumerFoundT
 }
 
 
-fun String.loadSpotifyPlaylist(member: Member, channel: TextChannel, consumerFoundTrack: (AudioTrack, String) -> (Unit)) {
+fun String.loadSpotifyPlaylist(member: Member, channel: TextChannel, musicPlaylist: DatabaseMusicPlaylist? = null, consumerFoundTrack: ((AudioTrack, String) -> (Unit))? = null) {
     val split = removePrefix("https://open.spotify.com/user/").split("/playlist/")
     val user = split.getOrNull(0)
     val playlistId = split.getOrNull(1)
-    if (user == null || playlistId == null) channel.send("You provided an invalid playlist url!".tr(channel.guild))
+    if (user == null || playlistId == null) channel.send("You provided an invalid Spotify playlist url!".tr(channel.guild))
     else {
         try {
             val playlist = spotifyApi.playlists.getPlaylist(user, playlistId)!!
             channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes!".tr(channel.guild, playlist.name))
             playlist.tracks.items.forEach { track ->
                 "${track.track.name} ${track.track.artists[0].name}"
-                        .getSingleTrack(member, channel, { _, _, loaded -> consumerFoundTrack.invoke(loaded, track.track.id) }, true)
+                        .getSingleTrack(member, channel, { _, _, loaded ->
+                            consumerFoundTrack?.invoke(loaded, track.track.id) ?: DEFAULT_TRACK_LOAD_HANDLER(member, channel, loaded, false,
+                                    musicPlaylist, playlist.id, null, track.track.id)
+                        }, true)
 
             }
         } catch (e: Exception) {
-            channel.send("You provided an invalid playlist url!".tr(channel.guild))
+            channel.send("You provided an invalid Spotify playlist url!".tr(channel.guild))
         }
     }
 }

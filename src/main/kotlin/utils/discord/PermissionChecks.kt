@@ -1,6 +1,5 @@
 package utils.discord
 
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import commands.music.connect
 import commands.music.getAudioManager
 import main.conn
@@ -29,16 +28,19 @@ fun User.isStaff(): Boolean {
 }
 
 fun Member.hasPermission(channel: TextChannel, musicCommand: Boolean = false, failQuietly: Boolean = false): Boolean {
-    val has = if (isOwner || hasPermission(channel, Permission.ADMINISTRATOR) || hasPermission(Permission.BAN_MEMBERS)) true
+    if (isOwner || hasPermission(channel, Permission.ADMINISTRATOR) || hasPermission(Permission.BAN_MEMBERS)) return true
     else {
-        if (!musicCommand) false
-        else {
-            if (voiceState.inVoiceChannel() && guild.selfMember.voiceState.inVoiceChannel()) voiceState.channel.members.size == 2
-            else false
+        val data = guild.getData()
+        if (!musicCommand) return false else {
+            if (data.musicSettings.canEveryoneUseAdminCommands || voiceState.inVoiceChannel() && guild.selfMember.voiceState.inVoiceChannel()) voiceState.channel.members.size == 2
+            else {
+                roles.forEach { role -> if (data.musicSettings.whitelistedRolesForAdminCommands.contains(role.id)) return true }
+                return false
+            }
         }
     }
-    if (!has && !failQuietly) channel.send("You need `Administrator` priviledges in this server to be able to use this command")
-    return has
+    if (!failQuietly) channel.send("You need `Administrator` priviledges in this server to be able to use this command")
+    return false
 }
 
 

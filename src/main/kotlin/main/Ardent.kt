@@ -19,6 +19,8 @@ import commands.administrate.*
 import commands.games.questions
 import commands.info.*
 import commands.music.*
+import commands.settings.Prefix
+import commands.settings.Settings
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
@@ -142,8 +144,8 @@ data class Config(val url: String) {
 }
 
 fun addCommands() {
-    factory.addCommands(Ping(), /* Help(), */
-            Invite(), Settings(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(),
+    factory.addCommands(Ping(), Help(),
+            Invite(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Automessages(),
             AdministratorCommand(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), /* IamCommand(), IamnotCommand(), */
             LanguageCommand(), Blacklist(), Meme())
@@ -155,8 +157,12 @@ fun addCommands() {
     /*factory.addCommands(CommandDistribution(), ServerLanguagesDistribution(), MusicInfo(), AudioAnalysisCommand(), GetGuilds(),  ShardInfo(), CalculateCommand(),
             MutualGuilds())*/
 
+    // Settings Commands
+    factory.addCommands(Prefix(), Settings())
+
     // Music Commands
-    factory.addCommands(Playlist())
+    factory.addCommands(Playlist(), MyMusicLibrary(), Play(), Skip(), Pause(), Resume(), SongUrl(), Playing(), Queue())
+    factory.addCommands(ClearQueue(), RemoveFrom(), Volume(), GoTo())
     /* factory.addCommands(Play(), Radio(), Stop(), Pause(), Resume(), SongUrl(), Volume(), Playing(), Repeat(),
             Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), ClearQueue(), RemoveAt(), ArtistSearch(), FastForward(),
             Rewind()) */

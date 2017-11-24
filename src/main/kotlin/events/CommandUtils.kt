@@ -50,7 +50,7 @@ class CommandFactory {
             else if (event.message.rawContent.startsWith("<@!${event.guild.selfMember.user.id}> ")) "<@!${event.guild.selfMember.user.id}> "
             else return
         }
-        val content = event.message.rawContent.removePrefix(foundPrefix)
+        val content = event.message.rawContent.removePrefix(foundPrefix).removePrefix(" ")
         if (content.isEmpty()) return
         commands.forEach { cmd ->
             if (cmd.containsAlias(content.split(" ")[0], event.guild)) {
@@ -58,7 +58,7 @@ class CommandFactory {
                     content.startsWith(cmd.name) -> content.removePrefix(cmd.name)
                     content.startsWith(cmd.name.tr(event.guild)) -> content.removePrefix(cmd.name.tr(event.guild))
                     else -> content.removePrefix(cmd.aliases.filter { content.startsWith(it) }[0])
-                }.removePrefix(" ").split(" ").toMutableList()
+                }.removeStarting(" ").commandSplit()
                 commandsById.increment(cmd.name)
                 commandsByShard.increment(event.guild.getShard())
                 if (derogatoryTerms.filter { event.author.name.contains(it, true) }.count() > 0) {
@@ -140,7 +140,7 @@ abstract class Command(val category: Category, val name: String, val description
                     if (args.concat().startsWith(identifier)) {
                         var temp = args.concat().removePrefix(identifier)
                         while (temp.startsWith(" ")) temp = temp.removePrefix(" ")
-                        it.consumer.invoke(temp.split(" ").toMutableList().without(""), event)
+                        it.consumer.invoke(temp.split(" ").toMutableList().without("").without(" "), event)
                         return true
                     }
                 }
@@ -197,17 +197,17 @@ fun String.toCategory(): Category {
     }
 }
 
-enum class Category(val fancyName: String, val description: String) {
-    GAMES("Games", "Compete against your friends or users around the world in classic and addicting games!"),
-    MUSIC("Music", "Play your favorite tracks or listen to the radio, all inside Discord"),
-    BOT_INFO("BotInfo", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
-    SERVER_INFO("ServerInfo", "Check current information about different aspects of your server"),
-    ADMINISTRATE("Administrate", "Administrate your server: this category includes commands like warnings and mutes"),
-    FUN("Fun", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
-    RPG("RPG", "Need a gambling fix? Want to marry someone? Use this category!"),
-    LANGUAGE("Language", "Want to change your server's data or translate a phrase?"),
-    STATISTICS("Statistics", "Interested in Ardent or how our system's been running?"),
-    SETTINGS("Settings", "Change Ardent settings like the prefix to customize it to your server!")
+enum class Category(val fancyName: String, val webName: String, val description: String) {
+    GAMES("Games", "Games", "Compete against your friends or users around the world in classic and addicting games!"),
+    MUSIC("Music", "Music", "Play your favorite tracks or listen to the radio, all inside Discord"),
+    BOT_INFO("BotInfo", "Ardent Info", "Curious about the status of Ardent? Want to know how to help us continue development? This is the category for you!"),
+    SERVER_INFO("ServerInfo", "Server Info", "Check current information about different aspects of your server"),
+    ADMINISTRATE("Administrate", "Administration", "Administrate your server: this category includes commands like warnings and mutes"),
+    FUN("Fun", "Fun & Urban", "Bored? Not interested in the games? We have a lot of commands for you to check out here!"),
+    RPG("RPG", "RPG", "Need a gambling fix? Want to marry someone? Use this category!"),
+    LANGUAGE("Language", "Language", "Want to change your server's data or translate a phrase?"),
+    STATISTICS("Statistics", "Ardent Statistics", "Interested in Ardent or how our system's been running?"),
+    SETTINGS("Settings", "Settings", "Change Ardent settings like the prefix to customize it to your server!")
     ;
 
     override fun toString(): String {

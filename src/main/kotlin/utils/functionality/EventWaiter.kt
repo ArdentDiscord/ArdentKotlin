@@ -133,8 +133,8 @@ data class Settings(val id: String? = null, val channel: String? = null, val gui
 /**
  * Message in the consumer is the list selection message
  */
-fun MessageChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, footerText: String? = null, failure: (() -> Unit)? = null) {
-    val embed = member.embed(title.tr(member.guild), this)
+fun MessageChannel.selectFromList(member: Member, title: String, options: MutableList<String>, consumer: (Int, Message) -> Unit, translatedTitle: Boolean = false, footerText: String? = null, failure: (() -> Unit)? = null) {
+    val embed = member.embed(if (!translatedTitle) title.tr(member.guild) else title, this)
     val builder = StringBuilder()
     for ((index, value) in options.iterator().withIndex()) {
         builder.append("${Emoji.SMALL_BLUE_DIAMOND} **${index + 1}**: $value\n")

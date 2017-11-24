@@ -21,7 +21,7 @@ import utils.web.UrbanDictionarySearch
 import java.awt.Color
 import java.net.URLEncoder
 
-class Meme : Command(Category.FUN, "gif", "getWithIndex a random meme from giphy", "meme", ratelimit = 5) {
+class Meme : Command(Category.FUN, "gif", "get a random meme from giphy", "meme", ratelimit = 5) {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send(JSONObject(Jsoup.connect("https://api.giphy.com/v1/gifs/random").data("api_key", config.getValue("giphy"))
                 .ignoreContentType(true).get().body().text()).getJSONObject("data").getString("image_url"))
@@ -29,7 +29,7 @@ class Meme : Command(Category.FUN, "gif", "getWithIndex a random meme from giphy
 
 }
 
-class UrbanDictionary : Command(Category.FUN, "urban", "getWithIndex search results for your favorite words from urban dictionary", "ud") {
+class UrbanDictionary : Command(Category.FUN, "urban", "get search results for your favorite words from urban dictionary", "ud") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0) event.channel.send("${Emoji.HEAVY_MULTIPLICATION_X} " + "You gotta include a search term".tr(event))
         else {

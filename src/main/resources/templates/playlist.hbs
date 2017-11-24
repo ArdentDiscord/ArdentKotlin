@@ -1,0 +1,126 @@
+{{> header.hbs }}
+{{#with playlist}}
+    <figure style="margin-top: 40px">
+        <h3 style="text-align: center"><b>{{name}}</b></h3>
+        <h4 style="text-align: center">By <a href="/profile/{{ownerUser.id}}">{{ownerUser.name}}
+            #{{ownerUser.discriminator}}</a></h4>
+        {{#if isUser}}
+            <p style="text-align: center"><i>Want to delete this playlist? Type <b>/playlist delete {{playlist.id}}</b></i>
+            </p>{{/if}}
+    </figure>
+    <section id="main" class="container 75%">
+        {{#if spotifyPlaylistId}}
+            <div class="box">
+                <p>This playlist is linked with the Spotify Playlist <b>{{playlistTitle}}</b> by {{playlistOwner.id}}
+                </p>
+                {{#if playlistDescription}}<p><b>Description: </b> {{playlistDescription}}</p>{{/if}}
+                <p>See the original playlist on Spotify by clicking <a href="{{playlistLink}}">here</a></p>
+                <h4>Tracks</h4>
+                <div class="table-wrapper">
+                    <table class="alt">
+                        <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#each playlistTracks}}
+                            <tr>
+                                <td>{{name}}</td>
+                                <td>{{artistConcat artists}}</td>
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+                {{&playlistInfo}}
+            </div>
+        {{/if}}
+        {{#if spotifyAlbumId}}
+            <div class="box">
+                <p>This playlist is linked with the Spotify Album <b>{{albumTitle}}</b> by {{albumArtists}}
+                </p>
+                <p>See the original album on Spotify by clicking <a href="{{albumLink}}">here</a></p>
+                <h4>Tracks</h4>
+                <div class="table-wrapper">
+                    <table class="alt">
+                        <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#each albumTracks}}
+                            <tr>
+                                <td>{{name}}</td>
+                                <td>{{artistConcat artists}}</td>
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+                {{&albumInfo}}
+            </div>
+        {{/if}}
+        <div class="box">
+            {{#if hasDbTracks}}
+                <h3>User-Added Tracks</h3>
+                <p class="list"><b>Last Modified:</b> {{date lastModified}}</p>
+                <div class="table-wrapper">
+                    <table class="alt">
+                        <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            {{#if isUser}}
+                                <th>Remove</th>{{/if}}
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#each dbTracks}}
+                            <tr>
+                                <td>{{title}}</td>
+                                <td>{{author}}</td>
+                                {{#if isUser}}
+                                    <td><a class="a-form"
+                                           href="/accept?name=removefromplaylist&webRedirect=/music/playlist/{{playlist.id}}&song={{url}}&playlist={{playlist.id}}">
+                                        <img height="16" width="16" src="/images/x_button.png"></a></td>
+                                {{/if}}
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+                {{&trackInfo}}
+                <br/>
+                <br/>
+            {{else}}
+                <p>This playlist doesn't have any user-added tracks!</p>
+            {{/if}}
+            {{#if isUser}}
+                <form method="get" name="add-song" action="/accept">
+                    <input name="name" value="addsong" hidden/>
+                    <input name="playlistId" value="{{playlist.id}}" hidden/>
+                    <input name="webRedirect" value="/music/playlist/{{playlist.id}}" hidden/>
+                    <div class="row uniform 50%">
+                        <div class="5u">
+                            <input type="text" name="song" id="song" value=""
+                                   placeholder="Type song url (or name) here..."/>
+                        </div>
+                        <div class="3u 12u(mobilep)">
+                            <input type="submit" value="Add Song" class="alt"/>
+                        </div>
+                    </div>
+                </form>
+            {{else}}
+                {{#if validSession}}
+                    <a class="button special" href="/accept?name=cloneplaylist&playlistId={{playlist.id}}">Clone
+                        Playlist</a>
+                {{/if}}
+            {{/if}}
+        </div>
+    </section>
+{{/with}}
+{{> footer.hbs }}

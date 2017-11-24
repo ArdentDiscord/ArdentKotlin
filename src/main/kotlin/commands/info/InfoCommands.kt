@@ -2,21 +2,25 @@ package commands.info
 
 import events.Category
 import events.Command
-import events.ExtensibleCommand
-import main.factory
-import main.waiter
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.tr
 import utils.discord.*
-import utils.functionality.*
-import utils.functionality.Settings
+import utils.functionality.concat
+import utils.functionality.format
+import utils.functionality.readableDate
+import utils.functionality.stringify
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.stream.Collectors
 
 val formatter = DecimalFormat("#,###")
+
+class Help : Command(Category.BOT_INFO, "help", "see a list of commands you can use", "h") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
 
 class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command was gonna do?") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
@@ -27,21 +31,15 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
     }
 }
 
-class Invite : Command(Category.BOT_INFO, "invite", "getWithIndex Ardent's invite URL", "ardent") {
+class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL", "ardent") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("My invite link is {0} - have fun using Ardent!".tr(event, "<https://ardentbot.com/invite>"))
     }
 }
 
-class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and getWithIndex special perks for it!") {
+class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and get special perks for it!") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Want to support our work and obtain some perks along the way? Head to {0} to see the different ways you could help us out!".tr(event, "<https://ardentbot.com/patreon>"))
-    }
-}
-
-class Settings : Command(Category.ADMINISTRATE, "settings", "administrate the settings for your server", "manage", "webpanel") {
-    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Visit our new web panel for an easy way to manage your settings - {0}".tr(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
     }
 }
 
@@ -106,7 +104,7 @@ class Support : Command(Category.BOT_INFO, "support", "need help? something not 
     }
 }
 
-class GetId : Command(Category.SERVER_INFO, "getid", "getWithIndex the id of people in your server by mentioning them") {
+class GetId : Command(Category.SERVER_INFO, "getid", "get the id of people in your server by mentioning them") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val mentionedUsers = event.message.mentionedUsers
         if (mentionedUsers.size == 0) event.channel.send("You need to mention some people (or bots)!".tr(event))
@@ -132,7 +130,7 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
     }
 }
 
-class WebsiteCommand : Command(Category.BOT_INFO, "website", "getWithIndex the link for Ardent's cool website") {
+class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for Ardent's cool website") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         event.channel.send("Check out our site @ {0}".tr(event, "<https://ardentbot.com>"))
     }

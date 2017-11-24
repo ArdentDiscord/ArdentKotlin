@@ -1,11 +1,13 @@
 package utils.music
 
+import utils.discord.getMusicLibrary
+
 
 // Getting information about tracks
 fun getUserPlaylistInformation(playlistId: String): DisplayPlaylist? {
     val playlist = getPlaylistById(playlistId) ?: return null
     val display = DisplayPlaylist(playlist.owner, playlist.lastModified, playlist.spotifyAlbumId, playlist.spotifyPlaylistId, playlist.youtubePlaylistUrl)
-    playlist.tracks?.forEach { display.tracks.add(it.toDisplayTrack(playlist)) }
+    playlist.tracks.forEach { display.tracks.add(it.toDisplayTrack(playlist)) }
     return display
 }
 

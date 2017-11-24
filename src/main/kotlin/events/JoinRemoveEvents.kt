@@ -31,12 +31,12 @@ class JoinRemoveEvents {
         val data = e.guild.getData()
         val join = data.messageSettings.joinMessage
         if (join != null) {
-            if (join.message.isEmpty()) return
+            if (join.message == null || join.message!!.isEmpty()) return
             getTextChannelById(join.channel)?.send(
-                    join.message.replace("\$username", e.member.user.toFancyString())
-                            .replace("\$mention", e.member.asMention)
-                            .replace("\$server", e.guild.name)
-                            .replace("\$membercount", e.guild.members.size.toString()))
+                    join.message!!.replace("{username}", e.member.user.toFancyString())
+                            .replace("{mention}", e.member.asMention)
+                            .replace("{server}", e.guild.name)
+                            .replace("{joinplace}", e.guild.members.size.toString()))
         }
         val role = e.guild.getRoleById(data.roleSettings.defaultRole ?: "1") ?: return
         try {
@@ -54,12 +54,12 @@ class JoinRemoveEvents {
 fun onMemberLeave(e: GuildMemberLeaveEvent) {
     val data = e.guild.getData()
     val leave = data.messageSettings.leaveMessage ?: return
-    if (leave.message.isEmpty()) return
+    if (leave.message == null || leave.message!!.isEmpty()) return
     getTextChannelById(leave.channel)?.send(
-            leave.message.replace("\$username", e.member.user.toFancyString())
-                    .replace("\$mention", e.member.asMention)
-                    .replace("\$server", e.guild.name)
-                    .replace("\$membercount", e.guild.members.size.toString()))
+            leave.message!!.replace("{username}", e.member.user.toFancyString())
+                    .replace("{mention}", e.member.asMention)
+                    .replace("{server}", e.guild.name)
+                    .replace("{joinplace}", e.guild.members.size.toString()))
 }
 
 @SubscribeEvent

@@ -8,7 +8,6 @@ import translation.tr
 import utils.functionality.*
 import utils.music.DatabaseMusicLibrary
 import utils.music.DatabaseMusicPlaylist
-import utils.music.LinkedPlaylist
 import java.util.concurrent.TimeUnit
 
 fun User.isAdministrator(channel: TextChannel, complain: Boolean = false): Boolean {
@@ -63,35 +62,23 @@ class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0,
         else r.table("users").get(id).update(r.json(gson.toJson(this))).run<Any>(conn)
     }
 
-    fun getMusicLibrary(): DatabaseMusicLibrary {
-        var lib = asPojo(r.table("musicLibraries").get(id).run(conn), DatabaseMusicLibrary::class.java)
-        if (lib != null) return lib
-        lib = DatabaseMusicLibrary(id, mutableListOf())
-        lib.insert("musicLibraries")
-        return lib
-    }
-
-    fun getPlaylists(): List<DatabaseMusicPlaylist> {
-        val playlists = mutableListOf<DatabaseMusicPlaylist>()
-        r.table("musicPlaylists").filter { r.hashMap("owner", id) }.run<Any>(conn).queryAsArrayList(DatabaseMusicPlaylist::class.java)
-                .forEach { if (it != null) playlists.add(it) }
-        return playlists
-    }
-
-    fun getLinkedPlaylists(): List<DatabaseMusicPlaylist> {
-        val playlists = mutableListOf<DatabaseMusicPlaylist>()
-        r.table("linkedMusicPlaylists").filter { r.hashMap("user", id) }.run<Any>(conn).queryAsArrayList(LinkedPlaylist::class.java)
-                .forEach { linkedPlaylist ->
-                    if (linkedPlaylist != null) {
-                        val playlist = asPojo(r.table("musicPlaylists").get(linkedPlaylist.playlistId).run(conn), DatabaseMusicPlaylist::class.java)
-                        if (playlist != null) playlists.add(playlist)
-                        else r.table("linkedMusicPlaylists").filter { r.hashMap("playlistId", linkedPlaylist.playlistId) }.delete().runNoReply(conn)
-                    }
-                }
-        return playlists
-    }
-
     enum class Gender(val display: String) { MALE("♂"), FEMALE("♀"), UNDEFINED("Not Specified") }
+}
+
+fun getMusicLibrary(id: String): DatabaseMusicLibrary {
+    var library = asPojo(r.table("musicLibraries").get(id).run(conn), DatabaseMusicLibrary::class.java)
+    if (library == null) {
+        library = DatabaseMusicLibrary(id, mutableListOf())
+        library.update("musicLibraries", id)
+    }
+    return library
+}
+
+fun getPlaylists(id: String): List<DatabaseMusicPlaylist> {
+    val playlists = mutableListOf<DatabaseMusicPlaylist>()
+    r.table("musicPlaylists").filter { r.hashMap("owner", id) }.run<Any>(conn).queryAsArrayList(DatabaseMusicPlaylist::class.java)
+            .forEach { if (it != null) playlists.add(it) }
+    return playlists
 }
 
 data class StaffMember(val id: String, var role: StaffRole)

@@ -16,9 +16,9 @@ import utils.functionality.queryAsArrayList
 import utils.music.LocalTrackObj
 import java.lang.management.ManagementFactory
 import java.util.*
-import java.util.concurrent.TimeUnit
 
-var internals = Internals()
+val internals: Internals
+    get() = Internals()
 
 enum class EventType { LEFT_GUILD, JOINED_GUILD }
 
@@ -70,7 +70,7 @@ fun mutualGuildsWith(user: User): MutableList<Guild> {
 }
 
 fun User.toFancyString(): String {
-    return "@$name#$discriminator"
+    return "$name#$discriminator"
 }
 
 class Internals {
@@ -95,79 +95,77 @@ class Internals {
     val languageStatuses = hashMapOf<LanguageData, Double>()
 
     init {
-        waiter.executor.scheduleWithFixedDelay({
-            roleCount = 0
-            channelCount = 0
-            voiceCount = 0
-            languageStatuses.clear()
-            messagesReceived = factory.messagesReceived.get()
-            commandsReceived = factory.commandsReceived().toLong()
-            commandCount = factory.commands.size
-            commandDistribution = factory.commandsById
-            users = getAllUsers().size
-            cpuUsage = getProcessCpuLoad()
+        roleCount = 0
+        channelCount = 0
+        voiceCount = 0
+        languageStatuses.clear()
+        messagesReceived = factory.messagesReceived.get()
+        commandsReceived = factory.commandsReceived().toLong()
+        commandCount = factory.commands.size
+        commandDistribution = factory.commandsById
+        users = getAllUsers().size
+        cpuUsage = getProcessCpuLoad()
 
-            val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
-            ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)
+        val totalRam = Runtime.getRuntime().totalMemory() / 1024 / 1024
+        ramUsage = Pair(totalRam - Runtime.getRuntime().freeMemory() / 1024 / 1024, totalRam)
 
-            val tempGuilds = getAllGuilds()
-            guilds = tempGuilds.size
-            tempGuilds.forEach { guild ->
-                roleCount += guild.roles.size
-                channelCount += guild.textChannels.size
-                voiceCount += guild.voiceChannels.size
+        val tempGuilds = getAllGuilds()
+        guilds = tempGuilds.size
+        tempGuilds.forEach { guild ->
+            roleCount += guild.roles.size
+            channelCount += guild.textChannels.size
+            voiceCount += guild.voiceChannels.size
+        }
+
+
+        loadedMusicPlayers = 0
+        queueLength = 0
+        managers.forEach { _, u ->
+            queueLength += u.manager.queue.size
+            if (u.player.playingTrack != null) {
+                queueLength++
+                loadedMusicPlayers++
             }
+        }
+        var tempApiCalls = 0L
+        jdas.forEach { tempApiCalls += it.responseTotal }
+        apiCalls = tempApiCalls
 
+        uptime = ManagementFactory.getRuntimeMXBean().uptime
+        val seconds = (uptime / 1000) % 60
+        val minutes = (uptime / (1000 * 60)) % 60
+        val hours = (uptime / (1000 * 60 * 60)) % 24
+        val days = (uptime / (1000 * 60 * 60 * 24))
+        val builder = StringBuilder()
+        if (days == 1.toLong()) builder.append("$days day, ")
+        else if (days > 1.toLong()) builder.append("$days days, ")
 
-            loadedMusicPlayers = 0
-            queueLength = 0
-            managers.forEach { _, u ->
-                queueLength += u.manager.queue.size
-                if (u.player.playingTrack != null) {
-                    queueLength++
-                    loadedMusicPlayers++
-                }
+        if (hours == 1.toLong()) builder.append("$hours hour, ")
+        else if (hours > 1.toLong()) builder.append("$hours hours, ")
+
+        if (minutes == 1.toLong()) builder.append("$minutes minute, ")
+        else if (minutes > 1.toLong()) builder.append("$minutes minutes, ")
+
+        if (seconds == 1.toLong()) builder.append("$minutes second")
+        else builder.append("$seconds seconds")
+        uptimeFancy = builder.toString()
+
+        val totalPhrases = translationData.phrases.size
+        val tempCount = hashMapOf<LanguageData, Int>()
+        Language.values().forEach { tempCount.put(it.data, 0) }
+        translationData.phrases.forEach { _, phrase ->
+            phrase.translations.forEach { key, _ ->
+                val lang = key.toLanguage()
+                if (lang != null) tempCount.increment(lang)
             }
-            var tempApiCalls = 0L
-            jdas.forEach { tempApiCalls += it.responseTotal }
-            apiCalls = tempApiCalls
+        }
 
-            uptime = ManagementFactory.getRuntimeMXBean().uptime
-            val seconds = (uptime / 1000) % 60
-            val minutes = (uptime / (1000 * 60)) % 60
-            val hours = (uptime / (1000 * 60 * 60)) % 24
-            val days = (uptime / (1000 * 60 * 60 * 24))
-            val builder = StringBuilder()
-            if (days == 1.toLong()) builder.append("$days day, ")
-            else if (days > 1.toLong()) builder.append("$days days, ")
-
-            if (hours == 1.toLong()) builder.append("$hours hour, ")
-            else if (hours > 1.toLong()) builder.append("$hours hours, ")
-
-            if (minutes == 1.toLong()) builder.append("$minutes minute, ")
-            else if (minutes > 1.toLong()) builder.append("$minutes minutes, ")
-
-            if (seconds == 1.toLong()) builder.append("$minutes second")
-            else builder.append("$seconds seconds")
-            uptimeFancy = builder.toString()
-
-            val totalPhrases = translationData.phrases.size
-            val tempCount = hashMapOf<LanguageData, Int>()
-            Language.values().forEach { tempCount.put(it.data, 0) }
-            translationData.phrases.forEach { _, phrase ->
-                phrase.translations.forEach { key, _ ->
-                    val lang = key.toLanguage()
-                    if (lang != null) tempCount.increment(lang)
-                }
-            }
-
-            languageStatuses.clear()
-            tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble()) }
-            val query = r.table("music").run<Any>(conn).queryAsArrayList(LoggedTrack::class.java)
-            tracksPlayed = query.size.toLong()
-            var tempMusicPlayed = 0.0
-            query.forEach { if (it != null) tempMusicPlayed += it.position }
-            musicPlayed = tempMusicPlayed
-        }, 0, 3, TimeUnit.SECONDS)
+        languageStatuses.clear()
+        tempCount.forEach { lang, phraseCount -> languageStatuses.put(lang, 100 * phraseCount / totalPhrases.toDouble()) }
+        val query = r.table("music").run<Any>(conn).queryAsArrayList(LoggedTrack::class.java)
+        tracksPlayed = query.size.toLong()
+        var tempMusicPlayed = 0.0
+        query.forEach { if (it != null) tempMusicPlayed += it.position }
+        musicPlayed = tempMusicPlayed
     }
 }

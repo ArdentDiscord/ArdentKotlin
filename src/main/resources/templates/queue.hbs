@@ -1,0 +1,43 @@
+{{> header.hbs }}
+<figure style="margin-top: 40px">
+    <h3 style="text-align: center"><b>{{guild.name}}'s Music Queue</b></h3>
+    <h4 style="text-align: center">Server owned by <a href="/profile/{{guild.owner.user.id}}">{{guild.owner.user.name}}
+        #{{guild.owner.user.discriminator}}</a></h4>
+</figure>
+<section id="main" class="container 75%">
+    <div class="box">
+        {{#if isPlaying}}
+            <p><b>Currently playing:</b> {{current.title}} <b>by</b> {{current.author}}</p>
+           {{#if hasQueue}}
+            <h4>Upcoming...</h4>
+            <div class="table-wrapper">
+                <table class="alt">
+                    <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{#each queue}}
+                        <tr>
+                            <td>{{@index_1}}</td>
+                            <td>{{title}}</td>
+                            <td>{{author}}</td>
+                        </tr>
+                    {{/each}}
+                    </tbody>
+                </table>
+            </div>
+            <p>Queue Length: {{&info}}</p>
+           {{else}}
+               <p><b>There are no songs in the queue!</b></p>
+           {{/if}}
+        {{else}}
+            <p>This server isn't playing any music right now :(</p>
+        {{/if}}
+    </div>
+
+</section>
+{{> footer.hbs }}

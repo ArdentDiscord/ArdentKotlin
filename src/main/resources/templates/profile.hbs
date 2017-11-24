@@ -38,9 +38,9 @@
                                 <td>{{title}}</td>
                                 <td>{{author}}</td>
                                 {{#if isUser}}
-                                <td><a class="a-form" href="/accept?name=removesong&redirect=/profile&song={{url}}">
-                                    <img height="16" width="16" src="/images/x_button.png"></a>{{/if}}
-                            </td>
+                                    <td><a class="a-form" href="/accept?name=removesong&webRedirect=/profile&song={{url}}">
+                                        <img height="16" width="16" src="/images/x_button.png"></a></td>
+                                {{/if}}
                             </tr>
                         {{/each}}
                         </tbody>
@@ -53,26 +53,26 @@
         {{/if}}
         {{#if isUser}}
             <form method="get" name="add-song" action="/accept">
-            <input name="name" value="addsong" hidden/>
-            <input name="redirect" value="/profile" hidden/>
-            <div class="row uniform 50%">
-                <div class="5u">
-                    <input type="text" name="song" id="song" value=""
-                           placeholder="Type song url (or name) here..."/>
+                <input name="name" value="addsong" hidden/>
+                <input name="webRedirect" value="/profile" hidden/>
+                <div class="row uniform 50%">
+                    <div class="5u">
+                        <input type="text" name="song" id="song" value=""
+                               placeholder="Type song url (or name) here..."/>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Add Song" class="alt"/>
+                    </div>
                 </div>
-                <div class="3u 12u(mobilep)">
-                    <input type="submit" value="Add Song" class="alt"/>
-                </div>
-            </div>
             </form>
         {{/if}}
     </div>
     <div class="box">
         <h3>Music Playlists</h3>
         {{#if hasPlaylists}}
-                {{#each playlists}}
-                    <h2>{{@index_1}}: <a href="/music/playlist/{{id}}"><b>{{name}}</b></a></h2>
-                {{/each}}
+            {{#each playlists}}
+                <h2>{{@index_1}}: <a href="/music/playlist/{{id}}"><b>{{name}}</b></a></h2>
+            {{/each}}
         {{else}}
             <p>{{#if isUser}}You don't have any playlists.
             {{else}}{{user.name}} hasn't created any playlists.{{/if}}</p>
