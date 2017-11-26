@@ -116,44 +116,44 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
 
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
         if (guild.audioManager.isConnected) {
-                LoggedTrack(guild.id, track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
-                if (player.playingTrack == null && guildMusicManager.manager.queue.size == 0 && autoplay
-                        && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState.channel != null) {
-                    try {
-                        val current = guildMusicManager.manager.current!!
-                        val recommendation: SimpleTrack = when {
-                            current.spotifyTrackId != null -> {
-                                val spotifyTrack = spotifyApi.tracks.getTrack(current.spotifyTrackId)!!
-                                spotifyApi.browse.getRecommendations(seedTracks = listOf(spotifyTrack.id), seedArtists = spotifyTrack.artists.map { it.id })
-                            }
-                            current.spotifyAlbumId != null -> {
-                                val album = spotifyApi.albums.getAlbum(current.spotifyAlbumId)!!
-                                spotifyApi.browse.getRecommendations(seedArtists = album.artists.map { it.id }, seedGenres = album.genres)
-                            }
-                            current.spotifyPlaylistId != null -> {
-                                val split = current.spotifyPlaylistId.split(" :: ")
-                                val spotifyPlaylist = spotifyApi.playlists.getPlaylist(split[0], split[1])!!
-                                spotifyApi.browse.getRecommendations(seedTracks = spotifyPlaylist.tracks.items.limit(10).map { it.track.id })
-                            }
-                            else -> {
-                                val tempTrack = spotifyApi.search.searchTrack("${track.info.title} " +
-                                        if (track.info.author.contains("official", true)
-                                                || track.info.author.contains("vevo", true)) track.info.author else "").items[0]
-                                spotifyApi.browse.getRecommendations(seedTracks = listOf(tempTrack.id), seedArtists = tempTrack.artists.map { it.id })
-                            }
-                        }.tracks[0]
-                        val channel = guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0]
-                        "https://open.spotify.com/track/${recommendation.id}"
-                                .loadSpotifyTrack(guild.selfMember, channel, consumerFoundTrack = { audioTrack, trackId ->
-                                    play(channel, guild.selfMember, LocalTrackObj(guild.selfMember.user.id, guild.selfMember.user.id, current.playlist,
-                                            current.spotifyPlaylistId, current.spotifyAlbumId, recommendation.id, audioTrack))
-                                })
-                        "${recommendation.name} by ${recommendation.artists[0].name}"
-                                .loadYoutube(guild.selfMember, guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0])
-                    } catch (ignored: Exception) {
-                        guildMusicManager.channel?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(guildMusicManager.channel!!.guild))
-                    }
-                    return
+            LoggedTrack(guild.id, track.position / 1000.0 / 60.0 / 60.0).insert("musicPlayed")
+            if (guildMusicManager.manager.queue.size > 0) {
+                guildMusicManager.manager.skipToNextTrack()
+            } else if (player.playingTrack == null && guildMusicManager.manager.queue.size == 0 && autoplay
+                    && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState.channel != null) {
+                try {
+                    val current = guildMusicManager.manager.current!!
+                    val recommendation: SimpleTrack = when {
+                        current.spotifyTrackId != null -> {
+                            val spotifyTrack = spotifyApi.tracks.getTrack(current.spotifyTrackId)!!
+                            spotifyApi.browse.getRecommendations(seedTracks = listOf(spotifyTrack.id), seedArtists = spotifyTrack.artists.map { it.id })
+                        }
+                        current.spotifyAlbumId != null -> {
+                            val album = spotifyApi.albums.getAlbum(current.spotifyAlbumId)!!
+                            spotifyApi.browse.getRecommendations(seedArtists = album.artists.map { it.id }, seedGenres = album.genres)
+                        }
+                        current.spotifyPlaylistId != null -> {
+                            val split = current.spotifyPlaylistId.split(" :: ")
+                            val spotifyPlaylist = spotifyApi.playlists.getPlaylist(split[0], split[1])!!
+                            spotifyApi.browse.getRecommendations(seedTracks = spotifyPlaylist.tracks.items.limit(10).map { it.track.id })
+                        }
+                        else -> {
+                            val tempTrack = spotifyApi.search.searchTrack("${track.info.title} " +
+                                    if (track.info.author.contains("official", true)
+                                            || track.info.author.contains("vevo", true)) track.info.author else "").items[0]
+                            spotifyApi.browse.getRecommendations(seedTracks = listOf(tempTrack.id), seedArtists = tempTrack.artists.map { it.id })
+                        }
+                    }.tracks[0]
+                    val channel = guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0]
+                    "https://open.spotify.com/track/${recommendation.id}"
+                            .loadSpotifyTrack(guild.selfMember, channel, consumerFoundTrack = { audioTrack, trackId ->
+                                play(channel, guild.selfMember, LocalTrackObj(guild.selfMember.user.id, guild.selfMember.user.id, current.playlist,
+                                        current.spotifyPlaylistId, current.spotifyAlbumId, recommendation.id, audioTrack))
+                            })
+                } catch (ignored: Exception) {
+                    guildMusicManager.channel?.send("Couldn't find this song in the Spotify database, no autoplay available.".tr(guildMusicManager.channel!!.guild))
+                }
+                return
             }
         }
     }

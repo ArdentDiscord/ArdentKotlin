@@ -19,6 +19,10 @@ import commands.administrate.*
 import commands.games.questions
 import commands.info.*
 import commands.music.*
+import commands.rpg.Balance
+import commands.rpg.Daily
+import commands.rpg.ProfileCommand
+import commands.rpg.TopMoney
 import commands.settings.Prefix
 import commands.settings.Settings
 import events.CommandFactory
@@ -35,14 +39,8 @@ import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
 import translation.Translate
 import translation.tr
-import utils.discord.getGuildById
-import utils.discord.getTextChannelById
-import utils.discord.getVoiceChannelById
-import utils.discord.send
-import utils.functionality.EventWaiter
-import utils.functionality.TriviaQuestion
-import utils.functionality.logChannel
-import utils.functionality.queryAsArrayList
+import utils.discord.*
+import utils.functionality.*
 import utils.music.LocalTrackObj
 import utils.music.ServerQueue
 import java.io.File
@@ -51,7 +49,7 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-val test = true
+val test = false
 var beta = true
 
 var hangout: Guild? = null
@@ -88,7 +86,7 @@ fun main(args: Array<String>) {
     (1..shards).forEach { sh ->
         jdas.add(JDABuilder(AccountType.BOT)
                 .setCorePoolSize(10)
-                .setGame(Game.of("Starting up... 418 I'm a teapot"))
+                .setGame(Game.of("BETA TESTING"))
                 .addEventListener(waiter)
                 .addEventListener(factory)
                 .addEventListener(JoinRemoveEvents())
@@ -115,6 +113,7 @@ fun main(args: Array<String>) {
     addCommands()
 
     waiter.executor.schedule({ checkQueueBackups() }, 45, TimeUnit.SECONDS)
+    waiter.executor.scheduleWithFixedDelay({}, 30, 30, TimeUnit.SECONDS)
 }
 
 /**
@@ -148,7 +147,7 @@ fun addCommands() {
             Invite(), About(), Donate(), UserInfo(), ServerInfo(), RoleInfo(),
             UrbanDictionary(), UnixFortune(), EightBall(), FML(), Translate(), IsStreaming(), Status(), Clear(), Automessages(),
             AdministratorCommand(), GiveRoleToAll(), WebsiteCommand(), GetId(), Support(), /* IamCommand(), IamnotCommand(), */
-            LanguageCommand(), Blacklist(), Meme())
+            LanguageCommand(), Blacklist(), Meme(), IamnotCommand(), IamCommand())
 
     // Game Helper Commands
     // factory.addCommands(Decline(), InviteToGame(), Gamelist(), LeaveGame(), JoinGame(), Cancel(), Forcestart(), AcceptInvitation())
@@ -162,7 +161,7 @@ fun addCommands() {
 
     // Music Commands
     factory.addCommands(Playlist(), MyMusicLibrary(), Play(), Skip(), Pause(), Resume(), SongUrl(), Playing(), Queue())
-    factory.addCommands(ClearQueue(), RemoveFrom(), Volume(), GoTo())
+    factory.addCommands(ClearQueue(), RemoveFrom(), Volume(), GoTo(), Repeat())
     /* factory.addCommands(Play(), Radio(), Stop(), Pause(), Resume(), SongUrl(), Volume(), Playing(), Repeat(),
             Shuffle(), Queue(), RemoveFrom(), Skip(), Prefix(), Leave(), ClearQueue(), RemoveAt(), ArtistSearch(), FastForward(),
             Rewind()) */
@@ -171,7 +170,7 @@ fun addCommands() {
     // factory.addCommands(BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TicTacToeCommand())
 
     // RPG Commands
-    // factory.addCommands( TopMoney(),ProfileCommand(), MarryCommand(), DivorceCommand(), Daily(), Balance(), TriviaStats())
+    factory.addCommands( TopMoney(), ProfileCommand(), Daily(), Balance())
 }
 
 fun checkQueueBackups() {

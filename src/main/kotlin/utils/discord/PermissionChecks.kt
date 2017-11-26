@@ -35,7 +35,8 @@ fun Member.hasPermission(channel: TextChannel, musicCommand: Boolean = false, fa
             if (data.musicSettings.canEveryoneUseAdminCommands || voiceState.inVoiceChannel() && guild.selfMember.voiceState.inVoiceChannel()) voiceState.channel.members.size == 2
             else {
                 roles.forEach { role -> if (data.musicSettings.whitelistedRolesForAdminCommands.contains(role.id)) return true }
-                return false
+                val manager = guild.getAudioManager(channel)
+                return manager.manager.current?.user == user.id
             }
         }
     }

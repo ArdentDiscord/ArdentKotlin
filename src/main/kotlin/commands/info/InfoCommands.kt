@@ -2,23 +2,53 @@ package commands.info
 
 import events.Category
 import events.Command
+import events.ExtensibleCommand
+import main.factory
 import net.dv8tion.jda.core.OnlineStatus
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.tr
 import utils.discord.*
-import utils.functionality.concat
-import utils.functionality.format
-import utils.functionality.readableDate
-import utils.functionality.stringify
+import utils.functionality.*
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.stream.Collectors
 
 val formatter = DecimalFormat("#,###")
 
 class Help : Command(Category.BOT_INFO, "help", "see a list of commands you can use", "h") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        if (arguments.size > 0) {
+            val name = arguments.concat()
+            factory.commands.forEach {
+                if (it.name.equals(name, true)) {
+                    val embed = event.member.embed("Ardent | {0}".tr(event, it.name), event.textChannel)
+                            .setThumbnail("https://previews.123rf.com/images/jianghaistudio/jianghaistudio1408/jianghaistudio140800205/30309384-Abstract-image-with-question-mark-made-of-gears-Stock-Vector.jpg")
+                            .appendDescription("**" + "Command Description:".tr(event) + "** *" + it.description.tr(event) + "*")
+                    embed.appendDescription("\n\n")
+                    if (it !is ExtensibleCommand) embed.appendDescription("**" + "There are no subcommands registered for this command".tr(event) + "**")
+                    else {
+                        embed.appendDescription("**" + "Subcommands:".tr(event) + "**\n")
+                        it.subcommands.forEach { subcommand ->
+                            embed.appendDescription("${Emoji.SMALL_ORANGE_DIAMOND}  __${subcommand.syntax.tr(event)}__: ${(subcommand.description ?: "No description is available for this subcommand").tr(event)}\n")
+                        }
+                    }
+                    if (it.aliases.isNotEmpty()) embed.appendDescription("\n\n**" + "Aliases:" + "** ${it.aliases.toList().stringify()}")
+                    event.channel.send(embed)
+                    return
+                }
+            }
+            event.channel.send("No command was found with name **{0}** - showing default help menu instead".tr(event, name) + " " + Emoji.HEAVY_MULTIPLICATION_X.symbol)
+            Thread.sleep(1500)
+        }
+        val embed = event.member.embed("Ardent | Command List", event.textChannel)
+        Category.values().forEach { category ->
+            embed.appendDescription("**" + category.fancyName.tr(event) + "** :  " +
+                    category.getCommands().toMutableList().shuffle().map { "`" + it.name.tr(event) + "`" }.stream().collect(Collectors.joining("    ")) +
+                    "\n\n")
+        }
+        embed.appendDescription("__" + "To see detailed information about a command, type */help command name*" + "__".tr(event))
+        event.channel.send(embed)
     }
 }
 
@@ -55,6 +85,96 @@ class About : Command(Category.BOT_INFO, "about", "learn more about Ardent") {
 }
 
 // IAM
+
+
+class IamCommand : Command(Category.ADMINISTRATE, "iam", "gives you the role you wish to receive", "iamrole") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val data = event.guild.getData()
+        if (arguments.size == 0) {
+            val embed = event.member.embed("Iam List".tr(event), event.channel)
+            val builder = StringBuilder().append("This is the **autoroles** list for *{0}* - to add or delete them, type **/settings**".tr(event, event.guild.name) + "\n")
+            if (data.roleSettings.autoroles.size == 0) builder.append("This server doesn't have any autoroles :(".tr(event))
+            else {
+                val iterator = data.roleSettings.autoroles.iterator()
+                while (iterator.hasNext()) {
+                    val it = iterator.next()
+                    val role = it.role.toRole(event.guild)
+                    if (role != null) builder.append("{0} Typing **{1}** will give you the **{2}** role".tr(event, Emoji.SMALL_ORANGE_DIAMOND.symbol, it.name, role.name)).append("\n")
+                    else iterator.remove()
+                }
+                data.update()
+                builder.append("\n").append("**Give yourself one of these roles by typing _/iam NAME_**".tr(event))
+                builder.append("\n\n").append("**Tip**: You can create autoroles using */settings*".tr(event))
+            }
+            var curr = 0
+            while (curr < builder.length) {
+                event.channel.send(embed.setDescription(builder.substring(curr, if ((curr + 2048) <= builder.length) curr + 2048 else builder.length)))
+                curr += 2048
+            }
+        } else {
+            var found = false
+            data.roleSettings.autoroles.forEach { iterator, current ->
+                if (current.name.replace(" ", "").equals(arguments.concat().replace(" ", ""), true)) {
+                    val role = current.role.toRole(event.guild)
+                    if (role == null) {
+                        iterator.remove()
+                        data.update()
+                    } else {
+                        try {
+                            event.guild.controller.addRolesToMember(event.member, role).reason("Ardent Autoroles").queue({
+                                event.channel.send("Successfully gave you the **{0}** role!".tr(event, role.name))
+                            }, {
+                                event.channel.send("Failed to give the *{0}* role - **Please ask an administrator of this server to allow me to give you roles!**".tr(event, role.name))
+                            })
+                        } catch (e: Throwable) {
+                            event.channel.send("Failed to give the *{0}* role - **Please ask an administrator of this server to allow me to give you roles!**".tr(event, role.name))
+                        }
+                    }
+                    found = true
+                    return@forEach
+                }
+            }
+            if (!found) event.channel.send("An autorole with that name wasn't found. Please type */iam* to get a full list".tr(event))
+        }
+    }
+}
+
+class IamnotCommand : Command(Category.ADMINISTRATE, "iamnot", "removes the role from you that you've been given via /iam", "iamrole") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        val data = event.guild.getData()
+        if (arguments.size == 0) {
+            event.channel.send("Please type **/iam** to get a full list of available autoroles".tr(event))
+            return
+        }
+        val name = arguments.concat()
+        val iterator = data.roleSettings.autoroles.iterator()
+        while (iterator.hasNext()) {
+            val it = iterator.next()
+            if (it.name.equals(name, true)) {
+                val role = it.role.toRole(event.guild)
+                if (role == null) {
+                    iterator.remove()
+                    data.update()
+                } else {
+                    if (event.member.roles.contains(role)) {
+                        try {
+                            event.guild.controller.removeRolesFromMember(event.member, role).reason("Ardent Autoroles - Removal".tr(event)).queue({
+                                event.channel.send("Successfully removed the **{0}** role!".tr(event, role.name))
+                            }, {
+                                event.channel.send("Failed to remove *{0}* - **please ask an administrator of this server to allow me to manage roles!**".tr(event, role.name))
+                            })
+                        } catch (e: Exception) {
+                            event.channel.send("Failed to remove *{0}* - **please ask an administrator of this server to allow me to manage roles!**".tr(event, role.name))
+                        }
+                    } else event.channel.send("You can't remove a role you don't have!".tr(event))
+                }
+                return
+            }
+        }
+        event.channel.send("An autorole with that name wasn't found. Please type **/iam** to get a full list".tr(event))
+    }
+}
+
 // IAMNOT
 
 class ServerInfo : Command(Category.SERVER_INFO, "serverinfo", "view some basic information about this server", "guildinfo", "si", "gi") {

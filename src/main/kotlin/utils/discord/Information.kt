@@ -43,6 +43,15 @@ fun Guild.getUsersData(): MutableList<UserData> {
     return data
 }
 
+fun getRoleById(id: String?): Role? {
+    if (id == null || id.isEmpty()) return null
+    jdas.forEach { jda ->
+        val role = jda.getRoleById(id)
+        if (role != null) return role
+    }
+    return null
+}
+
 fun String.toRole(guild: Guild): Role? {
     return try {
         guild.getRoleById(this)

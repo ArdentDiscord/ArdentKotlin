@@ -194,10 +194,10 @@ fun String.fromLangName(): LanguageData? {
 
 enum class Language(val data: LanguageData) {
     ENGLISH(LanguageData("en", "English", LanguageMaturity.DEVELOPMENT)),
-    FRENCH(LanguageData("fr", "Français")),
-    GERMAN(LanguageData("de", "Deutsch")),
+    FRENCH(LanguageData("fr", "French")),
+    GERMAN(LanguageData("de", "German")),
     RUSSIAN(LanguageData("ru", "Russian")),
-    DANISH(LanguageData("da", "Dansk")),
+    DANISH(LanguageData("da", "Danish")),
     DUTCH(LanguageData("nl", "Nederlands")),
     HINDI(LanguageData("hi", "Hindi")),
     ITALIAN(LanguageData("it", "Italian")),
@@ -207,7 +207,7 @@ enum class Language(val data: LanguageData) {
     SPANISH(LanguageData("es", "Spanish")),
     MANDARIN_TRADITIONAL(LanguageData("zh-TR", "Traditional Mandarin")),
     MANDARIN_SIMPLIFIED(LanguageData("zh-SI", "Simplified Mandarin")),
-    PORTUGESE_BRAZIL(LanguageData("pt-BR", "Português"))
+    PORTUGESE_BRAZIL(LanguageData("pt-BR", "Portuguese"))
 }
 
 enum class LanguageMaturity(val readable: String) {

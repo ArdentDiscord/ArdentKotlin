@@ -91,14 +91,18 @@ class Queue : Command(Category.MUSIC, "queue", "shows information about the curr
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val embed = event.member.embed("Current Music Queue", event.textChannel)
         val audioManager = event.guild.getAudioManager(event.textChannel)
-        if (audioManager.player.isPaused) embed.appendDescription(Emoji.INFORMATION_SOURCE.symbol + " " + "The player is currently paused".tr(event))
-        else if (audioManager.manager.current == null) embed.appendDescription(Emoji.INFORMATION_SOURCE.symbol + " " + "There aren't any currently playing tracks!".tr(event))
-        else {
-            if (audioManager.manager.queue.size == 0) embed.appendDescription("There are no songs in the queue!".tr(event))
+        if (audioManager.manager.current == null) {
+            embed.appendDescription(Emoji.INFORMATION_SOURCE.symbol + " " + "There aren't any currently playing tracks!".tr(event))
+            embed.appendDescription("\n\n" + "You can view the queue online by clicking [here]({0})".tr(event, "https://ardentbot.com/music/queue/${event.guild.id}"))
+        } else {
+            if (audioManager.manager.queue.size == 0) {
+                embed.appendDescription("There are no songs in the queue!".tr(event))
+                embed.appendDescription("\n\n" + "You can view the queue online by clicking [here]({0})".tr(event, "https://ardentbot.com/music/queue/${event.guild.id}"))
+            }
             else {
                 var current = 1
                 audioManager.manager.queue.stream().limit(10).forEachOrdered {
-                    embed.appendDescription("**$current**: " + it.getInfo(event.guild) + "")
+                    embed.appendDescription("**$current**: " + it.getInfo(event.guild) + "\n")
                     current++
                 }
                 if (audioManager.manager.queue.size > 10) embed.appendDescription("View the entire queue by clicking [here]({0})".tr(event, "https://ardentbot.com/music/queue/${event.guild.id}"))
@@ -115,6 +119,18 @@ class ClearQueue : Command(Category.MUSIC, "clearqueue", "clears all songs from 
             audioManager.scheduler.autoplay = false
             audioManager.manager.resetQueue()
             event.channel.send(Emoji.BALLOT_BOX_WITH_CHECK.symbol + " " + "Successfully cleared the queue".tr(event))
+        }
+    }
+}
+
+class Repeat : Command(Category.MUSIC, "repeat", "repeat the track that's currently playing") {
+    override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
+        if (event.member.checkSameChannel(event.textChannel) && event.member.hasPermission(event.textChannel, true)) {
+            val audioManager = event.guild.getAudioManager(event.textChannel)
+            if (audioManager.manager.current != null) {
+                audioManager.manager.addToBeginningOfQueue(audioManager.manager.current!!)
+                event.channel.send(Emoji.WHITE_HEAVY_CHECKMARK.symbol + " " + "Added the current track to the front of the queue".tr(event))
+            } else event.channel.send("There isn't a currently playing track!".tr(event))
         }
     }
 }
@@ -167,9 +183,9 @@ class GoTo : Command(Category.MUSIC, "goto", "use this command to go to a certai
                 else if (event.member.hasPermission(event.textChannel, true) && event.member.checkSameChannel(event.textChannel)) {
                     if (minutes * 60 + seconds < 0 || minutes * 60 + seconds > audioManager.player.playingTrack.duration / 1000) {
                         event.channel.send("You entered an invalid position!".tr(event))
-                    }
-                    else {
+                    } else {
                         audioManager.player.playingTrack.position = ((minutes * 60 + seconds) * 1000).toLong()
+                        event.channel.send(Emoji.BALLOT_BOX_WITH_CHECK.symbol + " " + "Went to **{0}** in the track".tr(event, arguments[0]))
                     }
                 }
             }

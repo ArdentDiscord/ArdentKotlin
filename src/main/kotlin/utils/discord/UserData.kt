@@ -38,8 +38,8 @@ fun User.getData(): UserData {
 
 data class ConnectedAccounts(var spotifyId: String? = null)
 
-class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0, val selfDescription: String?,
-               val gender: Gender, val languagesSpoken: MutableList<String>, val reminders: MutableList<Reminder> = mutableListOf(),
+class UserData(val id: String, var gold: Double = 50.0, var collected: Long = 0, var selfDescription: String?,
+               var gender: Gender, val languagesSpoken: MutableList<String>, val reminders: MutableList<Reminder> = mutableListOf(),
                val connectedAccounts: ConnectedAccounts) {
     fun canCollect(): Boolean {
         return ((System.currentTimeMillis() - collected) / 1000) > 86399

@@ -67,9 +67,9 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                 playlists.forEachIndexed { index, playlist ->
                     embed.appendDescription(index.getListEmoji() + " " +
                             "[**{0}**](https://ardentbot.com/music/playlist/{1}) - ID: *{2}* - Last Modified at *{3}*"
-                                    .tr(event, playlist.name, playlist.id, playlist.id, playlist.lastModified.readableDate()) + "\n")
+                                    .tr(event, playlist.name, playlist.id, playlist.id, playlist.lastModified.readableDate()) + "\n\n")
                 }
-                embed.appendDescription("Play a playlist using */playlist play [playlist id]*")
+                embed.appendDescription("You can play a playlist using */playlist play [playlist id]*")
             }
             embed.send()
         })
@@ -107,27 +107,36 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                     when (selection) {
                         0 -> {
                             event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
-                            DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
-                                    null, null, null, tracks = mutableListOf()).insert("musicPlaylists")
+                            val playlist = DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
+                                    null, null, null, tracks = mutableListOf())
+                            playlist.insert("musicPlaylists")
+                            event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${playlist.id}"))
                         }
                         1 -> {
                             event.channel.send("Please enter in a Spotify playlist or album url now")
                             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { reply ->
                                 val url = reply.rawContent
-                                val playlist: DatabaseMusicPlaylist? = if (url.startsWith("https://open.spotify.com/album/")) {
-                                    event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
-                                    DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
-                                            url.removePrefix("https://open.spotify.com/album/"), null, null)
-                                } else if (url.startsWith("https://open.spotify.com/user/")) {
-                                    event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
-                                    DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
-                                            null, url.removePrefix("https://open.spotify.com/user/")
-                                            .split("/playlist/").stream().collect(Collectors.joining("||")), null)
-                                } else {
-                                    event.channel.send("You specified an invalid url. Cancelled playlist setup.".tr(event))
-                                    null
+                                val playlist: DatabaseMusicPlaylist? = when {
+                                    url.startsWith("https://open.spotify.com/album/") -> {
+                                        event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
+                                        DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
+                                                url.removePrefix("https://open.spotify.com/album/"), null, null)
+                                    }
+                                    url.startsWith("https://open.spotify.com/user/") -> {
+                                        event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
+                                        DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
+                                                null, url.removePrefix("https://open.spotify.com/user/")
+                                                .split("/playlist/").stream().collect(Collectors.joining("||")), null)
+                                    }
+                                    else -> {
+                                        event.channel.send("You specified an invalid url. Cancelled playlist setup.".tr(event))
+                                        null
+                                    }
                                 }
-                                playlist?.insert("musicPlaylists")
+                                if (playlist != null) {
+                                    playlist.insert("musicPlaylists")
+                                    event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${playlist.id}"))
+                                }
                             })
                         }
                         2 -> {
@@ -137,8 +146,10 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                                 val playlist = getPlaylistById(url)
                                 if (playlist == null) event.channel.send("You specified an invalid playlist. Please try again")
                                 else {
-                                    playlist.copy(name = name, owner = event.author.id).insert("musicPlaylists")
+                                    val newPlaylist = playlist.copy(id = genId(8, "musicPlaylists"), name = name, owner = event.author.id)
+                                    newPlaylist.insert("musicPlaylists")
                                     event.channel.send("Successfully cloned **{0}**!".tr(event, playlist.name))
+                                    event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${newPlaylist.id}"))
                                 }
                             })
                         }
@@ -146,10 +157,12 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                             event.channel.send("Please specify a YouTube playlist url now.")
                             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { reply ->
                                 val url = reply.rawContent
-                                if (url.startsWith("https://www.youtube.com/watch")) {
+                                if (url.startsWith("https://www.youtube.com/playlist?list=") || url.startsWith("https://youtube.com/playlist?list=")) {
                                     event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
-                                    DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
-                                            null, null, url, tracks = mutableListOf()).insert("musicPlaylists")
+                                    val playlist = DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
+                                            null, null, url, tracks = mutableListOf())
+                                    playlist.insert("musicPlaylists")
+                                    event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${playlist.id}"))
                                 } else {
                                     event.channel.send("You specified an invalid url. Cancelled playlist setup.".tr(event))
                                 }

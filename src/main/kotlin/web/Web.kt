@@ -233,11 +233,13 @@ class Web {
                         map.put("guild", guild)
                         map.put("guildData", data)
                         map.put("langs", Language.values())
+                        map.put("defaultRole", guild.getRoleById(data.roleSettings.defaultRole ?: "6"))
                         val ch = getTextChannelById(data.messageSettings.joinMessage?.channel)
                         if (ch != null) {
                             map.put("hasReceiverChannel", true)
                             map.put("receiverChannel", ch)
                         }
+                        map.put("hasIams", data.roleSettings.autoroles.size > 0)
                         ModelAndView(map, "manageGuild.hbs")
                     }
                 }
@@ -254,6 +256,41 @@ class Web {
                 if (map["user"] != null) {
                     val user = map["user"] as User
                     when (name) {
+                        "removeautorole" -> {
+                            val guild = getGuildById(request.queryParams("guild") ?: "")
+                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                                val autorole = request.queryParams("autorolename")
+                                if (autorole != null) {
+                                    val data = guild.getData()
+                                    data.roleSettings.autoroles.removeIf { it.name == autorole }
+                                    data.update(true)
+                                }
+                            }
+                        }
+                        "addautorole" -> {
+                            val guild = getGuildById(request.queryParams("guild") ?: "")
+                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                                val autorole = request.queryParams("autorolename")
+                                val role = request.queryParams("autorolerole")
+                                if (autorole != null && role != null) {
+                                    val data = guild.getData()
+                                    data.roleSettings.autoroles.add(Autorole(autorole, role, user.id))
+                                    data.update(true)
+                                }
+                            }
+                        }
+                        "defaultrole" -> {
+                            val guild = getGuildById(request.queryParams("guild") ?: "")
+                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                                val defaultRole = request.queryParams("defaultRole")
+                                if (defaultRole != null) {
+                                    val data = guild.getData()
+                                    if (defaultRole == "none") data.roleSettings.defaultRole = null
+                                    else data.roleSettings.defaultRole = defaultRole
+                                    data.update(true)
+                                }
+                            }
+                        }
                         "changemessage" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
                             if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
@@ -511,6 +548,7 @@ fun registerHandlebarHelpers() {
     handle.registerHelper("artistConcat", { artist: List<SimpleArtist>, _: Options -> artist.map { it.name }.stringify() })
     handle.registerHelper("langname", { lang: String?, _: Options -> lang?.toLanguage()?.readable })
     handle.registerHelper("getfancyuser", { string: String?, _: Options -> getUserById(string)?.toFancyString() })
+    handle.registerHelper("rolename", { role: String?, _: Options -> getRoleById(role)?.name })
 }
 
 

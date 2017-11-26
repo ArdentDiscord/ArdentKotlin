@@ -183,7 +183,8 @@
             <p>You can use the following parameters in your messages: {usermention}} (mentions the member who joined or
                 left), {username} (adds the username of the member), {servername} (adds the server name), or {joinplace}
                 (adds join place - ex. 55 for the 55th member).<br/><b>You can mention text channels by doing <em>#channelNameHere</em>
-                    and mention users by doing <em>@userid</em> - Get someone's ID by using <em>/getid @User inside Discord</em></b>
+                    and mention users by doing <em>@userid</em> - Get someone's ID by using <em>/getid @User inside
+                        Discord</em></b>
             </p>
 
             <h3>Join Message</h3>
@@ -198,7 +199,8 @@
                     <input name="guild" value="{{id}}" hidden/>
                     <div class="row uniform 50%">
                         <div class="8u">
-                            <textarea name="joinmessage" id="joinmessage" rows="2">{{messageSettings.joinMessage.message}}</textarea>
+                            <textarea name="joinmessage" id="joinmessage"
+                                      rows="2">{{messageSettings.joinMessage.message}}</textarea>
                         </div>
                         <div class="3u 12u(mobilep)">
                             <input type="submit" value="Update" class="alt"/>
@@ -242,7 +244,8 @@
                     <input name="guild" value="{{id}}" hidden/>
                     <div class="row uniform 50%">
                         <div class="8u">
-                            <textarea name="leavemessage" id="leavemessage" rows="2">{{messageSettings.leaveMessage.message}}</textarea>
+                            <textarea name="leavemessage" id="leavemessage"
+                                      rows="2">{{messageSettings.leaveMessage.message}}</textarea>
                         </div>
                         <div class="3u 12u(mobilep)">
                             <input type="submit" value="Update" class="alt"/>
@@ -272,6 +275,96 @@
                     </div>
                 </form>
             {{/if}}
+        </div>
+        <!-- Role settings -->
+        <div class="box">
+            <h2>Role Settings</h2>
+            <h3>Set the default role that I should give new members, or select none to disable it</h3>
+            <form action="/accept">
+                <input name="name" value="defaultrole" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
+                <div class="row uniform 50%">
+                    <div class="5u">
+                        <div class="select-wrapper">
+                            <select name="defaultRole" id="defaultRole">
+                                {{#each guild.roles}}
+                                    <option value="{{id}}">{{name}}</option>
+                                {{/each}}
+                                {{#if defaultRole}}
+                                    <option value="{{defaultRole.id}}" selected>{{defaultRole.name}}</option>
+                                    <option value="none">None</option>
+                                {{else}}
+                                    <option value="none" selected>None</option>
+                                {{/if}}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="3u 12u(mobilep)">
+                        <input type="submit" value="Update" class="alt"/>
+                    </div>
+                </div>
+            </form>
+
+            <h3>Autoroles (/iam)</h3>
+            <p>Users can use <b>/iam</b> or <b>/iamnot</b> to give themselves or take away an autorole you set,
+                respectively</p>
+            <h4>Add an autorole</h4>
+            <form action="/accept">
+                <input name="name" value="addautorole" hidden/>
+                <input name="webRedirect" value="/manage/{{id}}" hidden/>
+                <input name="guild" value="{{id}}" hidden/>
+                <div class="row uniform 50%">
+                    <p class="5u" style="width: 50%;">Name of autorole
+                        <input type="text" name="autorolename" id="autorolename" value="" placeholder="Type name here..."/>
+                    </p>
+                    <div class="5u">
+                        <div class="select-wrapper">
+                            <p>Role to give
+                                <select name="autorolerole" id="autorolerole">
+                                    {{#each guild.roles}}
+                                        <option value="{{id}}">{{name}}</option>
+                                    {{/each}}
+                                </select>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="2u 12u(mobilep)">
+                        <input type="submit" value="Add" class="alt"/>
+                    </div>
+                </div>
+            </form>
+            {{#if hasIams}}
+                <h5>Autorole List</h5>
+                <div class="table-wrapper">
+                    <div class="6u">
+                        <table class="alt">
+                            <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role Given</th>
+                                <th>Created By</th>
+                                <th>Remove</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {{#each roleSettings.autoroles}}
+                                <tr>
+                                    <td>{{name}}</td>
+                                    <td>{{rolename role}}</td>
+                                    <td>{{getfancyuser creator}}</td>
+                                    <td><a href="/accept?name=removeautorole&webRedirect=%2Fmanage%2F{{id}}&guild={{id}}&autorolename={{name}}"><img
+                                            height="16" width="16"
+                                            src="/images/x_button.png"></a>
+                                    </td>
+                                </tr>
+                            {{/each}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {{/if}}
+
         </div>
     {{/with}}
 </section>
