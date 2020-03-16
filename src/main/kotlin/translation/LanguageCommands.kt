@@ -3,7 +3,7 @@ package translation
 import com.github.vbauer.yta.service.YTranslateApiImpl
 import events.Category
 import events.Command
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import utils.discord.embed
 import utils.discord.getData
 import utils.discord.internals
@@ -16,7 +16,7 @@ import utils.functionality.without
 class LanguageCommand : Command(Category.LANGUAGE, "data", "view or change Ardent's data on this server!", "lang") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (arguments.size == 0 || !arguments[0].equals("set", true)) {
-            event.channel.send(event.member.embed("Ardent | Server Language".tr(event.guild), event.textChannel)
+            event.channel.send(event.member!!.embed("Ardent | Server Language".tr(event.guild), event.textChannel)
                     .appendDescription("Your server data is **{0}** - You can change it by using _/lang set **data**_ - Language list: {2}"
                             .tr(event, event.guild, event.guild.getData().languageSettings.getLanguage().readable,
                                     Language.values().map {
@@ -25,7 +25,7 @@ class LanguageCommand : Command(Category.LANGUAGE, "data", "view or change Arden
                                                 "%* " + "done".tr(event)
                                     }.stringify())))
         } else {
-            if (event.member.hasPermission(event.textChannel)) {
+            if (event.member!!.hasPermission(event.textChannel)) {
                 val lang = arguments.without(arguments[0]).concat().fromLangName()
                 if (lang == null) {
                     event.channel.send("You specified an invalid language! **NOTE**: You must add accents if your data requires them!".tr(event))

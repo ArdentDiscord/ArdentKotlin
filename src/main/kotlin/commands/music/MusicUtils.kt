@@ -11,11 +11,11 @@ import main.managers
 import main.playerManager
 import main.spotifyApi
 import main.waiter
-import net.dv8tion.jda.core.audio.AudioSendHandler
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
-import net.dv8tion.jda.core.entities.VoiceChannel
+import net.dv8tion.jda.api.audio.AudioSendHandler
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.VoiceChannel
 import obj.SimpleTrack
 import translation.tr
 import utils.discord.*
@@ -24,6 +24,7 @@ import utils.functionality.insert
 import utils.functionality.limit
 import utils.music.LocalTrackObj
 import utils.music.TrackDisplay
+import java.nio.ByteBuffer
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 
@@ -35,8 +36,8 @@ class AudioPlayerSendHandler(private val audioPlayer: AudioPlayer) : AudioSendHa
         return lastFrame != null
     }
 
-    override fun provide20MsAudio(): ByteArray {
-        return lastFrame!!.data
+    override fun provide20MsAudio(): ByteBuffer? {
+        return ByteBuffer.wrap(lastFrame!!.data)
     }
 
     override fun isOpus(): Boolean {
@@ -102,7 +103,7 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
         autoplay = true
         waiter.executor.schedule({
-            if (track.position == 0.toLong() && guild.selfMember.voiceState.inVoiceChannel() && !player.isPaused && player.playingTrack != null && player.playingTrack == track) {
+            if (track.position == 0.toLong() && guild.selfMember.voiceState?.inVoiceChannel()==true && !player.isPaused && player.playingTrack != null && player.playingTrack == track) {
                 val queue = guildMusicManager.manager.queue.toList()
                 guildMusicManager.player.isPaused = false
                 guildMusicManager.manager.resetQueue()
@@ -120,7 +121,7 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
             if (guildMusicManager.manager.queue.size > 0) {
                 guildMusicManager.manager.skipToNextTrack()
             } else if (player.playingTrack == null && guildMusicManager.manager.queue.size == 0 && autoplay
-                    && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState.channel != null) {
+                    && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState?.channel != null) {
                 try {
                     val current = guildMusicManager.manager.current!!
                     val recommendation: SimpleTrack = when {
@@ -226,7 +227,7 @@ fun VoiceChannel.connect(textChannel: TextChannel?, complain: Boolean = true): B
 
 fun play(channel: TextChannel?, member: Member, track: LocalTrackObj) {
     if (!member.guild.audioManager.isConnected) {
-        if (member.voiceState.channel != null) member.guild.audioManager.openAudioConnection(member.voiceState.channel)
+        if (member.voiceState?.channel != null) member.guild.audioManager.openAudioConnection(member.voiceState!!.channel)
         else {
             channel?.send("Unable to join voice channel.. Are you sure you're in one?".tr(member.guild))
             return

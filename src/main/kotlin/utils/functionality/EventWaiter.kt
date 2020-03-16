@@ -2,11 +2,16 @@ package utils.functionality
 
 import main.factory
 import main.waiter
-import net.dv8tion.jda.core.entities.*
-import net.dv8tion.jda.core.events.Event
-import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
-import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
-import net.dv8tion.jda.core.hooks.SubscribeEvent
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.MessageChannel
+import net.dv8tion.jda.api.entities.MessageReaction
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.events.Event
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent
+import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent
+import net.dv8tion.jda.api.hooks.SubscribeEvent
 import translation.tr
 import utils.discord.embed
 import utils.discord.getTextChannelById
@@ -54,7 +59,7 @@ class EventWaiter : EventListener {
                         val settings = rAE.first
                         var cont = true
                         if (settings.channel != null && settings.channel != e.channel.id) cont = false
-                        else if (settings.id != null && settings.id != e.user.id) cont = false
+                        else if (settings.id != null && settings.id != e.user!!.id) cont = false
                         else if (settings.guild != null && settings.guild != e.guild.id) cont = false
                         else if (settings.message != null && settings.message != e.messageId) cont = false
                         if (cont) {
@@ -65,7 +70,7 @@ class EventWaiter : EventListener {
                     reactionEvents.forEach { game ->
                         if (e.channel.id == game.first && e.messageId == game.second) {
                             if (System.currentTimeMillis() < game.third) {
-                                factory.executor.execute { game.fourth.first(e.user, e.reaction) }
+                                factory.executor.execute { game.fourth.first(e.user!!, e.reaction) }
                             } else reactionEvents.remove(game)
                         }
                     }
@@ -162,12 +167,12 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
             var invoked = false
             waiter.waitForMessage(Settings(member.user.id, id, member.guild.id, message.id), { response ->
                 invoked = true
-                val responseInt = response.rawContent.toIntOrNull()?.minus(1)
+                val responseInt = response.contentRaw.toIntOrNull()?.minus(1)
                 if (responseInt == null || responseInt !in 0..(options.size - 1) && !invoked) {
                     failure?.invoke() ?: send("You specified an invalid response!".tr(getTextChannelById(id)!!.guild))
                 } else {
-                    if (options.contains(response.rawContent)) {
-                        consumer.invoke(options.getWithIndex(response.rawContent)!!.first, message)
+                    if (options.contains(response.contentRaw)) {
+                        consumer.invoke(options.getWithIndex(response.contentRaw)!!.first, message)
                     } else {
                         consumer.invoke(responseInt, message)
                         waiter.cancel(Settings(member.user.id, id, member.guild.id, message.id))
@@ -175,7 +180,7 @@ fun MessageChannel.selectFromList(member: Member, title: String, options: Mutabl
                 }
             }, silentExpiration = true)
             waiter.waitForReaction(Settings(member.user.id, id, member.guild.id, message.id), { messageReaction ->
-                val chosen = when (messageReaction.emote.name) {
+                val chosen = when (messageReaction.reactionEmote.name) {
                     Emoji.KEYCAP_DIGIT_ONE.symbol -> 1
                     Emoji.KEYCAP_DIGIT_TWO.symbol -> 2
                     Emoji.KEYCAP_DIGIT_THREE.symbol -> 3

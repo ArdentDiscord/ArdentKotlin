@@ -9,7 +9,7 @@ import events.Category
 import events.Command
 import main.config
 import main.gson
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import translation.tr
@@ -39,7 +39,7 @@ class UrbanDictionary : Command(Category.FUN, "urban", "get search results for y
             if (search.list.isEmpty()) event.channel.send("There were no results for this term :(".tr(event))
             else {
                 val result = search.list[0]
-                event.channel.send(event.member.embed("Urban Dictionary Definition for {0}".tr(event, term), event.textChannel)
+                event.channel.send(event.member!!.embed("Urban Dictionary Definition for {0}".tr(event, term), event.textChannel)
                         .setThumbnail("https://i.gyazo.com/6a40e32928743e68e9006396ee7c2a14.jpg")
                         .setColor(Color.decode("#00B7BE"))
                         .addField("Definition".tr(event), result.definition.shortenIf(1024), true)
@@ -102,7 +102,7 @@ class IsStreaming : Command(Category.FUN, "streaming", "check whether someone is
                 override fun onSuccess(twitchChannel: Channel) {
                     twitch.streams().get(twitchChannel.name, object : StreamResponseHandler {
                         override fun onSuccess(stream: Stream?) {
-                            val embed = event.member.embed("{0} on Twitch".tr(event, twitchChannel.name), event.textChannel)
+                            val embed = event.member!!.embed("{0} on Twitch".tr(event, twitchChannel.name), event.textChannel)
                                     .addField("Display Name".tr(event), twitchChannel.displayName, true)
                                     .addField("Twitch Link".tr(event), "[Click Here]({0})".tr(event, twitchChannel.url), true)
                             if (stream != null && stream.isOnline) {

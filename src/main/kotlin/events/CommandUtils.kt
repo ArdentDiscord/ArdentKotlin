@@ -3,11 +3,11 @@ package events
 import main.conn
 import main.factory
 import main.r
-import net.dv8tion.jda.core.Permission
-import net.dv8tion.jda.core.entities.ChannelType
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import net.dv8tion.jda.core.hooks.SubscribeEvent
+import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.ChannelType
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.hooks.SubscribeEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import translation.tr
 import utils.discord.*
@@ -38,19 +38,20 @@ class CommandFactory {
 
     @SubscribeEvent
     fun onMessageEvent(event: MessageReceivedEvent) {
-        if (event.author.isBot) return
+        println("${event.author} ${event.author.isBot} ${event.guild.name}: ${event.message.contentDisplay}")
+        if (event.author.isBot || event.member == null) return
         messagesReceived.getAndIncrement()
         val data = event.guild.getData()
         var foundPrefix: String? = null
-        if (event.message.rawContent.startsWith(data.prefixSettings.prefix)) foundPrefix = data.prefixSettings.prefix
+        if (event.message.contentRaw.startsWith(data.prefixSettings.prefix)) foundPrefix = data.prefixSettings.prefix
         if (foundPrefix == null) {
-            foundPrefix = if (!data.prefixSettings.disabledDefaultPrefix && event.message.rawContent.startsWith("/")) "/"
-            else if (event.message.rawContent.startsWith("ardent")) "ardent"
-            else if (event.message.rawContent.startsWith("<@${event.guild.selfMember.user.id}> ")) "<@${event.guild.selfMember.user.id}> "
-            else if (event.message.rawContent.startsWith("<@!${event.guild.selfMember.user.id}> ")) "<@!${event.guild.selfMember.user.id}> "
+            foundPrefix = if (!data.prefixSettings.disabledDefaultPrefix && event.message.contentRaw.startsWith("/")) "/"
+            else if (event.message.contentRaw.startsWith("ardent")) "ardent"
+            else if (event.message.contentRaw.startsWith("<@${event.guild.selfMember.user.id}> ")) "<@${event.guild.selfMember.user.id}> "
+            else if (event.message.contentRaw.startsWith("<@!${event.guild.selfMember.user.id}> ")) "<@!${event.guild.selfMember.user.id}> "
             else return
         }
-        val content = event.message.rawContent.removePrefix(foundPrefix).removePrefix(" ")
+        val content = event.message.contentRaw.removePrefix(foundPrefix).removePrefix(" ")
         if (content.isEmpty()) return
         commands.forEach { cmd ->
             if (cmd.containsAlias(content.split(" ")[0], event.guild)) {
@@ -64,7 +65,7 @@ class CommandFactory {
                 if (derogatoryTerms.filter { event.author.name.contains(it, true) }.count() > 0) {
                     event.channel.send("Here at Ardent, we accept everyone for who they are. You must to change your username to be able to use any command".tr(event.guild))
                 } else {
-                    if (!event.member.hasPermission(Permission.MANAGE_SERVER)) {
+                    if (!event.member!!.hasPermission(Permission.MANAGE_SERVER)) {
                         when {
                             data.blacklistSettings.blacklistedChannels.contains(event.textChannel.id) -> {
                                 event.channel.send("You're not allowed to use Ardent commands in this channel! Type */blacklist list* to view all blacklisted channels".tr(event.guild))
@@ -76,7 +77,7 @@ class CommandFactory {
                                 }
                                 return
                             }
-                            else -> event.member.roles.forEach { memberRole ->
+                            else -> event.member!!.roles.forEach { memberRole ->
                                 if (data.blacklistSettings.blacklistedRoles.contains(memberRole.id)) {
                                     event.channel.send("One of your roles, **{0}**, is blacklisted from using Ardent commands. You'll be able to use commands again once you no longer have this role".tr(event.guild, memberRole.name))
                                     return
@@ -157,7 +158,7 @@ abstract class Command(val category: Category, val name: String, val description
         val channel = event.textChannel
         val data = event.guild.getData()
         val prefixSettings = data.prefixSettings
-        val embed = member.embed("How can I use {0}?".tr(event.guild, "${prefixSettings.prefix}$name", command = true), channel)
+        val embed = member!!.embed("How can I use {0}?".tr(event.guild, "${prefixSettings.prefix}$name", command = true), channel)
                 .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/f/f6/Lol_question_mark.png")
                 .setFooter("This can also be used with: {0}".tr(channel.guild, channel.guild, aliases.toList().stringify()), member.user.avatarUrl)
                 .appendDescription("*${description.tr(channel.guild)}*\n")

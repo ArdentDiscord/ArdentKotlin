@@ -2,8 +2,8 @@ package utils.discord
 
 import main.conn
 import main.r
-import net.dv8tion.jda.core.entities.TextChannel
-import net.dv8tion.jda.core.entities.User
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.User
 import translation.tr
 import utils.functionality.*
 import utils.music.DatabaseMusicLibrary

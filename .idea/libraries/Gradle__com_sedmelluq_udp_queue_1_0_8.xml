@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.sedmelluq:udp-queue:1.0.8">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.sedmelluq/udp-queue/1.0.8/cc8cac3b1aa2f8e2219064888b1f1cc51c8a49d2/udp-queue-1.0.8.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.sedmelluq/udp-queue/1.0.8/c817cdcc9bfa76d7907688c6992a5c38570655fa/udp-queue-1.0.8-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

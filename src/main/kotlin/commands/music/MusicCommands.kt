@@ -5,7 +5,7 @@ import events.ExtensibleCommand
 import main.conn
 import main.r
 import main.waiter
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import translation.tr
 import utils.discord.*
 import utils.functionality.*
@@ -22,7 +22,7 @@ class MyMusicLibrary : ExtensibleCommand(Category.MUSIC, "mylibrary", "reset, or
         with("reset", null, "reset your music library from scratch", { arguments, event ->
             event.channel.send(Emoji.INFORMATION_SOURCE.symbol + " " + "Are you sure you want to reset your library? Type **yes** to continue".tr(event))
             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { message ->
-                if (message.rawContent.startsWith("ye")) {
+                if (message.contentRaw.startsWith("ye")) {
                     val library = getMusicLibrary(event.author.id)
                     library.tracks = mutableListOf()
                     library.update("musicLibraries", event.author.id)
@@ -36,7 +36,7 @@ class MyMusicLibrary : ExtensibleCommand(Category.MUSIC, "mylibrary", "reset, or
             if (library.tracks.size == 0) event.channel.send(Emoji.HEAVY_MULTIPLICATION_X.symbol + " " + "You don't have any tracks in your music library! Add some at {0}".tr(event, "https://ardentbot.com/profile/${event.author.id}"))
             else {
                 event.channel.send("Started loading **{0}** tracks from your music library..".tr(event, library.tracks.size))
-                library.load(event.member, event.textChannel)
+                library.load(event.member!!, event.textChannel)
             }
         })
     }
@@ -54,13 +54,13 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
             if (playlist == null) event.channel.send("You need to specify a valid playlist id!".tr(event))
             else {
                 event.channel.send("Loading tracks from playlist **{0}**..".tr(event, playlist.name))
-                playlist.toLocalPlaylist(event.member).loadTracks(event.textChannel, event.member)
+                playlist.toLocalPlaylist(event.member!!).loadTracks(event.textChannel, event.member!!)
             }
         })
 
         with("list", "list @User", "see the mentioned user's playlists", { arguments, event ->
             val user = event.message.mentionedUsers.getOrElse(0, { event.author })
-            val embed = event.member.embed("{0} | Music Playlists".tr(event, user.toFancyString()), event.textChannel)
+            val embed = event.member!!.embed("{0} | Music Playlists".tr(event, user.toFancyString()), event.textChannel)
             val playlists = getPlaylists(user.id)
             if (playlists.isEmpty()) embed.appendDescription("This user doesn't have any playlists! Create one by typing */playlist create [name]*".tr(event))
             else {
@@ -87,7 +87,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
             else {
                 if (playlist.owner != event.author.id) event.channel.send("You need to be the owner of this playlist in order to delete it!")
                 else {
-                    event.channel.selectFromList(event.member, "Are you sure you want to delete the playlist **{0}** [{1} tracks]? This is **unreversable**".tr(event, playlist.name, playlist.tracks.size), mutableListOf("Yes", "No"), { selection, m ->
+                    event.channel.selectFromList(event.member!!, "Are you sure you want to delete the playlist **{0}** [{1} tracks]? This is **unreversable**".tr(event, playlist.name, playlist.tracks.size), mutableListOf("Yes", "No"), { selection, m ->
                         if (selection == 0) {
                             r.table("musicPlaylists").get(playlist.id).delete().runNoReply(conn)
                             event.channel.send(Emoji.BALLOT_BOX_WITH_CHECK.symbol + " " + "Deleted the playlist **{0}**".tr(event, playlist.name))
@@ -101,7 +101,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
             if (arguments.isEmpty()) event.channel.send("You need to include a name for this playlist")
             else {
                 val name = arguments.concat()
-                event.channel.selectFromList(event.member, "What type of playlist do you want to create?",
+                event.channel.selectFromList(event.member!!, "What type of playlist do you want to create?",
                         mutableListOf("Default", "Spotify Playlist or Album", "Clone someone's playlist", "YouTube Playlist"), { selection, msg ->
                     msg.delete().queue()
                     when (selection) {
@@ -115,7 +115,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                         1 -> {
                             event.channel.send("Please enter in a Spotify playlist or album url now")
                             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { reply ->
-                                val url = reply.rawContent
+                                val url = reply.contentRaw
                                 val playlist: DatabaseMusicPlaylist? = when {
                                     url.startsWith("https://open.spotify.com/album/") -> {
                                         event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
@@ -142,7 +142,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                         2 -> {
                             event.channel.send("Please enter in an Ardent playlist id or url")
                             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { reply ->
-                                val url = reply.rawContent.replace("https://ardentbot.com/music/playlist/", "")
+                                val url = reply.contentRaw.replace("https://ardentbot.com/music/playlist/", "")
                                 val playlist = getPlaylistById(url)
                                 if (playlist == null) event.channel.send("You specified an invalid playlist. Please try again")
                                 else {
@@ -156,7 +156,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                         else -> {
                             event.channel.send("Please specify a YouTube playlist url now.")
                             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { reply ->
-                                val url = reply.rawContent
+                                val url = reply.contentRaw
                                 if (url.startsWith("https://www.youtube.com/playlist?list=") || url.startsWith("https://youtube.com/playlist?list=")) {
                                     event.channel.send("Successfully created the playlist **{0}**!".tr(event, name))
                                     val playlist = DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),

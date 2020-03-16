@@ -8,20 +8,26 @@ import events.ExtensibleCommand
 import main.config
 import main.jdas
 import main.managers
-import net.dv8tion.jda.core.MessageBuilder
-import net.dv8tion.jda.core.Permission
-import net.dv8tion.jda.core.entities.Message
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import net.dv8tion.jda.core.requests.RestAction
+import net.dv8tion.jda.api.MessageBuilder
+import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.requests.RestAction
 import translation.tr
-import utils.discord.*
+import utils.discord.StaffRole
+import utils.discord.getGuildById
+import utils.discord.getGuildsByName
+import utils.discord.hasPermission
+import utils.discord.hasStaffLevel
+import utils.discord.send
+import utils.discord.toFancyString
 import utils.functionality.concat
 import utils.music.ServerQueue
 import java.util.concurrent.TimeUnit
 
 class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the channel you're sending the command in") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (!event.member.hasPermission(event.textChannel)) return
+        if (!event.member!!.hasPermission(event.textChannel)) return
         if (!event.guild.selfMember.hasPermission(event.textChannel, Permission.MESSAGE_MANAGE)) {
             event.channel.send("I need the `Message Manage` permission to be able to delete messages!".tr(event))
             return
@@ -79,17 +85,18 @@ class AdministratorCommand : ExtensibleCommand(Category.ADMINISTRATE, "admin", "
                 val guilds = getGuildsByName(arguments.concat(), true)
                 guilds.forEach { guild ->
                     try {
-                        guild.invites.queue { invites ->
+                        guild.retrieveInvites().queue { invites ->
                             if (invites.size > 0) event.channel.send("Found invite https://discord.gg/${invites[0].code} for guild with id **${guild.id}**")
                             else "hi dad".toInt()
                         }
                     } catch (e: Exception) {
                         try {
-                            (guild.defaultChannel ?: guild.textChannels[0]).createInvite().setMaxUses(1).setTemporary(true).setMaxAge(5L, TimeUnit.MINUTES)
+                            (guild.defaultChannel
+                                    ?: guild.textChannels[0]).createInvite().setMaxUses(1).setTemporary(true).setMaxAge(5L, TimeUnit.MINUTES)
                                     .reason("Temporary Invite - Testing").queue { invite -> event.channel.send("Generated invite https://discord.gg/${invite.code} for id **${guild.id}**") }
 
                         } catch (e: Exception) {
-                            event.channel.send("Cannot retrieve invite for guild with ID **${guild.id}** - owner is ${guild.owner.asMention}")
+                            event.channel.send("Cannot retrieve invite for guild with ID **${guild.id}** - owner is ${guild.owner?.asMention}")
                         }
                     }
                 }
@@ -108,7 +115,7 @@ class AdministratorCommand : ExtensibleCommand(Category.ADMINISTRATE, "admin", "
                                 val tracks = mutableListOf<String>()
                                 if (it.value.player.playingTrack != null) tracks.add(it.value.player.playingTrack.info.uri)
                                 manager.manager.queue.forEach { song -> if (song.getUri() != null) tracks.add(song.getUri()!!) }
-                                ServerQueue(guild.selfMember.voiceState.channel.id, manager.channel!!.id, tracks)
+                                ServerQueue(guild.selfMember.voiceState!!.channel!!.id, manager.channel!!.id, tracks)
                                 manager.channel!!.send("Ardent will be down for a few minutes to update, but don't fear! Your music queue has been preserved and playback will resume after a few minutes".tr(guild))
                             }
                         }
@@ -116,7 +123,7 @@ class AdministratorCommand : ExtensibleCommand(Category.ADMINISTRATE, "admin", "
                     }
                 }
                 //gamesInLobby.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
-               // activeGames.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
+                // activeGames.forEach { game -> game.channel.send("Ardent is **updating** - Your game data will not be saved :(".tr(game.channel)) }
                 event.channel.sendMessage("Shutting down").queue {
                     jdas.forEach { it.shutdown() }
                     System.exit(0)
@@ -132,13 +139,13 @@ class GiveRoleToAll : Command(Category.ADMINISTRATE, "giverole", "give all users
             event.channel.send("You need to type the name of the role that you'd like to give to all members who currently have no roles in this server!".tr(event))
             return
         }
-        if (event.member.hasPermission(event.textChannel)) {
+        if (event.member!!.hasPermission(event.textChannel)) {
             val query = arguments.concat()
             val results = event.guild.getRolesByName(query, true)
             if (results.size == 0) event.channel.send("No roles with that name were found".tr(event))
             else {
                 event.channel.send("Running... This could take a while".tr(event))
-                event.guild.members.forEach { m -> if (m.roles.size < 2) event.guild.controller.addRolesToMember(m, results[0]).queue() }
+                event.guild.members.forEach { m -> if (m.roles.size < 2) event.guild.addRoleToMember(m, results[0]).queue() }
             }
         }
     }
@@ -153,7 +160,7 @@ class Blacklist : ExtensibleCommand(Category.ADMINISTRATE, "blacklist", "blackli
         /*with("add", "add [user mention, channel mention or name, or role mention or name]", "add the specified user, channel, or role to the blacklist", { arguments, event ->
             if (arguments.size == 0) event.channel.send("You can mention a user to blacklist them. You can also mention **or** type the name of a role or channel to add it to the blacklist.".tr(event))
             else {
-                if (event.member.hasOverride(event.textChannel, failQuietly = false)) {
+                if (event.member!!.hasOverride(event.textChannel, failQuietly = false)) {
                     val data = event.guild.getData()
                     if (event.message.mentionedUsers.size > 0) {
                         val blacklistUser = event.message.mentionedUsers[0]
@@ -197,7 +204,7 @@ class Blacklist : ExtensibleCommand(Category.ADMINISTRATE, "blacklist", "blackli
         with("remove", "remove [user mention, channel mention or name, or role mention or name]", "removes the specified user, channel, or role from the blacklist", { arguments, event ->
             if (arguments.size == 0) event.channel.send("You can mention a user to unblacklist them. You can also mention **or** type the name of a role to remove it from the blacklist".tr(event))
             else {
-                if (event.member.hasOverride(event.textChannel, failQuietly = false)) {
+                if (event.member!!.hasOverride(event.textChannel, failQuietly = false)) {
                     val data = event.guild.getData()
                     val unblacklistUser = event.message.mentionedUsers.getOrNull(0)
                     if (unblacklistUser != null) {
@@ -235,7 +242,7 @@ class Blacklist : ExtensibleCommand(Category.ADMINISTRATE, "blacklist", "blackli
 
         with("list", null, "view a list of currently blacklisted users and roles", { _, event ->
             val data = event.guild.getData()
-            val embed = event.member.embed("Ardent | Server Blacklists".tr(event))
+            val embed = event.member!!.embed("Ardent | Server Blacklists".tr(event))
             if (data.blacklistedChannels?.isEmpty() == false) {
                 embed.appendDescription("**Blacklisted Channels**".tr(event))
                 val iterator = data.blacklistedChannels!!.iterator()
@@ -305,7 +312,7 @@ fun eval(arguments: MutableList<String>, event: MessageReceivedEvent) {
         if (!result.second.isEmpty() && result.first != null) builder.append("\n").appendCodeBlock(result.first as String, "")
         if (!result.third.isEmpty()) builder.append("\n").appendCodeBlock(result.third, "")
         if (builder.isEmpty) event.message.addReaction("✅").queue()
-        else for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE)) event.channel.send(m.rawContent)
+        else for (m in builder.buildAll(MessageBuilder.SplitPolicy.NEWLINE, MessageBuilder.SplitPolicy.SPACE, MessageBuilder.SplitPolicy.ANYWHERE)) event.channel.send(m.contentRaw)
     } catch (e: Exception) {
         e.printStackTrace()
     }

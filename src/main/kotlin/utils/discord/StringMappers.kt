@@ -3,7 +3,12 @@ package utils.discord
 import main.conn
 import main.jdas
 import main.r
-import net.dv8tion.jda.core.entities.*
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.Role
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.entities.VoiceChannel
 import utils.functionality.concat
 import utils.functionality.queryAsArrayList
 import utils.functionality.stringify
@@ -51,6 +56,7 @@ fun getVoiceChannelById(id: String): VoiceChannel? {
 // Users
 
 fun getUserById(id: String?): User? {
+    if (id == null) return null
     jdas.forEach { jda ->
         try {
             val user = jda.getUserById(id)

@@ -3,7 +3,6 @@ package commands.games
 import events.Category
 import events.Command
 import main.waiter
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import utils.*
 import utils.functionality.Emoji
 import utils.functionality.Settings
@@ -19,7 +18,7 @@ class Cancel : Command(Category.GAMES, "cancel", "cancel a currently running gam
                         "Are you sure you want to cancel your __{0}__ game? Type **".tr(event, game.type.readable) + "yes".tr(event) + "** if so or **" + "no".tr(event) + "** if you're not sure.".tr(event, game.type.readable) + "\n" +
                         "Current players in lobby: *{0}*".tr(event, game.players.toUsers()))
                 waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { message ->
-                    if (message.rawContent.startsWith("ye") || message.rawContent.startsWith("yes".tr(event))) {
+                    if (message.contentRaw.startsWith("ye") || message.contentRaw.startsWith("yes".tr(event))) {
                         game.cancel(event.member)
                     } else event.channel.send("${Emoji.BALLOT_BOX_WITH_CHECK} " + "I'll keep the game in lobby".tr(event))
                 }, {
@@ -53,7 +52,7 @@ class Forcestart : Command(Category.GAMES, "start", "manually start a game", "fo
 
 class AcceptInvitation : Command(Category.GAMES, "accept", "accept an invitation to a game") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        if (event.member.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first".tr(event))
+        if (event.member!!.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first".tr(event))
         else {
             gamesInLobby.forEach { game ->
                 if (checkInvite(event, game)) return
@@ -76,7 +75,7 @@ class JoinGame : Command(Category.GAMES, "join", "join a game in lobby") {
             }
             gamesInLobby.forEach { game ->
                 if (game.channel.guild == event.guild) {
-                    if (event.member.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first".tr(event))
+                    if (event.member!!.isInGameOrLobby()) event.channel.send("You can't join another game! You must leave the game you're currently in first".tr(event))
                     else {
                         if (game.isPublic || checkInvite(event, game)) {
                             game.players.add(event.author.id)
@@ -116,7 +115,7 @@ class LeaveGame : Command(Category.GAMES, "leavegame", "leave a game you're curr
 
 class Gamelist : Command(Category.GAMES, "gamelist", "show a list of all currently running games") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val embed = event.member.embed("Games in Lobby")
+        val embed = event.member!!.embed("Games in Lobby")
         val builder = StringBuilder()
                 .append("**" + "Red means that the game is in lobby, Green that it's currently ingame".tr(event) + "**")
         if (gamesInLobby.isEmpty() && activeGames.isEmpty()) event.channel.send("\n\n" + "There are no games in lobby or ingame right now. You can start one though :) Type {0}help to see a list of game commands".tr(event, event.guild.getPrefix()))
@@ -168,7 +167,7 @@ class InviteToGame : Command(Category.GAMES, "gameinvite", "invite people to you
                             toInvite.isInGameOrLobby() -> event.channel.send("This person is already in a lobby or ingame!".tr(event))
                             else -> {
                                 invites.put(toInvite.id, game)
-                                event.channel.send("{0}, you're being invited by {1} to join a game of **{2}**! Type *{3}accept* to accept this invite and join the game or decline by typing *{3}decline*".tr(event, toInvite.asMention, event.member.asMention, game.type.readable, event.guild.getPrefix()))
+                                event.channel.send("{0}, you're being invited by {1} to join a game of **{2}**! Type *{3}accept* to accept this invite and join the game or decline by typing *{3}decline*".tr(event, toInvite.asMention, event.member!!.asMention, game.type.readable, event.guild.getPrefix()))
                                 val delay = 45
                                 waiter.executor.schedule({
                                     if (invites.containsKey(toInvite.id)) {

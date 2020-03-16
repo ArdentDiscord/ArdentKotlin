@@ -7,8 +7,8 @@ import main.factory
 import main.jdas
 import main.spotifyApi
 import main.test
-import net.dv8tion.jda.core.Permission
-import net.dv8tion.jda.core.entities.User
+import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.User
 import obj.SimpleArtist
 import spark.ModelAndView
 import spark.Request
@@ -120,7 +120,8 @@ class Web {
                             map.put("found", true)
                             requestedUser
                         }
-                    } else if (map["user"] == null) webRedirect(request, response, "/login", "/profile") else map["user"]!!) as? User ?: return@get webRedirect(request, response, "/login", "/profile")
+                    } else if (map["user"] == null) webRedirect(request, response, "/login", "/profile") else map["user"]!!) as? User
+                            ?: return@get webRedirect(request, response, "/login", "/profile")
                     map.put("isUser", map["user"] == user)
                     map.put("user", user)
                     map.putIfAbsent("user", user)
@@ -223,7 +224,7 @@ class Web {
                 val user = map["user"] as User
                 val params = request.splat()
                 if (params.isEmpty()) {
-                    map.put("guilds", user.mutualGuilds.filter { it.getMember(user).hasPermission(Permission.MANAGE_SERVER) })
+                    map.put("guilds", user.mutualGuilds.filter { it.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true })
                     ModelAndView(map, "manage.hbs")
                 } else {
                     val guild = getGuildById(params[0])
@@ -258,7 +259,7 @@ class Web {
                     when (name) {
                         "removeautorole" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val autorole = request.queryParams("autorolename")
                                 if (autorole != null) {
                                     val data = guild.getData()
@@ -269,7 +270,7 @@ class Web {
                         }
                         "addautorole" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val autorole = request.queryParams("autorolename")
                                 val role = request.queryParams("autorolerole")
                                 if (autorole != null && role != null) {
@@ -281,7 +282,7 @@ class Web {
                         }
                         "defaultrole" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val defaultRole = request.queryParams("defaultRole")
                                 if (defaultRole != null) {
                                     val data = guild.getData()
@@ -293,7 +294,7 @@ class Web {
                         }
                         "changemessage" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val uneditedMessage = if (request.queryParams("type") == "join") request.queryParams("joinmessage") else request.queryParams("leavemessage")
                                 val editedList = mutableListOf<String>()
                                 uneditedMessage.split(" ").forEach { word ->
@@ -332,7 +333,7 @@ class Web {
                         }
                         "automessagechannel" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val channelId = request.queryParams("messagechannelid")
                                 if (channelId != null) {
                                     val data = guild.getData()
@@ -350,7 +351,7 @@ class Web {
                         }
                         "disablejoin" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val enable = when (request.queryParams("state")) {
                                     "on" -> true
                                     "off" -> false
@@ -372,7 +373,7 @@ class Web {
                         }
                         "disableleave" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val enable = when (request.queryParams("state")) {
                                     "on" -> true
                                     "off" -> false
@@ -393,7 +394,7 @@ class Web {
                         }
                         "stayinvoice" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val enable = when (request.queryParams("state")) {
                                     "on" -> true
                                     "off" -> false
@@ -408,7 +409,7 @@ class Web {
                         }
                         "changemusicadmin" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val enable = when (request.queryParams("state")) {
                                     "on" -> true
                                     "off" -> false
@@ -423,7 +424,7 @@ class Web {
                         }
                         "changeautoplay" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val enable = when (request.queryParams("state")) {
                                     "on" -> true
                                     "off" -> false
@@ -438,7 +439,7 @@ class Web {
                         }
                         "changelang" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val newLang = request.queryParams("lang")
                                 if (newLang != null) {
                                     val data = guild.getData()
@@ -449,7 +450,7 @@ class Web {
                         }
                         "changeprefix" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val newPrefix = request.queryParams("newprefix")
                                 if (newPrefix != null) {
                                     val data = guild.getData()
@@ -460,7 +461,7 @@ class Web {
                         }
                         "defaultprefix" -> {
                             val guild = getGuildById(request.queryParams("guild") ?: "")
-                            if (guild != null && guild.getMember(user).hasPermission(Permission.MANAGE_SERVER)) {
+                            if (guild != null && guild.getMember(user)?.hasPermission(Permission.MANAGE_SERVER) == true) {
                                 val disable = when (request.queryParams("state")) {
                                     "on" -> true
                                     "off" -> false

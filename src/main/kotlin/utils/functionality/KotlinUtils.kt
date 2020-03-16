@@ -8,7 +8,7 @@ import commands.music.load
 import main.conn
 import main.r
 import main.waiter
-import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.api.entities.TextChannel
 import org.apache.commons.lang3.RandomStringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.json.simple.JSONObject

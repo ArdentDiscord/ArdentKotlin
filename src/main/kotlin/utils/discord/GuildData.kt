@@ -3,8 +3,8 @@ package utils.discord
 import main.conn
 import main.r
 import main.shards
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
 import translation.Language
 import translation.LanguageData
 import translation.toLanguage
@@ -17,7 +17,7 @@ fun Guild.getShard(): Int {
 }
 
 fun Guild.isPatronGuild(): Boolean {
-    return members.size > 300 || getPatronLevel(owner.user.id)?.level?.compareTo(1) ?: -1 > 0
+    return members.size > 300 || owner?.let {  getPatronLevel(it.user.id)?.level?.compareTo(1) ?: -1 > 0 } ?: false
 }
 
 fun Member.donationLevel(): PatronLevel? {

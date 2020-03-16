@@ -87,9 +87,9 @@ class AdministrativeDaemon : Runnable {
                         PatronLevel.SUPPORTER -> supporterRole
                         PatronLevel.PREMIUM -> premiumRole
                         PatronLevel.SPONSOR -> sponsorRole
-                    }
-                    if (!member.roles.contains(roleToGive)) hangout!!.controller.addRolesToMember(member, roleToGive).queue()
-                    if (!member.roles.contains(patronRole)) hangout!!.controller.addRolesToMember(member, patronRole).queue()
+                    }!!
+                    if (!member.roles.contains(roleToGive)) hangout!!.addRoleToMember(member, roleToGive).queue()
+                    if (!member.roles.contains(patronRole)) hangout!!.addRoleToMember(member, patronRole!!).queue()
                 }
             }
         }

@@ -3,9 +3,9 @@ package events
 import commands.music.getAudioManager
 import main.managers
 import main.waiter
-import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent
-import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent
-import net.dv8tion.jda.core.hooks.SubscribeEvent
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceJoinEvent
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent
+import net.dv8tion.jda.api.hooks.SubscribeEvent
 import translation.tr
 import utils.discord.getData
 import utils.discord.send
@@ -17,7 +17,7 @@ class VoiceUtils {
         val member = e.guild.selfMember
         if (e.channelLeft.members.size == 1) e.guild.getAudioManager(null).player.isPaused = true
         waiter.executor.schedule({
-            if (member.voiceState.channel != null && member.voiceState.channel != null && member.voiceState.channel == e.channelLeft && e.channelLeft.members.size == 1) {
+            if (member.voiceState?.channel != null && member.voiceState?.channel != null && member.voiceState?.channel == e.channelLeft && e.channelLeft.members.size == 1) {
                 if (!e.guild.getData().musicSettings.stayInChannel) {
                     e.guild.audioManager.closeAudioConnection()
                     e.guild.getAudioManager(null).channel?.send("Disconnected from **{0}** because I was left all alone :(".tr(e.guild, e.channelLeft.name))

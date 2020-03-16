@@ -8,8 +8,8 @@ import main.config
 import main.playerManager
 import main.spotifyApi
 import main.youtube
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.TextChannel
 import translation.tr
 import utils.discord.send
 import utils.functionality.Emoji

@@ -13,6 +13,7 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager
+import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudDataReader
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import commands.`fun`.*
 import commands.administrate.*
@@ -28,12 +29,13 @@ import commands.settings.Settings
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
-import net.dv8tion.jda.core.AccountType
-import net.dv8tion.jda.core.JDA
-import net.dv8tion.jda.core.JDABuilder
-import net.dv8tion.jda.core.entities.Game
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.hooks.AnnotatedEventManager
+import net.dv8tion.jda.api.AccountType
+import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.JDABuilder
+import net.dv8tion.jda.api.entities.Activity
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.hooks.AnnotatedEventManager
+import net.dv8tion.jda.api.requests.GatewayIntent
 import okhttp3.OkHttpClient
 import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
@@ -49,7 +51,7 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-val test = false
+val test = true
 var beta = true
 
 var hangout: Guild? = null
@@ -57,16 +59,16 @@ var hangout: Guild? = null
 var r: RethinkDB = RethinkDB.r
 var conn: Connection? = null
 
-var config: Config = if (test) Config("C:\\Users\\Adam\\Desktop\\config.txt") else Config("/root/Ardent/config.txt")
+lateinit var config: Config
 
 var jdas = mutableListOf<JDA>()
-val waiter = EventWaiter()
-val factory = CommandFactory()
+lateinit var waiter:EventWaiter
+lateinit var factory:CommandFactory
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = ConcurrentHashMap<Long, GuildMusicManager>()
 
-val spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
+lateinit var spotifyApi:SpotifyAPI
 
 var transport: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
 var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
@@ -74,27 +76,28 @@ var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
 val sheets: Sheets = setupDrive()
 val youtube: YouTube = setupYoutube()
 
-val shards = 2
+val shards = 1
 
 val httpClient = OkHttpClient()
 
 fun main(args: Array<String>) {
-    val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
+    config = Config(args[0])
+   /* val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
             .execute()
     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
-    Web()
+    */Web()
+
+    waiter = EventWaiter()
+    factory = CommandFactory()
+spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
     (1..shards).forEach { sh ->
-        jdas.add(JDABuilder(AccountType.BOT)
-                .setCorePoolSize(10)
-                .setGame(Game.of("BETA TESTING"))
-                .addEventListener(waiter)
-                .addEventListener(factory)
-                .addEventListener(JoinRemoveEvents())
-                .addEventListener(VoiceUtils())
+        jdas.add(JDABuilder.create(config.getValue("token"), GatewayIntent.values().toList())
+                .setActivity(Activity.playing("BETA TESTING"))
+                .addEventListeners(waiter, factory, JoinRemoveEvents(), VoiceUtils())
                 .setEventManager(AnnotatedEventManager())
-                .useSharding(sh - 1, shards)
+              //  .useSharding(sh - 1, shards)
                 .setToken(config.getValue("token"))
-                .buildBlocking())
+                .build())
     }
 
     logChannel = getTextChannelById("351368131639246848")
@@ -102,13 +105,13 @@ fun main(args: Array<String>) {
 
     playerManager.configuration.resamplingQuality = AudioConfiguration.ResamplingQuality.LOW
     playerManager.registerSourceManager(YoutubeAudioSourceManager())
-    playerManager.registerSourceManager(SoundCloudAudioSourceManager())
+    playerManager.registerSourceManager(SoundCloudAudioSourceManager.createDefault())
     playerManager.registerSourceManager(HttpAudioSourceManager())
     AudioSourceManagers.registerRemoteSources(playerManager)
     AudioSourceManagers.registerLocalSource(playerManager)
 
     val administrativeDaemon = AdministrativeDaemon()
-    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 15, 30, TimeUnit.SECONDS)
+//    administrativeExecutor.scheduleAtFixedRate(administrativeDaemon, 15, 30, TimeUnit.SECONDS)
 
     addCommands()
 
@@ -129,7 +132,8 @@ data class Config(val url: String) {
                 val keyPair = pair.split(" :: ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
                 if (keyPair.size == 2) keys.put(keyPair[0], keyPair[1])
             }
-            conn = r.connection().timeout(3000).db("ardent_v2").hostname("158.69.214.251").port(28015).user("ardent", keys["rethinkdb"]).connect()
+            conn = r.connection().db("ardent_v2").hostname("localhost").connect()
+            insertDbScaffold()
         } catch (e: IOException) {
             println("Unable to load Config, exiting now")
             e.printStackTrace()
@@ -139,6 +143,14 @@ data class Config(val url: String) {
 
     fun getValue(keyName: String): String {
         return (keys as Map<String, String>).getOrDefault(keyName, "not_available")
+    }
+}
+
+fun insertDbScaffold() {
+    if (!r.dbList().run<List<String>>(conn).contains("ardent_v2")) r.dbCreate("ardent_v2").run<Any>(conn)
+    val tables = listOf("savedQueues", "staff", "patrons", "musicPlaylists", "musicLibraries", "users", "phrases", "guilds", "music", "derogatoryTerms")
+    tables.forEach { table ->
+        if (!r.db("ardent_v2").tableList().run<List<String>>(conn).contains(table)) r.db("ardent_v2").tableCreate(table).run<Any>(conn)
     }
 }
 
@@ -182,7 +194,7 @@ fun checkQueueBackups() {
         if (channel.members.size > 1 || (channel.members.size == 1 && channel.members[0] == channel.guild.selfMember)) {
             val manager = channel.guild.getAudioManager(textChannel)
             if (manager.channel != null) {
-                if (channel.guild.selfMember.voiceState.channel != channel) channel.connect(textChannel)
+                if (channel.guild.selfMember.voiceState?.channel != channel) channel.connect(textChannel)
                 textChannel.send(("**Restarting playback...**... Check out {0} for other cool features we offer in Ardent **Premium**").tr(channel.guild, "<https://ardentbot.com/premium>"))
                 queue.tracks.forEach { trackUrl ->
                     trackUrl.load(channel.guild.selfMember, textChannel, { audioTrack, id ->

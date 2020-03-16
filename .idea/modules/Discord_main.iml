@@ -2,7 +2,7 @@
 <module external.linked.project.id="Discord:main" external.linked.project.path="$MODULE_DIR$/../.." external.root.project.path="$MODULE_DIR$/../.." external.system.id="GRADLE" external.system.module.group="com.adamratzman" external.system.module.type="sourceSet" external.system.module.version="1.0.1" type="JAVA_MODULE" version="4">
   <component name="FacetManager">
     <facet type="kotlin-language" name="Kotlin">
-      <configuration version="3" platform="JVM 1.8" useProjectSettings="false">
+      <configuration version="3" platform="JVM 1.8" allPlatforms="JVM [1.8]" useProjectSettings="false">
         <compilerSettings />
         <compilerArguments>
           <option name="destination" value="$MODULE_DIR$/../../build/kotlin-classes/main" />
@@ -10,9 +10,7 @@
           <option name="noReflect" value="true" />
           <option name="moduleName" value="Discord" />
           <option name="jvmTarget" value="1.8" />
-          <option name="addCompilerBuiltIns" value="true" />
-          <option name="loadBuiltInsFromDependencies" value="true" />
-          <option name="languageVersion" value="1.1" />
+          <option name="languageVersion" value="1.2" />
           <option name="apiVersion" value="1.1" />
           <option name="pluginOptions">
             <array />
@@ -20,12 +18,16 @@
           <option name="pluginClasspaths">
             <array />
           </option>
+          <option name="coroutinesState" value="warn" />
+          <option name="errors">
+            <ArgumentParseErrors />
+          </option>
         </compilerArguments>
       </configuration>
     </facet>
   </component>
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
-    <output url="file://$MODULE_DIR$/../../out/production/classes" />
+    <output url="file://$MODULE_DIR$/../../build/classes/main" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../src/main">
       <sourceFolder url="file://$MODULE_DIR$/../../src/main/java" isTestSource="false" />
@@ -44,9 +46,9 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-sheets:v4-rev483-1.22.0" level="project" />
-    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:3.3.1_284" level="project" />
-    <orderEntry type="library" name="Gradle: com.sedmelluq:jda-nas:1.0.3" level="project" />
-    <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer:1.2.43" level="project" />
+    <orderEntry type="library" name="Gradle: net.dv8tion:JDA:4.1.1_116" level="project" />
+    <orderEntry type="library" name="Gradle: com.sedmelluq:jda-nas:1.1.0" level="project" />
+    <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer:1.3.34" level="project" />
     <orderEntry type="library" name="Gradle: com.rethinkdb:rethinkdb-driver:2.3.3" level="project" />
     <orderEntry type="library" name="Gradle: com.vdurmont:emoji-java:3.2.0" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-jre8:1.1.51" level="project" />
@@ -64,18 +66,18 @@
     <orderEntry type="library" name="Gradle: com.udojava:EvalEx:1.15" level="project" />
     <orderEntry type="library" name="Gradle: com.google.api-client:google-api-client:1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.code.findbugs:jsr305:3.0.2" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:16.0.1" level="project" />
     <orderEntry type="library" name="Gradle: org.slf4j:slf4j-api:1.7.25" level="project" />
-    <orderEntry type="library" name="Gradle: org.json:json:20160810" level="project" />
+    <orderEntry type="library" name="Gradle: com.neovisionaries:nv-websocket-client:2.9" level="project" />
+    <orderEntry type="library" name="Gradle: com.squareup.okhttp3:okhttp:3.13.0" level="project" />
+    <orderEntry type="library" name="Gradle: club.minnced:opus-java:pom:1.0.4" level="project" />
     <orderEntry type="library" name="Gradle: net.sf.trove4j:trove4j:3.0.3" level="project" />
-    <orderEntry type="library" name="Gradle: net.java.dev.jna:jna:4.4.0" level="project" />
-    <orderEntry type="library" name="Gradle: com.neovisionaries:nv-websocket-client:2.2" level="project" />
-    <orderEntry type="library" name="Gradle: com.squareup.okhttp3:okhttp:3.8.1" level="project" />
-    <orderEntry type="library" name="Gradle: com.sedmelluq:udp-queue:1.0.4" level="project" />
-    <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer-common:1.0.5" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpclient:4.5.2" level="project" />
-    <orderEntry type="library" name="Gradle: commons-io:commons-io:2.5" level="project" />
-    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.8.5" level="project" />
-    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.8.5" level="project" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.10.1" level="project" />
+    <orderEntry type="library" name="Gradle: com.sedmelluq:udp-queue:1.0.8" level="project" />
+    <orderEntry type="library" name="Gradle: com.sedmelluq:lava-common:1.1.0" level="project" />
+    <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer-natives:1.3.13" level="project" />
+    <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpclient:4.5.10" level="project" />
+    <orderEntry type="library" name="Gradle: commons-io:commons-io:2.6" level="project" />
     <orderEntry type="library" name="Gradle: net.iharder:base64:2.3.9" level="project" />
     <orderEntry type="library" name="Gradle: com.googlecode.json-simple:json-simple:1.1.1" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.1.51" level="project" />
@@ -92,13 +94,15 @@
     <orderEntry type="library" name="Gradle: com.google.code.findbugs:annotations:3.0.1" level="project" />
     <orderEntry type="library" name="Gradle: com.github.jasminb:jsonapi-converter:0.8" level="project" />
     <orderEntry type="library" name="Gradle: org.codehaus.groovy:groovy-all:2.5.0-beta-1" level="project" />
-    <orderEntry type="library" name="Gradle: commons-codec:commons-codec:1.9" level="project" />
     <orderEntry type="library" name="Gradle: com.google.oauth-client:google-oauth-client:1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.http-client:google-http-client-jackson2:1.22.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.guava:guava-jdk5:17.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpcore:4.4.4" level="project" />
+    <orderEntry type="library" name="Gradle: com.squareup.okio:okio:1.17.2" level="project" />
+    <orderEntry type="library" name="Gradle: club.minnced:opus-java-api:1.0.4" level="project" />
+    <orderEntry type="library" name="Gradle: club.minnced:opus-java-natives:1.0.4" level="project" />
+    <orderEntry type="library" name="Gradle: com.sedmelluq:lavaplayer-common:1.0.6" level="project" />
+    <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpcore:4.4.12" level="project" />
     <orderEntry type="library" name="Gradle: commons-logging:commons-logging:1.2" level="project" />
-    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-annotations:2.8.0" level="project" />
     <orderEntry type="library" name="Gradle: junit:junit:4.10" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-lang3:3.1" level="project" />
     <orderEntry type="library" name="Gradle: org.antlr:antlr4-runtime:4.5.1-1" level="project" />
@@ -109,9 +113,11 @@
     <orderEntry type="library" name="Gradle: net.jcip:jcip-annotations:1.0" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.retrofit2:retrofit:2.1.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.http-client:google-http-client:1.22.0" level="project" />
+    <orderEntry type="library" name="Gradle: net.java.dev.jna:jna:4.4.0" level="project" />
     <orderEntry type="library" name="Gradle: org.hamcrest:hamcrest-core:1.1" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpcore-nio:4.4.4" level="project" />
-    <orderEntry type="library" name="Gradle: org.jsoup:jsoup:1.10.3" level="project" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-annotations:2.10.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.jsoup:jsoup:1.12.1" level="project" />
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-http:9.4.4.v20170414" level="project" />
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-io:9.4.4.v20170414" level="project" />
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-xml:9.4.4.v20170414" level="project" />
@@ -123,7 +129,8 @@
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-security:9.4.4.v20170414" level="project" />
     <orderEntry type="library" name="Gradle: org.eclipse.jetty:jetty-client:9.4.4.v20170414" level="project" />
     <orderEntry type="library" name="Gradle: com.google.code.gson:gson:2.8.2" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0" level="project" />
-    <orderEntry type="library" name="Gradle: com.squareup.okio:okio:1.13.0" level="project" />
+    <orderEntry type="library" name="Gradle: commons-codec:commons-codec:1.11" level="project" />
+    <orderEntry type="library" name="Gradle: org.json:json:20160212" level="project" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.10.1" level="project" />
   </component>
 </module>

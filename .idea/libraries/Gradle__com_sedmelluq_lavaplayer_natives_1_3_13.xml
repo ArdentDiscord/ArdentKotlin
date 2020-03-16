@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.sedmelluq:lavaplayer-natives:1.3.13">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.sedmelluq/lavaplayer-natives/1.3.13/ddbbad9bca297cd4a0b3e8ca42a9659712004566/lavaplayer-natives-1.3.13.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.sedmelluq/lavaplayer-natives/1.3.13/2f664776fab7334ad045b3739286f882581867d5/lavaplayer-natives-1.3.13-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

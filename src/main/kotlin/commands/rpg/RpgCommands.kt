@@ -5,7 +5,7 @@ import events.Command
 import events.ExtensibleCommand
 import main.conn
 import main.r
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import translation.Language
 import translation.fromLangName
 import translation.toLanguage
@@ -37,7 +37,7 @@ class ProfileCommand : ExtensibleCommand(Category.RPG, "profile", "see and edit 
         else {
             val profiled = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
             val data = profiled.getData()
-            val embed = event.member.embed("${profiled.toFancyString()}'s Profile", event.textChannel)
+            val embed = event.member!!.embed("${profiled.toFancyString()}'s Profile", event.textChannel)
             embed.setThumbnail("https://robohash.org/${profiled.id}")
             if (profiled.isStaff()) embed.addField("Special Permissions", "Staff Member", true)
             else embed.addField("Patron Level", getPatronLevel(profiled.id)?.readable ?: "None", true)
@@ -121,7 +121,7 @@ class TopMoney : ExtensibleCommand(Category.RPG, "top", "see who has the most mo
         with("global", null, null, { arguments, event ->
             var page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
             if (page <= 0) page = 1
-            val embed = event.member.embed("Global Money Leaderboards | Page {0}".tr(event, page), event.textChannel)
+            val embed = event.member!!.embed("Global Money Leaderboards | Page {0}".tr(event, page), event.textChannel)
                     .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
             val builder = StringBuilder()
             val top = r.table("users").orderBy().optArg("index", r.desc("gold")).slice(((page - 1) * 10))
@@ -135,7 +135,7 @@ class TopMoney : ExtensibleCommand(Category.RPG, "top", "see who has the most mo
         })
         with("server", null, null, { arguments, event ->
             val page = if (arguments.size > 0) arguments[0].toIntOrNull() ?: 1 else 1
-            val embed = event.member.embed("{0}'s Money Leaderboards | Page {1}".tr(event, event.guild.name, page), event.textChannel)
+            val embed = event.member!!.embed("{0}'s Money Leaderboards | Page {1}".tr(event, event.guild.name, page), event.textChannel)
                     .setThumbnail("https://bitcoin.org/img/icons/opengraph.png")
             val builder = StringBuilder()
             val members = hashMapOf<String, Double>()

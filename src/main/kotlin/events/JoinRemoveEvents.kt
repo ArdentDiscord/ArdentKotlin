@@ -1,10 +1,10 @@
 package events
 
-import net.dv8tion.jda.core.events.guild.GuildJoinEvent
-import net.dv8tion.jda.core.events.guild.GuildLeaveEvent
-import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent
-import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent
-import net.dv8tion.jda.core.hooks.SubscribeEvent
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
+import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent
+import net.dv8tion.jda.api.hooks.SubscribeEvent
 import translation.tr
 import utils.discord.*
 import utils.functionality.Emoji
@@ -18,7 +18,7 @@ class JoinRemoveEvents {
         logChannel?.send("${Emoji.THUMBS_UP.symbol} Joined guild ${guild.name} - ${guild.members.size} members and ${guild.members.filter { it.user.isBot }.size} bots")
         try {
             val ch = guild.getTextChannelById(guild.id) ?: guild.defaultChannel ?: guild.textChannels[0]
-            ch.sendMessage(guild.owner.embed("Thanks for adding Ardent!", ch)
+            ch.sendMessage((guild.owner ?: guild.members[0]).embed("Thanks for adding Ardent!", ch)
                     .appendDescription("If you're new to Ardent, you can read our *Getting Started* page by clicking " +
                             "[here](https://ardentbot.com/getting-started) or see a list of available commands by typing **/help**").build())
                     .queueAfter(3, TimeUnit.SECONDS)
@@ -40,7 +40,7 @@ class JoinRemoveEvents {
         }
         val role = e.guild.getRoleById(data.roleSettings.defaultRole ?: "1") ?: return
         try {
-            e.guild.controller.addRolesToMember(e.member, role).reason("Default Role - Automatic Addition").queue()
+            e.guild.addRoleToMember(e.member, role).reason("Default Role - Automatic Addition").queue()
         } catch (ex: Exception) {
             e.user.openPrivateChannel().queue({ channel ->
                 channel.send(("Unable to give you the default role **{0}** in **{1}**. " +
@@ -65,7 +65,7 @@ fun onMemberLeave(e: GuildMemberLeaveEvent) {
 @SubscribeEvent
 fun onGuildLeave(e: GuildLeaveEvent) {
     val guild = e.guild
-    guild.owner.user.openPrivateChannel().queue {
+    guild.owner?.user?.openPrivateChannel()?.queue {
         it.send("We're very sad to see you leave ${Emoji.SLIGHTLY_FROWNING_FACE.symbol} If you had any issues that caused you to remove Ardent, you can always join https://discord.gg/sVkfYbX " +
                 "and we'd be happy to work with you")
     }

@@ -1,4 +1,4 @@
-/*package commands.games
+package commands.games/*package commands.games
 
 import main.conn
 import main.r

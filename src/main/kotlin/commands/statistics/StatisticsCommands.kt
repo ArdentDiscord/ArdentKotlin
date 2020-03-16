@@ -7,8 +7,6 @@ import events.Category
 import events.Command
 import events.ExtensibleCommand
 import main.*
-import net.dv8tion.jda.core.EmbedBuilder
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import translation.Language
 import translation.LanguageData
 import translation.tr
@@ -18,7 +16,7 @@ import utils.web.paste
 /*
 class MusicInfo : Command(Category.STATISTICS, "musicinfo", "see how many servers we're currently serving with music", "minfo") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val embed = event.member.embed("Ardent | Music Status".tr(event), event.textChannel)
+        val embed = event.member!!.embed("Ardent | Music Status".tr(event), event.textChannel)
         embed.setThumbnail("https://yt3.ggpht.com/-zK8v1xKkZtY/AAAAAAAAAAI/AAAAAAAAAAA/SmyGR2XCwXw/s900-c-k-no-mo-rj-c0xffffff/photo.jpg")
         var total = 0
         managers.forEachIndexed { index, id, manager ->
@@ -65,7 +63,7 @@ class ServerLanguagesDistribution : Command(Category.STATISTICS, "serverlangs", 
             }
         }
         langs = langs.sort(true) as HashMap<LanguageData, Int>
-        val embed = event.member.embed("Ardent | Server Language".tr(event))
+        val embed = event.member!!.embed("Ardent | Server Language".tr(event))
         langs.forEachIndexed { index, l, usages ->
             embed.appendDescription((if (index % 2 == 0) Emoji.SMALL_BLUE_DIAMOND else Emoji.SMALL_ORANGE_DIAMOND).symbol +
                     " **${l.readable}**: *$usages servers* (${"%.2f".format(usages * 100 / guilds.size.toFloat())}%)\n")
@@ -93,7 +91,7 @@ class CalculateCommand : Command(Category.STATISTICS, "calculate", "evaluate a m
 
 class ShardInfo : Command(Category.STATISTICS, "shards", "see specific detail about each Ardent shard", "shar", "shard") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        val embed = event.member.embed("Ardent | Shard Information")
+        val embed = event.member!!.embed("Ardent | Shard Information")
         jdas.forEach { jda ->
             embed.appendDescription("${Emoji.SMALL_BLUE_DIAMOND} __Shard **${jda.shardInfo.shardId}**__\n" +
                     "       Guilds: *${jda.guilds.size}*\n" +
@@ -116,7 +114,7 @@ class CommandDistribution : Command(Category.STATISTICS, "distribution", "see ho
                         r.table("commands").run<Any>(conn).queryAsArrayList(LoggedCommand::class.java).forEach { if (it != null) if (temp.containsKey(it.commandId)) temp.increment(it.commandId) else temp.put(it.commandId, 1) }
                         temp.sort(true)
                     }
-            val embed = event.member.embed((if (isOverall) "Ardent | Lifetime Command Distribution" else "Ardent | Current Session Command Distribution").tr(event))
+            val embed = event.member!!.embed((if (isOverall) "Ardent | Lifetime Command Distribution" else "Ardent | Current Session Command Distribution").tr(event))
             embed.setThumbnail("https://www.wired.com/wp-content/uploads/blogs/magazine/wp-content/images/18-05/st_thompson_statistics_f.jpg")
             var total = 0
             data.forEach { total += it.value }
@@ -157,7 +155,7 @@ class MutualGuilds : Command(Category.STATISTICS, "mutualguilds", "getWithIndex 
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
         val user = if (event.message.mentionedUsers.size == 0) event.author else event.message.mentionedUsers[0]
         if (user.id == "339101087569281045") event.channel.send("Nice try :-)".tr(event))
-        val embed = event.member.embed("Ardent | Mutual Servers with ${user.name}")
+        val embed = event.member!!.embed("Ardent | Mutual Servers with ${user.name}")
         mutualGuildsWith(user).forEachIndexed { index, guild ->
             if (embed.descriptionBuilder.length < 1900) embed.appendDescription("${(if (index % 2 == 0) Emoji.SMALL_ORANGE_DIAMOND else Emoji.SMALL_BLUE_DIAMOND).symbol} " +
                     "**${guild.name}** - *${guild.members.size}* members, *${guild.members.filter { it.user.isBot }.count() * 100 / guild.members.size}*% bots\n")
@@ -196,7 +194,7 @@ class AudioAnalysisCommand : ExtensibleCommand(Category.STATISTICS, "trackanalys
         try {
             val track = spotifyApi.search.searchTrack(trackName, 1).items[0]
             val features = spotifyApi.tracks.getAudioFeatures(track.id)
-            return event.member.embed("Audio Analysis | {0}".tr(event, track.name), event.textChannel)
+            return event.member!!.embed("Audio Analysis | {0}".tr(event, track.name), event.textChannel)
                     .addField("Acousticness", features.acousticness.times(100).format() + "%", true)
                     .addField("Energy", features.energy.times(100).format() + "%", true)
                     .addField("Liveness", features.liveness.times(100).format() + "%", true)

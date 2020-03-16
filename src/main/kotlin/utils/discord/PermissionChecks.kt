@@ -4,11 +4,11 @@ import commands.music.connect
 import commands.music.getAudioManager
 import main.conn
 import main.r
-import net.dv8tion.jda.core.Permission
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
-import net.dv8tion.jda.core.entities.User
+import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.User
 import translation.tr
 import utils.functionality.Emoji
 
@@ -32,7 +32,7 @@ fun Member.hasPermission(channel: TextChannel, musicCommand: Boolean = false, fa
     else {
         val data = guild.getData()
         if (!musicCommand) return false else {
-            if (data.musicSettings.canEveryoneUseAdminCommands || voiceState.inVoiceChannel() && guild.selfMember.voiceState.inVoiceChannel()) voiceState.channel.members.size == 2
+            if (data.musicSettings.canEveryoneUseAdminCommands || voiceState?.inVoiceChannel() == true && guild.selfMember.voiceState?.inVoiceChannel() == true) voiceState?.channel?.members?.size == 2
             else {
                 roles.forEach { role -> if (data.musicSettings.whitelistedRolesForAdminCommands.contains(role.id)) return true }
                 val manager = guild.getAudioManager(channel)
@@ -46,12 +46,12 @@ fun Member.hasPermission(channel: TextChannel, musicCommand: Boolean = false, fa
 
 
 fun Member.checkSameChannel(textChannel: TextChannel?, complain: Boolean = true): Boolean {
-    if (voiceState.channel == null) {
+    if (voiceState?.channel == null) {
         textChannel?.send("${Emoji.CROSS_MARK} " + "You need to be connected to a voice channel".tr(textChannel.guild))
         return false
     }
-    if (guild.selfMember.voiceState.channel != voiceState.channel) {
-        return voiceState.channel.connect(textChannel, complain)
+    if (guild.selfMember.voiceState?.channel != voiceState?.channel) {
+        return voiceState?.channel?.connect(textChannel, complain) == true
     }
     return true
 }

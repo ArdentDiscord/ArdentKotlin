@@ -4,8 +4,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import commands.music.*
 import main.conn
 import main.r
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.TextChannel
 import utils.functionality.asPojo
 
 data class DatabaseMusicLibrary(val id: String, var tracks: MutableList<DatabaseTrackObj>, var lastModified: Long = System.currentTimeMillis()) {

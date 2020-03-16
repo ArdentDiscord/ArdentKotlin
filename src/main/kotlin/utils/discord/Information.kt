@@ -1,11 +1,15 @@
 package utils.discord
 
 import commands.music.getAudioManager
-import main.*
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.Role
-import net.dv8tion.jda.core.entities.User
+import main.conn
+import main.factory
+import main.jdas
+import main.managers
+import main.r
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.Role
+import net.dv8tion.jda.api.entities.User
 import translation.Language
 import translation.LanguageData
 import translation.toLanguage
@@ -15,7 +19,8 @@ import utils.functionality.increment
 import utils.functionality.queryAsArrayList
 import utils.music.LocalTrackObj
 import java.lang.management.ManagementFactory
-import java.util.*
+import java.util.ArrayList
+import java.util.HashMap
 
 val internals: Internals
     get() = Internals()

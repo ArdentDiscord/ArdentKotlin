@@ -4,9 +4,9 @@ import main.beta
 import main.conn
 import main.r
 import main.test
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.TextChannel
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import utils.discord.getData
 import utils.discord.send
 import utils.functionality.insert
