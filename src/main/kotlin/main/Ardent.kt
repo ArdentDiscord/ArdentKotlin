@@ -92,7 +92,7 @@ fun main(args: Array<String>) {
 spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
     (1..shards).forEach { sh ->
         jdas.add(JDABuilder.create(config.getValue("token"), GatewayIntent.values().toList())
-                .setActivity(Activity.playing("BETA TESTING"))
+                .setActivity(Activity.playing("Play music with Ardent. /play"))
                 .addEventListeners(waiter, factory, JoinRemoveEvents(), VoiceUtils())
                 .setEventManager(AnnotatedEventManager())
               //  .useSharding(sh - 1, shards)

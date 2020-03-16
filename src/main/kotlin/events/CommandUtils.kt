@@ -38,7 +38,6 @@ class CommandFactory {
 
     @SubscribeEvent
     fun onMessageEvent(event: MessageReceivedEvent) {
-        println("${event.author} ${event.author.isBot} ${event.guild.name}: ${event.message.contentDisplay}")
         if (event.author.isBot || event.member == null) return
         messagesReceived.getAndIncrement()
         val data = event.guild.getData()
