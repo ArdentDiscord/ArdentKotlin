@@ -563,7 +563,7 @@ class Web {
 private fun startup() {
     if (!test) {
         port(443)
-        secure("/home/adamratzman/keystore.jks", "", null, null)
+        secure("/home/adamratzman/keystore.p12", "ardent", null, null)
     } else port(80)
     staticFiles.location("/public")
 }
