@@ -94,8 +94,9 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.properties.Delegates
 
-val test = true
+var test by Delegates.notNull<Boolean>()
 var beta = true
 
 var hangout: Guild? = null
@@ -127,7 +128,7 @@ val httpClient = OkHttpClient()
 
 fun main(args: Array<String>) {
     config = Config(args[0])
-    val test = args[1].toBoolean()
+    test = args[1].toBoolean()
     hostname = if (test) "http://localhost" else "https://ardentbot.com"
     loginRedirect = "$hostname/api/oauth/login"
 
