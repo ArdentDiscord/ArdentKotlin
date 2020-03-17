@@ -13,20 +13,47 @@ import obj.SimpleArtist
 import spark.ModelAndView
 import spark.Request
 import spark.Response
-import spark.Spark.*
+import spark.Spark.before
+import spark.Spark.get
+import spark.Spark.path
+import spark.Spark.port
+import spark.Spark.secure
+import spark.Spark.staticFiles
 import spark.template.handlebars.HandlebarsTemplateEngine
 import translation.Language
 import translation.toLanguage
-import utils.discord.*
-import utils.functionality.*
-import utils.music.*
+import utils.discord.Autorole
+import utils.discord.JoinMessage
+import utils.discord.LeaveMessage
+import utils.discord.getData
+import utils.discord.getGuildById
+import utils.discord.getMusicLibrary
+import utils.discord.getPlaylists
+import utils.discord.getRoleById
+import utils.discord.getTextChannelById
+import utils.discord.getUserById
+import utils.discord.internals
+import utils.discord.toFancyString
+import utils.functionality.concat
+import utils.functionality.genId
+import utils.functionality.insert
+import utils.functionality.loadExternally
+import utils.functionality.readableDate
+import utils.functionality.stringify
+import utils.functionality.toMinutesAndSeconds
+import utils.functionality.update
+import utils.music.DatabaseMusicLibrary
+import utils.music.DatabaseMusicPlaylist
+import utils.music.DatabaseTrackObj
+import utils.music.TrackDisplay
+import utils.music.getPlaylistById
 import web.CommandWrapper
 import web.identityObject
 import web.retrieveToken
 
 val handlebars = HandlebarsTemplateEngine()
 
-lateinit var loginRedirect:String
+lateinit var loginRedirect: String
 
 val redirects = hashMapOf<String, String>()
 
@@ -536,7 +563,7 @@ class Web {
 private fun startup() {
     if (!test) {
         port(443)
-
+        secure("/home/adamratzman/keystore.jks", "", null, null)
     } else port(80)
     staticFiles.location("/public")
 }
