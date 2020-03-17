@@ -4,6 +4,7 @@ import events.Category
 import events.Command
 import events.ExtensibleCommand
 import main.conn
+import main.hostname
 import main.r
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import translation.Language
@@ -47,7 +48,7 @@ class ProfileCommand : ExtensibleCommand(Category.RPG, "profile", "see and edit 
             embed.addField("Money", "**${data.gold}** gold", true)
             event.channel.send(embed)
 
-            event.channel.send("View this profile on our site at {0}".tr(event, "https://ardentbot.com/profile/${profiled.id}"))
+            event.channel.send("View this profile on our site at {0}".tr(event, "$hostname/profile/${profiled.id}"))
         }
     }
 

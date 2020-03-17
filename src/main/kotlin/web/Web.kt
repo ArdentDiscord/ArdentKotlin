@@ -26,7 +26,7 @@ import web.retrieveToken
 
 val handlebars = HandlebarsTemplateEngine()
 
-val loginRedirect = if (test) "http://localhost/api/oauth/login" else "https://ardentbot.com/api/oauth/login"
+lateinit var loginRedirect:String
 
 val redirects = hashMapOf<String, String>()
 
@@ -536,7 +536,7 @@ class Web {
 private fun startup() {
     if (!test) {
         port(443)
-        secure("/root/Ardent/ssl/keystore.p12", "mortimer5", null, null)
+
     } else port(80)
     staticFiles.location("/public")
 }

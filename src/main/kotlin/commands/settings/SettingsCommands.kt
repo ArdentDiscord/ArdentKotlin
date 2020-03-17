@@ -2,6 +2,7 @@ package commands.settings
 
 import events.Category
 import events.Command
+import main.hostname
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import translation.tr
 import utils.discord.getData
@@ -10,7 +11,7 @@ import utils.functionality.Emoji
 
 class Settings : Command(Category.SETTINGS, "settings", "administrate the settings for your server", "manage", "webpanel") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Visit our redesigned web panel for an easy way to manage your settings - {0}".tr(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
+        event.channel.send("Visit our redesigned web panel for an easy way to manage your settings - {0}".tr(event, "<$hostname/manage/${event.guild.id}>"))
     }
 }
 

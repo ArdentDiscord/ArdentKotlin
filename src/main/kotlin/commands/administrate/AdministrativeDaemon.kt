@@ -79,7 +79,7 @@ class AdministrativeDaemon : Runnable {
                 if (member == null) {
                     getUserById(id)!!.openPrivateChannel().queue {
                         it.send("Thanks for supporting Ardent, we appreciate it! Remember to join " +
-                                "our hangout @ <https://ardentbot.com/server> to give us feedback, suggestions, or just to say hi! ${Emoji.WAVING_HANDS.symbol}")
+                                "our hangout @ <$hostname/server> to give us feedback, suggestions, or just to say hi! ${Emoji.WAVING_HANDS.symbol}")
                     }
                 } else {
                     member.user.openPrivateChannel().queue { it.send("Registered your patronage ${Emoji.THUMBS_UP.symbol} - thanks for supporting us!") }

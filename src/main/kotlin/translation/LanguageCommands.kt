@@ -3,6 +3,7 @@ package translation
 import com.github.vbauer.yta.service.YTranslateApiImpl
 import events.Category
 import events.Command
+import main.hostname
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import utils.discord.embed
 import utils.discord.getData
@@ -50,14 +51,14 @@ class Translate : Command(Category.LANGUAGE, "translate", "translate text to the
 As follows are the data codes of some languages, but if you don't see the code for the data you want, go to {0} to view a full list.
 **English**: en, **French**: fr, **Spanish**: es, **Russian**: ru
 
-**Example**: *{0}translate en Bonjour tout le monde!* will return *Hello everyone!*""".tr(event, "<https://ardentbot.com/translation/languages>"))
+**Example**: *{0}translate en Bonjour tout le monde!* will return *Hello everyone!*""".tr(event, "<$hostname/translation/languages>"))
         } else {
             try {
                 val code = arguments[0]
                 arguments.removeAt(0)
                 event.channel.send(api.translationApi().translate(arguments.concat(), com.github.vbauer.yta.model.Language.of(code)).text()!!)
             } catch (e: Exception) {
-                event.channel.send("You need to include a valid data code! Please visit {0} for a guide".tr(event, "<https://ardentbot.com/translation/languages>"))
+                event.channel.send("You need to include a valid data code! Please visit {0} for a guide".tr(event, "<$hostname/translation/languages>"))
             }
         }
     }

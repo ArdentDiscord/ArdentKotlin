@@ -2,6 +2,7 @@ package commands.music
 
 import events.Category
 import events.Command
+import main.hostname
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import translation.tr
 import utils.discord.*
@@ -93,11 +94,11 @@ class Queue : Command(Category.MUSIC, "queue", "shows information about the curr
         val audioManager = event.guild.getAudioManager(event.textChannel)
         if (audioManager.manager.current == null) {
             embed.appendDescription(Emoji.INFORMATION_SOURCE.symbol + " " + "There aren't any currently playing tracks!".tr(event))
-            embed.appendDescription("\n\n" + "You can view the queue online by clicking [here]({0})".tr(event, "https://ardentbot.com/music/queue/${event.guild.id}"))
+            embed.appendDescription("\n\n" + "You can view the queue online by clicking [here]({0})".tr(event, "$hostname/music/queue/${event.guild.id}"))
         } else {
             if (audioManager.manager.queue.size == 0) {
                 embed.appendDescription("There are no songs in the queue!".tr(event))
-                embed.appendDescription("\n\n" + "You can view the queue online by clicking [here]({0})".tr(event, "https://ardentbot.com/music/queue/${event.guild.id}"))
+                embed.appendDescription("\n\n" + "You can view the queue online by clicking [here]({0})".tr(event, "$hostname/music/queue/${event.guild.id}"))
             }
             else {
                 var current = 1
@@ -105,7 +106,7 @@ class Queue : Command(Category.MUSIC, "queue", "shows information about the curr
                     embed.appendDescription("**$current**: " + it.getInfo(event.guild) + "\n")
                     current++
                 }
-                if (audioManager.manager.queue.size > 10) embed.appendDescription("View the entire queue by clicking [here]({0})".tr(event, "https://ardentbot.com/music/queue/${event.guild.id}"))
+                if (audioManager.manager.queue.size > 10) embed.appendDescription("View the entire queue by clicking [here]({0})".tr(event, "$hostname/music/queue/${event.guild.id}"))
             }
         }
         embed.send()

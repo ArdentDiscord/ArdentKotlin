@@ -6,6 +6,7 @@ import events.Category
 import events.Command
 import events.ExtensibleCommand
 import main.config
+import main.hostname
 import main.jdas
 import main.managers
 import net.dv8tion.jda.api.MessageBuilder
@@ -66,7 +67,7 @@ class Clear : Command(Category.ADMINISTRATE, "clear", "clear messages in the cha
 
 class Automessages : Command(Category.ADMINISTRATE, "joinmessage", "set join or leave messages for new or leaving members") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("You can manage **join** and **leave** messages on our web panel at {0}".tr(event, "<https://ardentbot.com/manage/${event.guild.id}>"))
+        event.channel.send("You can manage **join** and **leave** messages on our web panel at {0}".tr(event, "<$hostname/manage/${event.guild.id}>"))
     }
 }
 

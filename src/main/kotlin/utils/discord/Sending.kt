@@ -1,6 +1,7 @@
 package utils.discord
 
 import com.vdurmont.emoji.EmojiParser
+import main.hostname
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.ChannelType
@@ -12,7 +13,7 @@ import utils.functionality.random
 import java.awt.Color
 
 fun Member.embed(title: String, channel: MessageChannel, consumer: ((Message) -> Unit)? = null): EmbedWrapper {
-    return EmbedWrapper(channel, consumer).setAuthor(title, "https://ardentbot.com", guild.iconUrl)
+    return EmbedWrapper(channel, consumer).setAuthor(title, hostname, guild.iconUrl)
             .setColor(Color.getHSBColor(random.nextFloat(), random.nextFloat(), 1f))
             .setFooter("Ardent v2 | ardentbot.com".tr(guild), user.effectiveAvatarUrl) as EmbedWrapper
 

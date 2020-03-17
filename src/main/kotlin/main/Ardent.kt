@@ -13,13 +13,52 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager
-import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudDataReader
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
-import commands.`fun`.*
-import commands.administrate.*
-import commands.games.questions
-import commands.info.*
-import commands.music.*
+import commands.`fun`.EightBall
+import commands.`fun`.FML
+import commands.`fun`.IsStreaming
+import commands.`fun`.Meme
+import commands.`fun`.UnixFortune
+import commands.`fun`.UrbanDictionary
+import commands.administrate.AdministrativeDaemon
+import commands.administrate.AdministratorCommand
+import commands.administrate.Automessages
+import commands.administrate.Blacklist
+import commands.administrate.Clear
+import commands.administrate.GiveRoleToAll
+import commands.info.About
+import commands.info.Donate
+import commands.info.GetId
+import commands.info.Help
+import commands.info.IamCommand
+import commands.info.IamnotCommand
+import commands.info.Invite
+import commands.info.Ping
+import commands.info.RoleInfo
+import commands.info.ServerInfo
+import commands.info.Status
+import commands.info.Support
+import commands.info.UserInfo
+import commands.info.WebsiteCommand
+import commands.music.ClearQueue
+import commands.music.GoTo
+import commands.music.GuildMusicManager
+import commands.music.MyMusicLibrary
+import commands.music.Pause
+import commands.music.Play
+import commands.music.Playing
+import commands.music.Playlist
+import commands.music.Queue
+import commands.music.RemoveFrom
+import commands.music.Repeat
+import commands.music.Resume
+import commands.music.Skip
+import commands.music.SongUrl
+import commands.music.Volume
+import commands.music.connect
+import commands.music.getAudioManager
+import commands.music.load
+import commands.music.play
 import commands.rpg.Balance
 import commands.rpg.Daily
 import commands.rpg.ProfileCommand
@@ -29,7 +68,7 @@ import commands.settings.Settings
 import events.CommandFactory
 import events.JoinRemoveEvents
 import events.VoiceUtils
-import net.dv8tion.jda.api.AccountType
+import loginRedirect
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.entities.Activity
@@ -41,8 +80,13 @@ import org.apache.commons.io.IOUtils
 import translation.LanguageCommand
 import translation.Translate
 import translation.tr
-import utils.discord.*
-import utils.functionality.*
+import utils.discord.getGuildById
+import utils.discord.getTextChannelById
+import utils.discord.getVoiceChannelById
+import utils.discord.send
+import utils.functionality.EventWaiter
+import utils.functionality.logChannel
+import utils.functionality.queryAsArrayList
 import utils.music.LocalTrackObj
 import utils.music.ServerQueue
 import java.io.File
@@ -62,13 +106,14 @@ var conn: Connection? = null
 lateinit var config: Config
 
 var jdas = mutableListOf<JDA>()
-lateinit var waiter:EventWaiter
-lateinit var factory:CommandFactory
+lateinit var waiter: EventWaiter
+lateinit var factory: CommandFactory
 
 val playerManager = DefaultAudioPlayerManager()
 val managers = ConcurrentHashMap<Long, GuildMusicManager>()
 
-lateinit var spotifyApi:SpotifyAPI
+lateinit var spotifyApi: SpotifyAPI
+lateinit var hostname: String
 
 var transport: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
 var jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
@@ -82,20 +127,24 @@ val httpClient = OkHttpClient()
 
 fun main(args: Array<String>) {
     config = Config(args[0])
-   /* val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
-            .execute()
-    spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
-    */Web()
+    val test = args[1].toBoolean()
+    hostname = if (test) "http://localhost" else "https://ardentbot.com"
+    loginRedirect = "$hostname/api/oauth/login"
+
+    /* val spreadsheet = sheets.spreadsheets().values().get("1qm27kGVQ4BdYjvPSlF0zM64j7nkW4HXzALFNcan4fbs", "A2:D").setKey(config.getValue("google"))
+             .execute()
+     spreadsheet.getValues().forEach { if (it.getOrNull(1) != null && it.getOrNull(2) != null) questions.add(TriviaQuestion(it[1] as String, (it[2] as String).split("~"), it[0] as String, (it.getOrNull(3) as String?)?.toIntOrNull() ?: 125)) }
+     */Web()
 
     waiter = EventWaiter()
     factory = CommandFactory()
-spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
+    spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
     (1..shards).forEach { sh ->
         jdas.add(JDABuilder.create(config.getValue("token"), GatewayIntent.values().toList())
                 .setActivity(Activity.playing("Play music with Ardent. /play"))
                 .addEventListeners(waiter, factory, JoinRemoveEvents(), VoiceUtils())
                 .setEventManager(AnnotatedEventManager())
-              //  .useSharding(sh - 1, shards)
+                //  .useSharding(sh - 1, shards)
                 .setToken(config.getValue("token"))
                 .build())
     }
@@ -182,7 +231,7 @@ fun addCommands() {
     // factory.addCommands(BlackjackCommand(), Connect4Command(), BetCommand(), TriviaCommand(), TicTacToeCommand())
 
     // RPG Commands
-    factory.addCommands( TopMoney(), ProfileCommand(), Daily(), Balance())
+    factory.addCommands(TopMoney(), ProfileCommand(), Daily(), Balance())
 }
 
 fun checkQueueBackups() {
@@ -195,7 +244,7 @@ fun checkQueueBackups() {
             val manager = channel.guild.getAudioManager(textChannel)
             if (manager.channel != null) {
                 if (channel.guild.selfMember.voiceState?.channel != channel) channel.connect(textChannel)
-                textChannel.send(("**Restarting playback...**... Check out {0} for other cool features we offer in Ardent **Premium**").tr(channel.guild, "<https://ardentbot.com/premium>"))
+                textChannel.send(("**Restarting playback...**... Check out {0} for other cool features we offer in Ardent **Premium**").tr(channel.guild, "<$hostname/premium>"))
                 queue.tracks.forEach { trackUrl ->
                     trackUrl.load(channel.guild.selfMember, textChannel, { audioTrack, id ->
                         play(manager.channel, channel.guild.selfMember, LocalTrackObj(channel.guild.selfMember.user.id, channel.guild.selfMember.user.id, null, null, null, id, audioTrack))

@@ -4,6 +4,7 @@ import events.Category
 import events.Command
 import events.ExtensibleCommand
 import main.factory
+import main.hostname
 import net.dv8tion.jda.api.OnlineStatus
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import translation.tr
@@ -63,13 +64,13 @@ class Ping : Command(Category.BOT_INFO, "ping", "what did you think this command
 
 class Invite : Command(Category.BOT_INFO, "invite", "get Ardent's invite URL", "ardent") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("My invite link is {0} - have fun using Ardent!".tr(event, "<https://ardentbot.com/invite>"))
+        event.channel.send("My invite link is {0} - have fun using Ardent!".tr(event, "<$hostname/invite>"))
     }
 }
 
 class Donate : Command(Category.BOT_INFO, "donate", "learn how to support Ardent and get special perks for it!") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Want to support our work and obtain some perks along the way? Head to {0} to see the different ways you could help us out!".tr(event, "<https://ardentbot.com/patreon>"))
+        event.channel.send("Want to support our work and obtain some perks along the way? Head to {0} to see the different ways you could help us out!".tr(event, "<$hostname/patreon>"))
     }
 }
 
@@ -252,7 +253,7 @@ class RoleInfo : Command(Category.SERVER_INFO, "roleinfo", "view useful informat
 
 class WebsiteCommand : Command(Category.BOT_INFO, "website", "get the link for Ardent's cool website") {
     override fun executeBase(arguments: MutableList<String>, event: MessageReceivedEvent) {
-        event.channel.send("Check out our site @ {0}".tr(event, "<https://ardentbot.com>"))
+        event.channel.send("Check out our site @ {0}".tr(event, "<$hostname>"))
     }
 }
 
@@ -273,6 +274,6 @@ class Status : Command(Category.BOT_INFO, "status", "check realtime statistics a
                 .addField("Uptime".tr(event), internals.uptimeFancy, true)
                 .addField("Servers w/Ardent as only bot".tr(event), formatter.format(onlyBot) +
                         " (${(onlyBot * 100 / getAllGuilds().size.toFloat()).format()}%)", true)
-                .addField("Website".tr(event), "https://ardentbot.com", true))
+                .addField("Website".tr(event), hostname, true))
     }
 }

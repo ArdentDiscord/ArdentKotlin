@@ -21,7 +21,7 @@ class VoiceUtils {
                 if (!e.guild.getData().musicSettings.stayInChannel) {
                     e.guild.audioManager.closeAudioConnection()
                     e.guild.getAudioManager(null).channel?.send("Disconnected from **{0}** because I was left all alone :(".tr(e.guild, e.channelLeft.name))
-                    e.guild.getAudioManager(null).channel?.send("Do you need me to stay in this voice channel? You can enable it at {0}".tr(e.guild, "<https://ardentbot.com/manage/${e.guild.id}>"))
+                    e.guild.getAudioManager(null).channel?.send("Do you need me to stay in this voice channel? You can enable it at {0}".tr(e.guild, "<$hostname/manage/${e.guild.id}>"))
                     managers.remove(e.guild.idLong)
                 }
             }

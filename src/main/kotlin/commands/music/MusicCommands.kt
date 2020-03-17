@@ -3,6 +3,7 @@ package commands.music
 import events.Category
 import events.ExtensibleCommand
 import main.conn
+import main.hostname
 import main.r
 import main.waiter
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -33,7 +34,7 @@ class MyMusicLibrary : ExtensibleCommand(Category.MUSIC, "mylibrary", "reset, or
 
         with("play", null, "play from your personal music library", { arguments, event ->
             val library = getMusicLibrary(event.author.id)
-            if (library.tracks.size == 0) event.channel.send(Emoji.HEAVY_MULTIPLICATION_X.symbol + " " + "You don't have any tracks in your music library! Add some at {0}".tr(event, "https://ardentbot.com/profile/${event.author.id}"))
+            if (library.tracks.size == 0) event.channel.send(Emoji.HEAVY_MULTIPLICATION_X.symbol + " " + "You don't have any tracks in your music library! Add some at {0}".tr(event, "$hostname/profile/${event.author.id}"))
             else {
                 event.channel.send("Started loading **{0}** tracks from your music library..".tr(event, library.tracks.size))
                 library.load(event.member!!, event.textChannel)
@@ -66,7 +67,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
             else {
                 playlists.forEachIndexed { index, playlist ->
                     embed.appendDescription(index.getListEmoji() + " " +
-                            "[**{0}**](https://ardentbot.com/music/playlist/{1}) - ID: *{2}* - Last Modified at *{3}*"
+                            "[**{0}**]($hostname/music/playlist/{1}) - ID: *{2}* - Last Modified at *{3}*"
                                     .tr(event, playlist.name, playlist.id, playlist.id, playlist.lastModified.readableDate()) + "\n\n")
                 }
                 embed.appendDescription("You can play a playlist using */playlist play [playlist id]*")
@@ -78,7 +79,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
             val playlist: DatabaseMusicPlaylist? = asPojo(r.table("musicPlaylists").get(arguments.getOrElse(0, { "" })).run(conn), DatabaseMusicPlaylist::class.java)
             if (playlist == null) event.channel.send("You need to specify a valid playlist id!".tr(event))
             else {
-                event.channel.send("To see track information for, or modify **{0}** *by {1}*, go to {2} - id: *{3}*".tr(event, playlist.name, getUserById(playlist.owner)?.toFancyString() ?: "Unknown", "https://ardentbot.com/music/playlist/${playlist.id}", playlist.id))
+                event.channel.send("To see track information for, or modify **{0}** *by {1}*, go to {2} - id: *{3}*".tr(event, playlist.name, getUserById(playlist.owner)?.toFancyString() ?: "Unknown", "$hostname/music/playlist/${playlist.id}", playlist.id))
             }
         })
         with("delete", "delete [playlist id]", "delete one of your playlists", { arguments, event ->
@@ -110,7 +111,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                             val playlist = DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
                                     null, null, null, tracks = mutableListOf())
                             playlist.insert("musicPlaylists")
-                            event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${playlist.id}"))
+                            event.channel.send("View this playlist online at {0}".tr(event, "$hostname/music/playlist/${playlist.id}"))
                         }
                         1 -> {
                             event.channel.send("Please enter in a Spotify playlist or album url now")
@@ -135,21 +136,21 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                                 }
                                 if (playlist != null) {
                                     playlist.insert("musicPlaylists")
-                                    event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${playlist.id}"))
+                                    event.channel.send("View this playlist online at {0}".tr(event, "$hostname/music/playlist/${playlist.id}"))
                                 }
                             })
                         }
                         2 -> {
                             event.channel.send("Please enter in an Ardent playlist id or url")
                             waiter.waitForMessage(Settings(event.author.id, event.channel.id, event.guild.id), { reply ->
-                                val url = reply.contentRaw.replace("https://ardentbot.com/music/playlist/", "")
+                                val url = reply.contentRaw.replace("$hostname/music/playlist/", "")
                                 val playlist = getPlaylistById(url)
                                 if (playlist == null) event.channel.send("You specified an invalid playlist. Please try again")
                                 else {
                                     val newPlaylist = playlist.copy(id = genId(8, "musicPlaylists"), name = name, owner = event.author.id)
                                     newPlaylist.insert("musicPlaylists")
                                     event.channel.send("Successfully cloned **{0}**!".tr(event, playlist.name))
-                                    event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${newPlaylist.id}"))
+                                    event.channel.send("View this playlist online at {0}".tr(event, "$hostname/music/playlist/${newPlaylist.id}"))
                                 }
                             })
                         }
@@ -162,7 +163,7 @@ class Playlist : ExtensibleCommand(Category.MUSIC, "playlist", "create, delete, 
                                     val playlist = DatabaseMusicPlaylist(genId(6, "musicPlaylists"), event.author.id, name, System.currentTimeMillis(),
                                             null, null, url, tracks = mutableListOf())
                                     playlist.insert("musicPlaylists")
-                                    event.channel.send("View this playlist online at {0}".tr(event, "https://ardentbot.com/music/playlist/${playlist.id}"))
+                                    event.channel.send("View this playlist online at {0}".tr(event, "$hostname/music/playlist/${playlist.id}"))
                                 } else {
                                     event.channel.send("You specified an invalid url. Cancelled playlist setup.".tr(event))
                                 }

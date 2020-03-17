@@ -1,5 +1,6 @@
 package events
 
+import main.hostname
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
@@ -20,7 +21,7 @@ class JoinRemoveEvents {
             val ch = guild.getTextChannelById(guild.id) ?: guild.defaultChannel ?: guild.textChannels[0]
             ch.sendMessage((guild.owner ?: guild.members[0]).embed("Thanks for adding Ardent!", ch)
                     .appendDescription("If you're new to Ardent, you can read our *Getting Started* page by clicking " +
-                            "[here](https://ardentbot.com/getting-started) or see a list of available commands by typing **/help**").build())
+                            "[here]($hostname/getting-started) or see a list of available commands by typing **/help**").build())
                     .queueAfter(3, TimeUnit.SECONDS)
         } catch (ignored: Exception) {
         }
