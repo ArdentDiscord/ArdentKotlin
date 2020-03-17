@@ -1,6 +1,7 @@
 package events
 
 import commands.music.getAudioManager
+import main.hostname
 import main.managers
 import main.waiter
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceJoinEvent
