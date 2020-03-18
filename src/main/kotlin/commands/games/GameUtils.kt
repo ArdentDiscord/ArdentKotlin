@@ -1,9 +1,20 @@
-package commands.games/*package commands.games
-
+package commands.games
+/*
 import main.conn
 import main.r
-import net.dv8tion.jda.core.entities.*
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.User
+import translation.tr
 import utils.*
+import utils.discord.embed
+import utils.discord.getData
+import utils.discord.send
+import utils.discord.toFancyString
+import utils.discord.toUser
+import utils.discord.toUsers
 import utils.functionality.Emoji
 import utils.functionality.toMinutesAndSeconds
 import utils.functionality.insert
@@ -18,7 +29,7 @@ val gamesInLobby = ConcurrentLinkedQueue<Game>()
 val activeGames = ConcurrentLinkedQueue<Game>()
 
 
-/**
+/*
  * Abstracted Game features, providing standardized methods for cleanup, startup, and lobbies.
  * @param creator Discord user ID of the user creating the game
  * @param isPublic Should this game be treated as public? (will prompt lobby setup)
@@ -65,12 +76,13 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
     private fun displayLobby(): Message? {
         val prefix = channel.guild.getPrefix()
         val member = channel.guild.selfMember
-        val embed = member.embed("${type.readable} Game Lobby", Color.ORANGE)
+        val embed = member.embed("${type.readable} Game Lobby", channel)
+                .setColor(Color.ORANGE)
                 .setFooter("Ardent Game Engine By Adam#9261".tr(channel.guild), member.user.avatarUrl)
                 .setDescription("This lobby has been active for {0}".tr(channel.guild, ((System.currentTimeMillis() - creation) / 1000).toMinutesAndSeconds()) + "\n" +
                         "It currently has **{0}** of **{1}** players required to start | {2}".tr(channel.guild, players.size, playerCount, players.toUsers()) + "\n" +
                         "To start, the host can also type *{0}forcestart*".tr(channel.guild, prefix) + "\n\n" +
-                        "This game was created by __{0}__".tr(channel.guild, creator.toUser()?.withDiscrim() ?: "unable to determine"))
+                        "This game was created by __{0}__".tr(channel.guild, creator.toUser()?.toFancyString() ?: "unable to determine"))
         var me: Message? = null
         channel.sendMessage(embed.build()).queue { m ->
             channel.send("Join by typing **${prefix}join #$gameId**\n" +
@@ -111,7 +123,7 @@ abstract class Game(val type: GameType, val channel: TextChannel, val creator: S
         if (gamesInLobby.contains(this) || activeGames.contains(this)) {
             gamesInLobby.remove(this)
             activeGames.remove(this)
-            if (complain) channel.send("**{0}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(".tr(channel.guild, user.withDiscrim()))
+            if (complain) channel.send("**{0}** cancelled this game (likely due to no response) or the lobby was open for over 5 minutes ;(".tr(channel.guild, user.toFancyString()))
             scheduledExecutor.shutdownNow()
         }
     }
@@ -233,4 +245,7 @@ class GameDataTrivia(gameId: Long, creator: String, startTime: Long, val winner:
 }
 
 abstract class GameData(var id: Long? = null, val creator: String, val startTime: Long, val endTime: Long = System.currentTimeMillis())
-*/
+
+fun Guild.getPrefix() = getData().prefixSettings.prefix
+
+fun String.remove(s: String) = replace(s, "")*/

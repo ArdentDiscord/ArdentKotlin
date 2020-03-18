@@ -1,3 +1,4 @@
+import com.adamratzman.spotify.models.SimpleArtist
 import com.github.jknack.handlebars.Handlebars
 import com.github.jknack.handlebars.Options
 import commands.music.getAudioManager
@@ -9,7 +10,6 @@ import main.spotifyApi
 import main.test
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.User
-import obj.SimpleArtist
 import spark.ModelAndView
 import spark.Request
 import spark.Response
@@ -23,6 +23,7 @@ import spark.template.handlebars.HandlebarsTemplateEngine
 import translation.Language
 import translation.toLanguage
 import utils.discord.Autorole
+import utils.discord.Internals
 import utils.discord.JoinMessage
 import utils.discord.LeaveMessage
 import utils.discord.getData
@@ -74,7 +75,7 @@ class Web {
         startup()
         registerHandlebarHelpers()
 
-        get("/api/oauth/login", { request, response ->
+        get("/api/oauth/login") { request, response ->
             if (request.queryParams("code") == null) {
                 webRedirect(request, response, "/login")
                 null
@@ -98,8 +99,8 @@ class Web {
                     null
                 }
             }
-        })
-        get("/login", { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") })
+        }
+        get("/login") { _, response -> response.redirect("https://discordapp.com/oauth2/authorize?scope=identify&client_id=${jdas[0].selfUser.id}&response_type=code&redirect_uri=$loginRedirect") }
         get("/", { request, response ->
             val map = request.getDefaultMap(response, "Home")
             ModelAndView(map, "index.hbs")
@@ -110,11 +111,27 @@ class Web {
             map.put("arePeoplePlayingMusic", internals.loadedMusicPlayers > 0)
             ModelAndView(map, "status.hbs")
         }, handlebars)
+get("/invite") { _, response ->
+    response.redirect("https://discordapp.com/oauth2/authorize?client_id=339101087569281045&permissions=8&redirect_uri=https%3A%2F%2Fardentbot.com%2Fwelcome&scope=bot")
+}
+        get("/support") { _, response ->
+            response.redirect("https://discord.gg/VebBB5z")
+        }
+        get("/hub") { _, response ->
+            response.redirect("https://discord.gg/VebBB5z")
+        }
+        get("/patreon") { _, response ->
+            response.redirect("https://www.patreon.com/ardent")
+        }
+        get("/github") { _, response ->
+            response.redirect("https://github.com/ArdentDiscord/Ardent-2018")
+        }
+
 
         // Commands
-        path("/commands", {
+        path("/commands") {
             get("", { request, response -> webRedirect(request, response, "/commands/") })
-            get("/*", { request, response ->
+            get("/*") { request, response ->
                 val map = request.getDefaultMap(response, "Commands")
                 when {
                     request.splat().isEmpty() -> {
@@ -129,14 +146,14 @@ class Web {
                     request.splat()[0] == "translate" -> handlebars.render(ModelAndView(map, "languages.hbs"))
                     else -> null
                 }
-            })
-        })
+            }
+        }
 
 
         // Profiles
-        path("/profile", {
-            get("", { _, response -> response.redirect("/profile/") })
-            get("/*", { request, response ->
+        path("/profile") {
+            get("") { _, response -> response.redirect("/profile/") }
+            get("/*") { request, response ->
                 val map = request.getDefaultMap(response, "Profiles")
                 if (request.splat().isEmpty() && map["user"] == null) webRedirect(request, response, "/login", "/profile")
                 else {
@@ -163,13 +180,18 @@ class Web {
                     map.put("gold", data.gold)
                     handlebars.render(ModelAndView(map, "profile.hbs"))
                 }
-            })
-        })
+            }
+        }
+        
+        // GAMES PATH
 
+
+
+ 
         // Music
-        path("/music", {
+        path("/music") {
             // Server queues
-            get("/queue/*", { request, response ->
+            get("/queue/*") { request, response ->
                 val map = request.getDefaultMap(response, "Playlists")
                 if (request.splat().isEmpty()) webRedirect(request, response, "/")
                 else {
@@ -188,9 +210,9 @@ class Web {
                         handlebars.render(ModelAndView(map, "queue.hbs"))
                     }
                 }
-            })
+            }
             // Playlists
-            path("/playlist", {
+            path("/playlist") {
                 get("/*", { request, response ->
                     val map = request.getDefaultMap(response, "Playlists")
                     if (request.splat().isEmpty()) webRedirect(request, response, "/")
@@ -203,25 +225,25 @@ class Web {
                             map.put("ownerUser", getUserById(playlist.owner))
                             when {
                                 playlist.spotifyAlbumId != null -> {
-                                    val album = spotifyApi.albums.getAlbum(playlist.spotifyAlbumId!!)
+                                    val album = spotifyApi.albums.getAlbum(playlist.spotifyAlbumId!!).complete()
                                     if (album != null) {
                                         map.put("albumTitle", album.name)
                                         map.put("albumTracks", album.tracks.items)
                                         map.put("albumArtists", album.artists.map { it.name }.stringify())
                                         map.put("albumLink", "https://open.spotify.com/album/${album.id}")
-                                        map.put("albumInfo", "<b>${album.tracks.items.map { it.duration_ms }.sum().toLong().toMinutesAndSeconds()}</b> | <b>${album.tracks.total}</b> tracks")
+                                        map.put("albumInfo", "<b>${album.tracks.items.map { it!!.durationMs }.sum().toLong().toMinutesAndSeconds()}</b> | <b>${album.tracks.total}</b> tracks")
                                     }
                                 }
                                 playlist.spotifyPlaylistId != null -> {
                                     val split = playlist.spotifyPlaylistId.split("||")
-                                    val foundPlaylist = spotifyApi.playlists.getPlaylist(split[0], split[1])
+                                    val foundPlaylist = spotifyApi.playlists.getPlaylist(split[0]).complete()
                                     if (foundPlaylist != null) {
                                         map.put("playlistLink", "https://open.spotify.com/user/${foundPlaylist.owner.id}/playlist/${foundPlaylist.id}")
-                                        map.put("playlistTitle", foundPlaylist.name)
+                                        map["playlistTitle"] = foundPlaylist.name
                                         map.put("playlistOwner", foundPlaylist.owner)
                                         map.put("playlistDescription", foundPlaylist.description)
                                         map.put("playlistTracks", foundPlaylist.tracks.items.map { it.track })
-                                        map.put("playlistInfo", "<b>${foundPlaylist.tracks.items.map { it.track.duration_ms }.sum().toLong().toMinutesAndSeconds()}</b> | <b>${foundPlaylist.tracks.total}</b> tracks")
+                                        map.put("playlistInfo", "<b>${foundPlaylist.tracks.items.map { it.track!!.durationMs }.sum().toLong().toMinutesAndSeconds()}</b> | <b>${foundPlaylist.tracks.total}</b> tracks")
                                     }
                                 }
                             }
@@ -233,11 +255,34 @@ class Web {
                     }
                 })
 
-            })
-        })
+            }
+        }
+
+        // Getting Started
+        get("/getting-started", { request, response ->
+            val map = request.getDefaultMap(response, "Getting Started")
+            map["showSnackbar"] = false
+            map["internals"] = Internals()
+            ModelAndView(map, "getting-started.hbs")
+        }, handlebars)
 
 
-        path("/manage", {
+        get("/guides/identifier", { request, response ->
+            val map = request.getDefaultMap(response, "Fi")
+            ModelAndView(map, "findid.hbs")
+        }, handlebars)
+        
+        get("/fail", { request, response ->
+            val map = request.getDefaultMap(response, "No Permission")
+            ModelAndView(map, "fail.hbs")
+        }, handlebars)
+
+        get("/welcome", { request, response ->
+            val map = request.getDefaultMap(response, "Welcome to Ardent!")
+            ModelAndView(map, "welcome.hbs")
+        }, handlebars)
+
+        path("/manage") {
             get("", { request, response -> webRedirect(request, response, "/manage/") })
             before("/*", { request, response ->
                 val map = request.getDefaultMap(response, "Manage Settings")
@@ -272,11 +317,11 @@ class Web {
                     }
                 }
             }, handlebars)
-        })
+        }
 
 
 
-        get("/accept", { request, response ->
+        get("/accept") { request, response ->
             val map = request.getDefaultMap(response, "Submitting GET")
             val name = request.queryParams("name")
             var redirectUrl = request.queryParams("webRedirect")
@@ -555,7 +600,7 @@ class Web {
                 }
             }
             webRedirect(request, response, redirectUrl ?: "/")
-        })
+        }
 
     }
 }
@@ -593,3 +638,171 @@ fun Request.getDefaultMap(response: Response, title: String): HashMap<Any, Any?>
     }
     return map
 }
+
+
+/*
+        path("/games") {
+
+            // RECENT GAMES
+            get("/recent") { request, response ->
+                val map = request.getDefaultMap(response, "Recent Games")
+                val games = mutableListOf<Pair<GameType, GameData>>()
+                register.database.getBettingGames().forEach { games.add(GameType.BETTING to it) }
+                register.database.getSlotsGames().forEach { games.add(GameType.SLOTS to it) }
+                register.database.getBlackjackGames().forEach { games.add(GameType.BLACKJACK to it) }
+                register.database.getTriviaGames().forEach { games.add(GameType.TRIVIA to it) }
+                register.database.getTicTacToeGames().forEach { games.add(GameType.TIC_TAC_TOE to it) }
+                register.database.getConnect4Games().forEach { games.add(GameType.CONNECT_4 to it) }
+
+                games.sortByDescending { it.second.endTime }
+                map["total"] = games.size
+                games.removeIf { it.second.creator.toUser(register) == null }
+                map["recentGames"] = games.map {
+                    SanitizedGame(it.second.creator.toUser(register)?.display()
+                            ?: "Unknown", it.second.endTime.localeDate(), it.first.readable, "https://ardentbot.com/games/${it.first.readable.toLowerCase()}/${it.second.id}")
+                }.take(30)
+                handlebars.render(ModelAndView(map, "recentgames.hbs"))
+            }
+
+            // GAME RESULTS
+            get("/*/*", { request, response ->
+                val map = request.getDefaultMap(response, "")
+                when (request.splat()[0]) {
+                    "guess_the_number" -> {
+                        map["title"] = "Guess The Number"
+                        ModelAndView(map, "guessthenumber.hbs")
+                    }
+                    "blackjack" -> {
+                        val id = request.splat()[1].toDoubleOrNull()?.toInt() ?: 999999999
+                        val game = register.database.get("BlackjackData", id)?.let { asPojo(it as HashMap<*, *>, GameDataBlackjack::class.java) }
+                        if (game == null) {
+                            map["showSnackbar"] = true
+                            map["snackbarMessage"] = "No game with that id was found!"
+                            map["title"] = "Gamemode not found"
+                            ModelAndView(map, "404.hbs")
+                        } else {
+                            val user = game.creator.toUser(register)
+                            map["title"] = "Blackjack Game #$id"
+                            map["game"] = game
+                            map["idLong"] = (game.id as Double).toLong()
+                            map["user"] = user
+                            map["date"] = game.startTime.localeDate()
+                            map["data"] = user?.getData(register)
+                            ModelAndView(map, "blackjack.hbs")
+                        }
+                    }
+                    "slots" -> {
+                        val id = request.splat()[1].toDoubleOrNull()?.toInt() ?: 999999999
+                        val game = register.database.get("SlotsData", id)?.let { asPojo(it as HashMap<*, *>, GameDataSlots::class.java) }
+                        if (game == null) {
+                            map["showSnackbar"] = true
+                            map["snackbarMessage"] = "No game with that id was found!"
+                            map["title"] = "Gamemode not found"
+                            ModelAndView(map, "404.hbs")
+                        } else {
+                            val user = game.creator.toUser(register)
+                            map["title"] = "Slots Game #$id"
+                            map["game"] = game
+                            map["idLong"] = (game.id as Double).toLong()
+                            map["user"] = user
+                            map["date"] = game.startTime.localeDate()
+                            map["data"] = user?.getData(register)
+                            ModelAndView(map, "slots.hbs")
+                        }
+                    }
+                    "connect_4" -> {
+                        val id = request.splat()[1].toDoubleOrNull()?.toInt() ?: 999999999
+                        val game = register.database.get("Connect_4Data", id)?.let { asPojo(it as HashMap<*, *>, GameDataConnect4::class.java) }
+                        if (game == null) {
+                            map["showSnackbar"] = true
+                            map["snackbarMessage"] = "No game with that id was found!"
+                            map["title"] = "Gamemode not found"
+                            ModelAndView(map, "404.hbs")
+                        } else {
+                            val user = game.creator.toUser(register)
+                            map["title"] = "Connect 4 Game #$id"
+                            map["game"] = game
+                            map["board"] = game.game.replace("\n", "<br />").replace("⚪", "◯")
+                            map["winner"] = game.winner.toUser(register)
+                            map["loser"] = game.loser.toUser(register)
+                            map["user"] = user
+                            map["idLong"] = (game.id as Double).toLong()
+                            map["date"] = game.startTime.localeDate()
+                            map["data"] = user?.getData(register)
+                            ModelAndView(map, "connect_4.hbs")
+                        }
+                    }
+                    "tic_tac_toe" -> {
+                        val id = request.splat()[1].toDoubleOrNull()?.toInt() ?: 999999999
+                        val game = register.database.get("Tic_Tac_ToeData", id)?.let { asPojo(it as HashMap<*, *>, GameDataTicTacToe::class.java) }
+                        if (game == null) {
+                            map["showSnackbar"] = true
+                            map["snackbarMessage"] = "No game with that id was found!"
+                            map["title"] = "Gamemode not found"
+                            ModelAndView(map, "404.hbs")
+                        } else {
+                            map["title"] = "Tic Tac Toe Game #$id"
+                            map["game"] = game
+                            map["user"] = game.creator.toUser(register)
+                            map["board"] = game.game.replace("\n", "<br />")
+                            if (game.winner == null) {
+                                map["hasWinner"] = false
+                                map["player1"] = game.playerOne.toUser(register)
+                                map["player2"] = game.playerTwo.toUser(register)
+                            } else {
+                                map["hasWinner"] = true
+                                map["winner"] = game.winner.toUser(register)
+                                map["loser"] = (if (game.winner != game.playerOne) game.playerOne else game.playerTwo).toUser(register)
+                            }
+                            map["idLong"] = (game.id as Double).toLong()
+                            map["date"] = game.startTime.localeDate()
+                            ModelAndView(map, "tic_tac_toe.hbs")
+                        }
+                    }
+                    "trivia" -> {
+                        val id = request.splat()[1].toDoubleOrNull()?.toInt() ?: 999999999
+                        val game = register.database.get("TriviaData", id)?.let { asPojo(it as HashMap<*, *>, GameDataTrivia::class.java) }
+                        if (game == null) {
+                            map["showSnackbar"] = true
+                            map["snackbarMessage"] = "No game with that id was found!"
+                            map["title"] = "Gamemode not found"
+                            ModelAndView(map, "404.hbs")
+                        } else {
+                            val user = game.creator.toUser(register)
+                            map["title"] = "Trivia Game #$id"
+                            map["game"] = game.sanitize(register)
+                            map["user"] = user
+                            map["idLong"] = (game.id as Double).toLong()
+                            map["date"] = game.startTime.localeDate()
+                            map["data"] = user?.getData(register)
+                            ModelAndView(map, "trivia.hbs")
+                        }
+                    }
+                    "betting" -> {
+                        val id = request.splat()[1].toDoubleOrNull()?.toInt() ?: 999999999
+                        val game = register.database.get("BettingData", id)?.let { asPojo(it as HashMap<*, *>, GameDataBetting::class.java) }
+                        if (game == null) {
+                            map["showSnackbar"] = true
+                            map["snackbarMessage"] = "No game with that id was found!"
+                            map["title"] = "Gamemode not found"
+                            ModelAndView(map, "404.hbs")
+                        } else {
+                            val creator = game.creator.toUser(register)
+                            map["title"] = "Betting Game #$id"
+                            map["idLong"] = (game.id as Double).toLong()
+                            map["game"] = game
+                            map["user"] = creator
+                            map["date"] = game.startTime.localeDate()
+                            ModelAndView(map, "betting.hbs")
+                        }
+                    }
+                    else -> {
+                        map["showSnackbar"] = true
+                        map["snackbarMessage"] = "No Gamemode with that title was found!"
+                        map["title"] = "Gamemode not found"
+                        ModelAndView(map, "404.hbs")
+                    }
+                }
+            }, handlebars)
+        }
+ */

@@ -67,6 +67,8 @@ fun getUserById(id: String?): User? {
     return null
 }
 
+fun String.toUser() = getUserById(this)
+
 fun List<String>.toUsers(): String {
     return map { getUserById(it)?.toFancyString() ?: "Unknown" }.stringify()
 }

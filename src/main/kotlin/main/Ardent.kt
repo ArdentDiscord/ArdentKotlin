@@ -1,6 +1,8 @@
 package main
 
 import Web
+import com.adamratzman.spotify.SpotifyApi
+import com.adamratzman.spotify.SpotifyAppApi
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.HttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
@@ -113,7 +115,7 @@ lateinit var factory: CommandFactory
 val playerManager = DefaultAudioPlayerManager()
 val managers = ConcurrentHashMap<Long, GuildMusicManager>()
 
-lateinit var spotifyApi: SpotifyAPI
+lateinit var spotifyApi: SpotifyAppApi
 lateinit var hostname: String
 
 var transport: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
@@ -128,7 +130,7 @@ val httpClient = OkHttpClient()
 
 fun main(args: Array<String>) {
     config = Config(args[0])
-    test = args[1].toBoolean()
+    test = config.getValue("test").toBoolean()
     hostname = if (test) "http://localhost" else "https://ardentbot.com"
     loginRedirect = "$hostname/api/oauth/login"
 
@@ -139,7 +141,7 @@ fun main(args: Array<String>) {
 
     waiter = EventWaiter()
     factory = CommandFactory()
-    spotifyApi = SpotifyAPI.Builder("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
+    spotifyApi = SpotifyApi.spotifyAppApi("79d455af5aea45c094c5cea04d167ac1", config.getValue("spotifySecret")).build()
     (1..shards).forEach { sh ->
         jdas.add(JDABuilder.create(config.getValue("token"), GatewayIntent.values().toList())
                 .setActivity(Activity.playing("Play music with Ardent. /play"))

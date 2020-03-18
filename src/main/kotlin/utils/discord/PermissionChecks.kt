@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.entities.TextChannel
 import net.dv8tion.jda.api.entities.User
 import translation.tr
 import utils.functionality.Emoji
+import utils.functionality.queryAsArrayList
 
 fun Guild.checkCurrentlyPlaying(channel: TextChannel): Boolean {
     if (getAudioManager(channel).manager.current != null) return true
@@ -24,7 +25,7 @@ fun Member.hasRole(vararg searchRoles: String): Boolean {
 }
 
 fun User.isStaff(): Boolean {
-    return r.table("staff").filter { r.hashMap("id", id) }.run<Any>(conn) != null
+    return r.table("staff").run<Any>(conn).queryAsArrayList(StaffMember::class.java).any { it?.id == id }
 }
 
 fun Member.hasPermission(channel: TextChannel, musicCommand: Boolean = false, failQuietly: Boolean = false): Boolean {

@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.adamratzman:spotify-api-kotlin:3.0.01">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.adamratzman/spotify-api-kotlin/3.0.01/81b41afcaf9966baf6442963244be848221e75f6/spotify-api-kotlin-3.0.01.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.adamratzman/spotify-api-kotlin/3.0.01/2871882f06a65359eaabc9b9aec20eed204e9ed2/spotify-api-kotlin-3.0.01-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -8,7 +8,6 @@ import com.mb3364.twitch.api.models.Stream
 import events.Category
 import events.Command
 import main.config
-import main.gson
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import org.json.JSONObject
 import org.jsoup.Jsoup

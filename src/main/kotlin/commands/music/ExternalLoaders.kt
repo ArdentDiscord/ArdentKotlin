@@ -39,9 +39,9 @@ val DEFAULT_YOUTUBE_PLAYLIST_LOAD_HANDLER: (Member, TextChannel, AudioPlaylist, 
 
 fun String.load(member: Member, channel: TextChannel, consumerFoundTrack: ((AudioTrack, String?) -> Unit)? = null) {
     when {
-        this.startsWith("https://open.spotify.com/album/") -> loadSpotifyAlbum(member, channel, consumerFoundTrack = consumerFoundTrack)
-        this.startsWith("https://open.spotify.com/track/") -> loadSpotifyTrack(member, channel, consumerFoundTrack = consumerFoundTrack)
-        this.startsWith("https://open.spotify.com/user/") -> loadSpotifyPlaylist(member, channel, consumerFoundTrack = consumerFoundTrack)
+        this.startsWith("https://open.spotify.com/album/") -> split("?")[0].loadSpotifyAlbum(member, channel, consumerFoundTrack = consumerFoundTrack)
+        this.startsWith("https://open.spotify.com/track/") -> split("?")[0].loadSpotifyTrack(member, channel, consumerFoundTrack = consumerFoundTrack)
+        this.startsWith("https://open.spotify.com/") -> split("?")[0].loadSpotifyPlaylist(member, channel, consumerFoundTrack = consumerFoundTrack)
         else -> {
             if (consumerFoundTrack == null) loadYoutube(member, channel)
             else loadYoutube(member, channel, consumer = { consumerFoundTrack?.invoke(it, null) })
@@ -113,7 +113,7 @@ fun String.loadYoutube(member: Member, channel: TextChannel, musicPlaylist: Data
 
 fun String.loadSpotifyTrack(member: Member, channel: TextChannel, musicPlaylist: DatabaseMusicPlaylist? = null, consumerFoundTrack: ((AudioTrack, String) -> Unit)? = null) {
     try {
-        val track = spotifyApi.tracks.getTrack(this.removePrefix("https://open.spotify.com/track/"))
+        val track = spotifyApi.tracks.getTrack(this.removePrefix("https://open.spotify.com/track/")).complete()
         track?.name?.getSingleTrack(member, channel, { _, _, loaded ->
             consumerFoundTrack?.invoke(loaded, track.id) ?: DEFAULT_TRACK_LOAD_HANDLER(member, channel, loaded, false,
                     musicPlaylist, null, null, track.id)
@@ -127,7 +127,7 @@ fun String.loadSpotifyTrack(member: Member, channel: TextChannel, musicPlaylist:
 fun String.loadSpotifyAlbum(member: Member, channel: TextChannel, musicPlaylist: DatabaseMusicPlaylist? = null, consumerFoundTrack: ((AudioTrack, String) -> Unit)? = null) {
     val albumId = removePrefix("https://open.spotify.com/album/")
     try {
-        val album = spotifyApi.albums.getAlbum(albumId)!!
+        val album = spotifyApi.albums.getAlbum(albumId).complete()!!
         channel.send("Beginning track loading from Spotify album **{0}**... This could take a few minutes!".tr(channel.guild, album.name))
         album.tracks.items.forEach { track ->
             "${track.name} ${track.artists[0].name}"
@@ -144,19 +144,18 @@ fun String.loadSpotifyAlbum(member: Member, channel: TextChannel, musicPlaylist:
 
 
 fun String.loadSpotifyPlaylist(member: Member, channel: TextChannel, musicPlaylist: DatabaseMusicPlaylist? = null, consumerFoundTrack: ((AudioTrack, String) -> (Unit))? = null) {
-    val split = removePrefix("https://open.spotify.com/user/").split("/playlist/")
-    val user = split.getOrNull(0)
-    val playlistId = split.getOrNull(1)
-    if (user == null || playlistId == null) channel.send("You provided an invalid Spotify playlist url!".tr(channel.guild))
+    val split = removePrefix("https://open.spotify.com").split("/playlist/")
+    val playlistId = split.getOrNull(0)
+    if (playlistId == null) channel.send("You provided an invalid Spotify playlist url!".tr(channel.guild))
     else {
         try {
-            val playlist = spotifyApi.playlists.getPlaylist(user, playlistId)!!
+            val playlist = spotifyApi.playlists.getPlaylist(playlistId).complete()!!
             channel.sendMessage("Beginning track loading from Spotify playlist **{0}**... This could take a few minutes!".tr(channel.guild, playlist.name))
             playlist.tracks.items.forEach { track ->
-                "${track.track.name} ${track.track.artists[0].name}"
+                "${track.track!!.name} ${track.track!!.artists[0].name}"
                         .getSingleTrack(member, channel, { _, _, loaded ->
-                            consumerFoundTrack?.invoke(loaded, track.track.id) ?: DEFAULT_TRACK_LOAD_HANDLER(member, channel, loaded, false,
-                                    musicPlaylist, playlist.id, null, track.track.id)
+                            consumerFoundTrack?.invoke(loaded, track.track!!.id) ?: DEFAULT_TRACK_LOAD_HANDLER(member, channel, loaded, false,
+                                    musicPlaylist, playlist.id, null, track.track!!.id)
                         }, true)
 
             }

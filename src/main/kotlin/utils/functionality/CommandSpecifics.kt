@@ -1,5 +1,5 @@
 package utils.functionality
-
+/*
 import commands.games.questions
 import java.util.*
 
@@ -14,5 +14,6 @@ fun getTriviaQuestions(number: Int): List<TriviaQuestion> {
     }
     return list
 }
+*/
 
 data class Reminder(val owner: String, val setAt: Long = System.currentTimeMillis(), val message: String, val expiresAt: Long)

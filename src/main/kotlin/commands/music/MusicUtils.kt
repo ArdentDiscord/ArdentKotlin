@@ -1,5 +1,6 @@
 package commands.music
 
+import com.adamratzman.spotify.models.SimpleTrack
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter
@@ -16,7 +17,6 @@ import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.TextChannel
 import net.dv8tion.jda.api.entities.VoiceChannel
-import obj.SimpleTrack
 import translation.tr
 import utils.discord.*
 import utils.functionality.Emoji
@@ -124,27 +124,27 @@ class TrackScheduler(val guildMusicManager: GuildMusicManager, val guild: Guild)
                     && guild.getData().musicSettings.autoplay && guild.selfMember.voiceState?.channel != null) {
                 try {
                     val current = guildMusicManager.manager.current!!
-                    val recommendation: SimpleTrack = when {
+                    val recommendation = when {
                         current.spotifyTrackId != null -> {
-                            val spotifyTrack = spotifyApi.tracks.getTrack(current.spotifyTrackId)!!
+                            val spotifyTrack = spotifyApi.tracks.getTrack(current.spotifyTrackId).complete()!!
                             spotifyApi.browse.getRecommendations(seedTracks = listOf(spotifyTrack.id), seedArtists = spotifyTrack.artists.map { it.id })
                         }
                         current.spotifyAlbumId != null -> {
-                            val album = spotifyApi.albums.getAlbum(current.spotifyAlbumId)!!
+                            val album = spotifyApi.albums.getAlbum(current.spotifyAlbumId).complete()!!
                             spotifyApi.browse.getRecommendations(seedArtists = album.artists.map { it.id }, seedGenres = album.genres)
                         }
                         current.spotifyPlaylistId != null -> {
                             val split = current.spotifyPlaylistId.split(" :: ")
-                            val spotifyPlaylist = spotifyApi.playlists.getPlaylist(split[0], split[1])!!
-                            spotifyApi.browse.getRecommendations(seedTracks = spotifyPlaylist.tracks.items.limit(10).map { it.track.id })
+                            val spotifyPlaylist = spotifyApi.playlists.getPlaylist(split[0]).complete()!!
+                            spotifyApi.browse.getRecommendations(seedTracks = spotifyPlaylist.tracks.items.limit(10).map { it.track!!.id })
                         }
                         else -> {
                             val tempTrack = spotifyApi.search.searchTrack("${track.info.title} " +
                                     if (track.info.author.contains("official", true)
-                                            || track.info.author.contains("vevo", true)) track.info.author else "").items[0]
+                                            || track.info.author.contains("vevo", true)) track.info.author else "").complete().items[0]
                             spotifyApi.browse.getRecommendations(seedTracks = listOf(tempTrack.id), seedArtists = tempTrack.artists.map { it.id })
                         }
-                    }.tracks[0]
+                    }.complete().tracks[0]
                     val channel = guildMusicManager.channel ?: guild.defaultChannel ?: guild.textChannels[0]
                     "https://open.spotify.com/track/${recommendation.id}"
                             .loadSpotifyTrack(guild.selfMember, channel, consumerFoundTrack = { audioTrack, trackId ->
